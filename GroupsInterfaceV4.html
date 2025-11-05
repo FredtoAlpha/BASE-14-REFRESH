@@ -12,10 +12,20 @@ const GroupsInterfaceV4 = (function() {
   const state = {
     scenario: null,        // 'besoins' | 'lv2' | 'options'
     mode: null,           // 'heterogeneous' | 'homogeneous'
+    selectedLanguage: null, // 'ESP' | 'ITA' | 'ALL' | 'CHI' | 'ARA' | etc.
+    availableLanguages: [], // [{ lang: 'ESP', count: 45 }, ...]
     regroupements: [],    // Liste des regroupements configurés
     currentResults: null, // Résultats de la génération en cours
     timeline: [],         // Historique des actions
-    carouselIndex: 0      // Index du carrousel de groupes
+    carouselIndex: 0,     // Index du carrousel de groupes
+
+    // État du dashboard de swap
+    swapDashboard: {
+      currentRegroupementIndex: 0,  // Index du regroupement affiché
+      allRegroupements: [],          // Tous les regroupements générés
+      statsVisible: false,           // Panneau statistiques visible
+      sidebarCollapsed: false        // Panneau latéral rétracté
+    }
   };
 
   /**
@@ -108,6 +118,19 @@ const GroupsInterfaceV4 = (function() {
                     Groupes de niveaux similaires
                   </div>
                 </button>
+              </div>
+            </div>
+
+            <!-- Sélection de la langue LV2 -->
+            <div id="language-section" style="display: none; margin-bottom: 32px;">
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #374151;">
+                <i class="fas fa-language"></i> Langue à regrouper
+              </h3>
+              <div id="language-buttons" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- Les langues seront insérées ici dynamiquement -->
+              </div>
+              <div style="margin-top: 8px; font-size: 12px; color: #6b7280;">
+                <i class="fas fa-info-circle"></i> <span id="language-info">Sélectionnez une langue</span>
               </div>
             </div>
 
@@ -238,8 +261,11 @@ const GroupsInterfaceV4 = (function() {
               <div style="margin-bottom: 8px;">
                 <strong>Scénario :</strong> <span id="recap-scenario">-</span>
               </div>
-              <div>
+              <div style="margin-bottom: 8px;">
                 <strong>Mode :</strong> <span id="recap-mode">-</span>
+              </div>
+              <div id="recap-language-row" style="display: none;">
+                <strong>Langue :</strong> <span id="recap-language">-</span>
               </div>
             </div>
 
@@ -363,6 +389,16 @@ const GroupsInterfaceV4 = (function() {
     const modeSection = document.getElementById('mode-section');
     if (modeSection) modeSection.style.display = 'block';
 
+    // Si scénario LV2, afficher le sélecteur de langue
+    if (scenario === 'lv2') {
+      displayLanguageSelection();
+    } else {
+      // Masquer la section langue pour les autres scénarios
+      const languageSection = document.getElementById('language-section');
+      if (languageSection) languageSection.style.display = 'none';
+      state.selectedLanguage = null;
+    }
+
     // Mettre à jour le récapitulatif
     updateRecap();
 
@@ -446,6 +482,133 @@ const GroupsInterfaceV4 = (function() {
     section.style.display = 'block';
 
     console.log(`✅ ${classes.length} classe(s) détectée(s):`, classes);
+  }
+
+  /**
+   * Détecte les langues LV2 disponibles depuis les données
+   */
+  function detectAvailableLanguages() {
+    if (!window.STATE || !window.STATE.students) {
+      console.warn('⚠️ STATE.students non disponible pour détecter les langues');
+      return [];
+    }
+
+    // Compter les élèves par langue
+    const languageCounts = {};
+
+    Object.values(window.STATE.students).forEach(student => {
+      const lang = (student.lv2 || student.LV2 || 'ESP').toUpperCase();
+      languageCounts[lang] = (languageCounts[lang] || 0) + 1;
+    });
+
+    // Convertir en tableau
+    const languages = Object.entries(languageCounts).map(([lang, count]) => ({
+      lang,
+      count
+    }));
+
+    // Trier par nombre d'élèves décroissant
+    languages.sort((a, b) => b.count - a.count);
+
+    console.log('🌍 Langues détectées:', languages);
+    return languages;
+  }
+
+  /**
+   * Affiche le sélecteur de langues
+   */
+  function displayLanguageSelection() {
+    const section = document.getElementById('language-section');
+    const buttonsContainer = document.getElementById('language-buttons');
+    const infoSpan = document.getElementById('language-info');
+
+    if (!section || !buttonsContainer || !infoSpan) return;
+
+    // Détecter les langues disponibles
+    state.availableLanguages = detectAvailableLanguages();
+
+    if (state.availableLanguages.length === 0) {
+      buttonsContainer.innerHTML = '<p style="color: #ef4444; font-size: 13px;">Aucune langue détectée</p>';
+      section.style.display = 'block';
+      return;
+    }
+
+    // Afficher les langues sous forme de boutons
+    buttonsContainer.innerHTML = state.availableLanguages.map(({ lang, count }) => {
+      const langNames = {
+        'ESP': 'Espagnol 🇪🇸',
+        'ITA': 'Italien 🇮🇹',
+        'ALL': 'Allemand 🇩🇪',
+        'CHI': 'Chinois 🇨🇳',
+        'ARA': 'Arabe 🇦🇪'
+      };
+      const displayName = langNames[lang] || `${lang} 🌍`;
+
+      return `
+        <button class="language-btn" data-language="${lang}" style="
+          padding: 12px 16px;
+          border: 2px solid ${state.selectedLanguage === lang ? '#8b5cf6' : '#e5e7eb'};
+          border-radius: 8px;
+          background: ${state.selectedLanguage === lang ? '#f3e8ff' : 'white'};
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.2s;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        ">
+          <span style="font-weight: ${state.selectedLanguage === lang ? '600' : '400'};">
+            ${displayName}
+          </span>
+          <span style="
+            padding: 2px 8px;
+            background: #dbeafe;
+            color: #1e40af;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+          ">
+            ${count}
+          </span>
+        </button>
+      `;
+    }).join('');
+
+    // Mettre à jour le texte d'info
+    if (state.selectedLanguage) {
+      const selectedLang = state.availableLanguages.find(l => l.lang === state.selectedLanguage);
+      if (selectedLang) {
+        infoSpan.textContent = `${selectedLang.count} élève(s) en ${state.selectedLanguage}`;
+      }
+    } else {
+      infoSpan.textContent = 'Sélectionnez une langue';
+    }
+
+    // Afficher la section
+    section.style.display = 'block';
+
+    // Attacher les événements
+    document.querySelectorAll('.language-btn').forEach(btn => {
+      btn.addEventListener('click', () => selectLanguage(btn.dataset.language));
+    });
+  }
+
+  /**
+   * Sélectionne une langue
+   */
+  function selectLanguage(language) {
+    state.selectedLanguage = language;
+
+    // Mettre à jour l'UI
+    displayLanguageSelection();
+
+    // Mettre à jour le récapitulatif
+    updateRecap();
+
+    // Ajouter à la timeline
+    addToTimeline(`Langue "${language}" sélectionnée`);
+
+    console.log('✅ Langue sélectionnée:', language);
   }
 
   /**
@@ -705,6 +868,12 @@ const GroupsInterfaceV4 = (function() {
       return;
     }
 
+    // Pour LV2, vérifier qu'une langue est sélectionnée
+    if (state.scenario === 'lv2' && !state.selectedLanguage) {
+      alert('Veuillez sélectionner une langue pour le scénario LV2');
+      return;
+    }
+
     if (state.regroupements.length === 0) {
       alert('Veuillez ajouter au moins un regroupement');
       return;
@@ -715,6 +884,7 @@ const GroupsInterfaceV4 = (function() {
       detail: {
         scenario: state.scenario,
         mode: state.mode,
+        selectedLanguage: state.selectedLanguage, // Ajout de la langue sélectionnée
         regroupements: state.regroupements
       }
     });
@@ -743,6 +913,8 @@ const GroupsInterfaceV4 = (function() {
   function updateRecap() {
     const recapScenario = document.getElementById('recap-scenario');
     const recapMode = document.getElementById('recap-mode');
+    const recapLanguageRow = document.getElementById('recap-language-row');
+    const recapLanguage = document.getElementById('recap-language');
 
     if (recapScenario) {
       recapScenario.textContent = state.scenario || '-';
@@ -750,6 +922,16 @@ const GroupsInterfaceV4 = (function() {
 
     if (recapMode) {
       recapMode.textContent = state.mode || '-';
+    }
+
+    // Afficher la langue si scénario LV2
+    if (recapLanguageRow && recapLanguage) {
+      if (state.scenario === 'lv2') {
+        recapLanguageRow.style.display = 'block';
+        recapLanguage.textContent = state.selectedLanguage || '-';
+      } else {
+        recapLanguageRow.style.display = 'none';
+      }
     }
   }
 
@@ -809,7 +991,7 @@ const GroupsInterfaceV4 = (function() {
   }
 
   /**
-   * Ouvre l'interface de swap
+   * Ouvre l'interface de swap - DASHBOARD MODERNE
    */
   function openSwapInterface() {
     if (!state.currentResults || !state.currentResults.groups) {
@@ -817,155 +999,1032 @@ const GroupsInterfaceV4 = (function() {
       return;
     }
 
-    // Créer le modal de swap
-    const modal = document.createElement('div');
-    modal.id = 'swap-interface-modal';
-    modal.style.cssText = `
+    // Organiser les groupes par regroupement
+    organizeGroupsByRegroupement();
+
+    if (state.swapDashboard.allRegroupements.length === 0) {
+      alert('Aucun regroupement disponible.');
+      return;
+    }
+
+    // Créer le dashboard plein écran
+    const dashboard = document.createElement('div');
+    dashboard.id = 'swap-dashboard';
+    dashboard.style.cssText = `
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
+      background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
       z-index: 10000;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      flex-direction: column;
+      overflow: hidden;
     `;
 
-    const content = document.createElement('div');
-    content.style.cssText = `
-      background: white;
-      border-radius: 16px;
-      padding: 32px;
-      max-width: 95vw;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    `;
+    dashboard.innerHTML = `
+      <!-- Bouton fermeture (coin supérieur droit) -->
+      <button id="close-dashboard" style="
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 10001;
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        transition: all 0.2s;
+      " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        <i class="fas fa-times"></i> Fermer
+      </button>
 
-    // Construire le contenu
-    content.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h2 style="font-size: 24px; font-weight: 700; margin: 0; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-          <i class="fas fa-exchange-alt"></i> Interface de Swap
-        </h2>
-        <button id="close-swap-modal" style="
-          background: none;
-          border: none;
-          font-size: 24px;
-          cursor: pointer;
-          color: #9ca3af;
-          transition: color 0.2s;
-        " onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#9ca3af'">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-      <div style="margin-bottom: 24px; padding: 16px; background: linear-gradient(135deg, #eff6ff 0%, #f3e8ff 100%); border-radius: 12px; border-left: 4px solid #8b5cf6;">
-        <p style="margin: 0; font-size: 14px; color: #4c1d95;">
-          <i class="fas fa-info-circle"></i> Glissez-déposez les élèves entre les groupes pour les réorganiser
-        </p>
-      </div>
-
-      <div id="swap-groups-container" style="
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
+      <!-- EN-TÊTE 3 ZONES -->
+      <div style="
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
+        padding: 20px 24px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       ">
-        ${renderSwapGroups(state.currentResults.groups)}
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; max-width: 100%; margin: 0 auto;">
+
+          <!-- ZONE GAUCHE : CAGLE & APPC -->
+          <div style="flex: 1; display: flex; gap: 12px; align-items: center;">
+            <button id="btn-toggle-stats" style="
+              padding: 10px 18px;
+              background: ${state.swapDashboard.statsVisible ? '#3b82f6' : 'rgba(255, 255, 255, 0.2)'};
+              color: white;
+              border: 1px solid rgba(255, 255, 255, 0.3);
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 600;
+              transition: all 0.2s;
+            ">
+              <i class="fas fa-chart-bar"></i> Statistiques
+            </button>
+            <button id="btn-regenerate" style="
+              padding: 10px 18px;
+              background: rgba(255, 255, 255, 0.2);
+              color: white;
+              border: 1px solid rgba(255, 255, 255, 0.3);
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 600;
+              transition: all 0.2s;
+            ">
+              <i class="fas fa-sync-alt"></i> Régénérer
+            </button>
+          </div>
+
+          <!-- ZONE CENTRE : NAVIGATION REGROUPEMENTS + SAUVEGARDES -->
+          <div style="flex: 2; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <!-- Navigation regroupements -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button id="btn-prev-regroupement" style="
+                background: rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 16px;
+                transition: all 0.2s;
+              " ${state.swapDashboard.currentRegroupementIndex === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                <i class="fas fa-chevron-left"></i>
+              </button>
+
+              <div style="
+                background: rgba(255, 255, 255, 0.95);
+                color: #6366f1;
+                padding: 10px 24px;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 700;
+                min-width: 220px;
+                text-align: center;
+              ">
+                <span id="regroupement-name">Regroupement 1</span>
+                <span style="font-size: 13px; font-weight: 400; color: #9ca3af; margin-left: 8px;">
+                  (<span id="regroupement-counter">1</span> / ${state.swapDashboard.allRegroupements.length})
+                </span>
+              </div>
+
+              <button id="btn-next-regroupement" style="
+                background: rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 16px;
+                transition: all 0.2s;
+              " ${state.swapDashboard.currentRegroupementIndex === state.swapDashboard.allRegroupements.length - 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+
+            <!-- Boutons sauvegardes -->
+            <div style="display: flex; gap: 10px;">
+              <button id="btn-load" style="
+                padding: 8px 16px;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 500;
+                transition: all 0.2s;
+              ">
+                <i class="fas fa-folder-open"></i> Charger
+              </button>
+              <button id="btn-save-temp" style="
+                padding: 8px 16px;
+                background: #f97316;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 600;
+                box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+                transition: all 0.2s;
+              ">
+                <i class="fas fa-save"></i> Sauver TEMP
+              </button>
+              <button id="btn-finalize" style="
+                padding: 8px 16px;
+                background: #10b981;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 600;
+                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+                transition: all 0.2s;
+              ">
+                <i class="fas fa-check-circle"></i> Finaliser
+              </button>
+            </div>
+          </div>
+
+          <!-- ZONE DROITE : EXPORTS -->
+          <div style="flex: 1; display: flex; gap: 12px; justify-content: flex-end; align-items: center;">
+            <button id="btn-export-pdf" style="
+              padding: 10px 18px;
+              background: rgba(255, 255, 255, 0.2);
+              color: white;
+              border: 1px solid rgba(255, 255, 255, 0.3);
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 600;
+              transition: all 0.2s;
+            ">
+              <i class="fas fa-file-pdf"></i> Export PDF
+            </button>
+            <button id="btn-export-csv" style="
+              padding: 10px 18px;
+              background: rgba(255, 255, 255, 0.2);
+              color: white;
+              border: 1px solid rgba(255, 255, 255, 0.3);
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 600;
+              transition: all 0.2s;
+            ">
+              <i class="fas fa-file-csv"></i> Export CSV
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- CONTENU PRINCIPAL -->
+      <div style="
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+      ">
+        <!-- Panneau statistiques (superposé, gauche) -->
+        <div id="stats-panel" style="
+          position: absolute;
+          top: 0;
+          left: ${state.swapDashboard.statsVisible ? '0' : '-350px'};
+          width: 350px;
+          height: 100%;
+          background: white;
+          box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1);
+          overflow-y: auto;
+          transition: left 0.3s ease;
+          z-index: 100;
+          padding: 24px;
+        ">
+          <h3 style="
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0 0 20px 0;
+            color: #6366f1;
+            border-bottom: 2px solid #8b5cf6;
+            padding-bottom: 12px;
+          ">
+            <i class="fas fa-chart-pie"></i> Statistiques Globales
+          </h3>
+          <div id="stats-panel-content"></div>
+        </div>
+
+        <!-- Zone groupes (centre) -->
+        <div id="groups-zone" style="
+          flex: 1;
+          overflow-x: auto;
+          overflow-y: auto;
+          padding: 24px;
+        ">
+          <div id="swap-groups-container" style="
+            display: flex;
+            gap: 20px;
+            min-width: min-content;
+          "></div>
+        </div>
+
+        <!-- Panneau latéral droit (statistiques distribution) -->
+        <div id="sidebar-panel" style="
+          width: ${state.swapDashboard.sidebarCollapsed ? '60px' : '320px'};
+          background: white;
+          border-left: 2px solid #e5e7eb;
+          overflow-y: auto;
+          transition: width 0.3s ease;
+          padding: ${state.swapDashboard.sidebarCollapsed ? '16px 8px' : '24px'};
+        ">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="
+              font-size: ${state.swapDashboard.sidebarCollapsed ? '0' : '16px'};
+              font-weight: 700;
+              color: #6366f1;
+              margin: 0;
+              white-space: nowrap;
+              overflow: hidden;
+            ">
+              <i class="fas fa-chart-line"></i> Distribution des scores
+            </h3>
+            <button id="btn-toggle-sidebar" style="
+              background: #f3f4f6;
+              border: 1px solid #e5e7eb;
+              padding: 6px 10px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 14px;
+              color: #6b7280;
+            ">
+              <i class="fas fa-chevron-${state.swapDashboard.sidebarCollapsed ? 'left' : 'right'}"></i>
+            </button>
+          </div>
+          <div id="sidebar-content" style="display: ${state.swapDashboard.sidebarCollapsed ? 'none' : 'block'};"></div>
+        </div>
       </div>
     `;
 
-    modal.appendChild(content);
-    document.body.appendChild(modal);
+    document.body.appendChild(dashboard);
 
-    // Fermer le modal
-    document.getElementById('close-swap-modal').addEventListener('click', () => {
-      modal.remove();
-    });
+    // Initialiser le contenu
+    renderCurrentRegroupement();
+    updateStatsPanel();
+    updateSidebarPanel();
+    attachDashboardEvents();
 
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.remove();
-      }
-    });
-
-    console.log('✅ Interface de swap ouverte');
+    console.log('✅ Dashboard de swap ouvert');
   }
 
   /**
-   * Rendu des groupes dans l'interface de swap
+   * Rendu des groupes dans l'interface de swap - NOUVEAU DESIGN
    */
   function renderSwapGroups(groups) {
-    return groups.map((group, groupIndex) => `
-      <div class="swap-group" data-group-index="${groupIndex}" style="
-        background: white;
-        border: 2px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 16px;
-        transition: all 0.2s;
-      ">
-        <h3 style="
-          font-size: 16px;
-          font-weight: 700;
-          margin: 0 0 16px 0;
-          padding-bottom: 12px;
-          border-bottom: 2px solid #8b5cf6;
-          color: #6366f1;
+    return groups.map((group, groupIndex) => {
+      // Calculer les statistiques du groupe
+      const total = group.students.length;
+      const girls = group.students.filter(s => s.sexe === 'F').length;
+      const boys = total - girls;
+
+      // Moyenne générale (scoreF + scoreM) / 2
+      const avgScore = total > 0
+        ? (group.students.reduce((sum, s) => sum + ((parseFloat(s.scoreF) || 0) + (parseFloat(s.scoreM) || 0)) / 2, 0) / total).toFixed(1)
+        : '0.0';
+
+      return `
+        <div class="swap-group" data-group-index="${groupIndex}" style="
+          background: white;
+          border: 2px solid #e5e7eb;
+          border-radius: 12px;
+          min-width: 300px;
+          flex-shrink: 0;
+          transition: all 0.2s;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         ">
-          ${group.name}
-          <span style="font-size: 12px; font-weight: 400; color: #6b7280; margin-left: 8px;">
-            (${group.students.length} élèves)
-          </span>
-        </h3>
-        <div class="swap-students-list" data-group-index="${groupIndex}" style="
-          min-height: 100px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        ">
-          ${group.students.map((student, studentIndex) => `
-            <div
-              class="swap-student-card"
-              draggable="true"
-              data-group-index="${groupIndex}"
-              data-student-index="${studentIndex}"
-              data-student-id="${student.id}"
-              style="
-                padding: 10px 12px;
-                background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-                cursor: move;
-                font-size: 13px;
-                transition: all 0.2s;
-              "
-              onmouseover="this.style.borderColor='#8b5cf6'; this.style.boxShadow='0 2px 8px rgba(139, 92, 246, 0.2)'"
-              onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'"
-            >
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-grip-vertical" style="color: #9ca3af;"></i>
-                <span style="font-weight: 600; color: #374151;">
-                  ${student.lastName} ${student.firstName}
-                </span>
-                ${student.class ? `
-                  <span style="
-                    font-size: 11px;
-                    padding: 2px 6px;
-                    background: #dbeafe;
-                    color: #1e40af;
-                    border-radius: 4px;
-                    margin-left: auto;
-                  ">${student.class}</span>
-                ` : ''}
-              </div>
+          <!-- EN-TÊTE DU GROUPE -->
+          <div style="
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 10px 10px 0 0;
+          ">
+            <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">
+              ${group.name}
             </div>
-          `).join('')}
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+              <span>
+                <i class="fas fa-users"></i> ${total} élève${total > 1 ? 's' : ''}
+              </span>
+              <span>
+                <i class="fas fa-venus" style="color: #fbbf24;"></i> ${girls}F /
+                <i class="fas fa-mars" style="color: #60a5fa;"></i> ${boys}M
+              </span>
+              <span style="
+                background: rgba(255, 255, 255, 0.2);
+                padding: 4px 10px;
+                border-radius: 6px;
+                font-weight: 600;
+              ">
+                Moy ${avgScore}
+              </span>
+            </div>
+          </div>
+
+          <!-- LISTE DES ÉLÈVES -->
+          <div class="swap-students-list" data-group-index="${groupIndex}" style="
+            padding: 12px;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          ">
+            ${group.students.length === 0 ? `
+              <div style="
+                padding: 24px;
+                text-align: center;
+                color: #9ca3af;
+                font-size: 13px;
+                border: 2px dashed #e5e7eb;
+                border-radius: 8px;
+              ">
+                <i class="fas fa-inbox"></i><br>
+                Aucun élève
+              </div>
+            ` : group.students.map((student, studentIndex) => {
+              const isCOM1 = (student.com || 0) === 1;
+              const scoreF = parseFloat(student.scoreF) || 0;
+              const scoreM = parseFloat(student.scoreM) || 0;
+              const genderIcon = student.sexe === 'F'
+                ? '<i class="fas fa-circle" style="color: #ec4899;"></i>'
+                : '<i class="fas fa-circle" style="color: #3b82f6;"></i>';
+
+              return `
+                <div
+                  class="swap-student-card"
+                  draggable="true"
+                  data-group-index="${groupIndex}"
+                  data-student-index="${studentIndex}"
+                  data-student-id="${student.id}"
+                  style="
+                    padding: 12px;
+                    background: #f9fafb;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 8px;
+                    cursor: move;
+                    font-size: 13px;
+                    transition: all 0.2s;
+                  "
+                  onmouseover="this.style.borderColor='#8b5cf6'; this.style.boxShadow='0 2px 8px rgba(139, 92, 246, 0.2)'; this.style.transform='translateX(4px)'"
+                  onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'; this.style.transform='translateX(0)'"
+                >
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                      ${genderIcon}
+                      <span style="
+                        font-weight: 600;
+                        color: ${isCOM1 ? '#ef4444' : '#374151'};
+                        ${isCOM1 ? 'text-decoration: underline;' : ''}
+                      ">
+                        ${student.lastName} ${student.firstName}
+                      </span>
+                      ${student.class ? `
+                        <span style="
+                          font-size: 11px;
+                          padding: 2px 6px;
+                          background: #dbeafe;
+                          color: #1e40af;
+                          border-radius: 4px;
+                        ">${student.class}</span>
+                      ` : ''}
+                    </div>
+                    <i class="fas fa-grip-vertical" style="color: #d1d5db;"></i>
+                  </div>
+
+                  <!-- Badges scores -->
+                  <div style="display: flex; gap: 6px;">
+                    <span style="
+                      display: inline-block;
+                      padding: 3px 8px;
+                      background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+                      color: white;
+                      border-radius: 4px;
+                      font-size: 11px;
+                      font-weight: 600;
+                    ">
+                      F: ${scoreF.toFixed(1)}
+                    </span>
+                    <span style="
+                      display: inline-block;
+                      padding: 3px 8px;
+                      background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+                      color: white;
+                      border-radius: 4px;
+                      font-size: 11px;
+                      font-weight: 600;
+                    ">
+                      M: ${scoreM.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
         </div>
+      `;
+    }).join('');
+  }
+
+  /**
+   * Organise les groupes par regroupement
+   */
+  function organizeGroupsByRegroupement() {
+    if (!state.currentResults || !state.currentResults.groups) {
+      state.swapDashboard.allRegroupements = [];
+      return;
+    }
+
+    // Grouper par regroupement en utilisant les noms originaux des regroupements
+    const regroupementMap = {};
+
+    state.currentResults.groups.forEach(group => {
+      // Extraire le nom du regroupement depuis le nom du groupe
+      // Format attendu: "Regroupement X - Groupe Y" ou juste "Groupe Y"
+      let regroupementName = 'Regroupement 1';
+
+      // Chercher dans la configuration originale
+      state.regroupements.forEach(reg => {
+        if (group.name.includes(reg.name)) {
+          regroupementName = reg.name;
+        }
+      });
+
+      if (!regroupementMap[regroupementName]) {
+        regroupementMap[regroupementName] = {
+          name: regroupementName,
+          groups: []
+        };
+      }
+
+      regroupementMap[regroupementName].groups.push(group);
+    });
+
+    state.swapDashboard.allRegroupements = Object.values(regroupementMap);
+    state.swapDashboard.currentRegroupementIndex = 0;
+
+    console.log('📊 Regroupements organisés:', state.swapDashboard.allRegroupements.length);
+  }
+
+  /**
+   * Rendu du regroupement courant
+   */
+  function renderCurrentRegroupement() {
+    const container = document.getElementById('swap-groups-container');
+    if (!container) return;
+
+    const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+    if (!currentReg) {
+      container.innerHTML = '<p style="color: #9ca3af;">Aucun regroupement disponible</p>';
+      return;
+    }
+
+    // Mettre à jour le nom et le compteur
+    const nameEl = document.getElementById('regroupement-name');
+    const counterEl = document.getElementById('regroupement-counter');
+    if (nameEl) nameEl.textContent = currentReg.name;
+    if (counterEl) counterEl.textContent = state.swapDashboard.currentRegroupementIndex + 1;
+
+    // Rendre les groupes
+    container.innerHTML = renderSwapGroups(currentReg.groups);
+
+    // Activer le drag & drop
+    enableDragAndDrop();
+  }
+
+  /**
+   * Active le drag & drop pour les élèves
+   */
+  function enableDragAndDrop() {
+    let draggedElement = null;
+    let draggedData = null;
+
+    // Événements sur les cartes élèves
+    document.querySelectorAll('.swap-student-card').forEach(card => {
+      card.addEventListener('dragstart', (e) => {
+        draggedElement = e.target;
+        draggedData = {
+          groupIndex: parseInt(e.target.dataset.groupIndex),
+          studentIndex: parseInt(e.target.dataset.studentIndex),
+          studentId: e.target.dataset.studentId
+        };
+        e.target.style.opacity = '0.5';
+      });
+
+      card.addEventListener('dragend', (e) => {
+        e.target.style.opacity = '1';
+      });
+    });
+
+    // Événements sur les zones de drop (listes d'élèves)
+    document.querySelectorAll('.swap-students-list').forEach(list => {
+      list.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        list.style.background = '#f3e8ff';
+      });
+
+      list.addEventListener('dragleave', (e) => {
+        list.style.background = '';
+      });
+
+      list.addEventListener('drop', (e) => {
+        e.preventDefault();
+        list.style.background = '';
+
+        if (!draggedData) return;
+
+        const targetGroupIndex = parseInt(list.dataset.groupIndex);
+        const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+
+        if (!currentReg) return;
+
+        // Déplacer l'élève
+        const sourceGroup = currentReg.groups[draggedData.groupIndex];
+        const targetGroup = currentReg.groups[targetGroupIndex];
+
+        if (sourceGroup && targetGroup) {
+          const student = sourceGroup.students.splice(draggedData.studentIndex, 1)[0];
+          if (student) {
+            targetGroup.students.push(student);
+
+            // Re-rendre l'interface
+            renderCurrentRegroupement();
+            updateSidebarPanel();
+
+            console.log(`✅ Élève ${student.lastName} déplacé du groupe ${draggedData.groupIndex + 1} vers ${targetGroupIndex + 1}`);
+          }
+        }
+      });
+    });
+  }
+
+  /**
+   * Met à jour le panneau des statistiques
+   */
+  function updateStatsPanel() {
+    const content = document.getElementById('stats-panel-content');
+    if (!content) return;
+
+    const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+    if (!currentReg) {
+      content.innerHTML = '<p style="color: #9ca3af;">Aucune donnée</p>';
+      return;
+    }
+
+    // Calculer les statistiques globales
+    const totalStudents = currentReg.groups.reduce((sum, g) => sum + g.students.length, 0);
+    const totalGirls = currentReg.groups.reduce((sum, g) => sum + g.students.filter(s => s.sexe === 'F').length, 0);
+    const totalBoys = totalStudents - totalGirls;
+
+    const avgScoreF = totalStudents > 0
+      ? (currentReg.groups.reduce((sum, g) =>
+          sum + g.students.reduce((s, st) => s + (parseFloat(st.scoreF) || 0), 0), 0) / totalStudents).toFixed(2)
+      : '0.00';
+
+    const avgScoreM = totalStudents > 0
+      ? (currentReg.groups.reduce((sum, g) =>
+          sum + g.students.reduce((s, st) => s + (parseFloat(st.scoreM) || 0), 0), 0) / totalStudents).toFixed(2)
+      : '0.00';
+
+    const avgCOM = totalStudents > 0
+      ? (currentReg.groups.reduce((sum, g) =>
+          sum + g.students.reduce((s, st) => s + (parseFloat(st.com) || 0), 0), 0) / totalStudents).toFixed(2)
+      : '0.00';
+
+    const avgTRA = totalStudents > 0
+      ? (currentReg.groups.reduce((sum, g) =>
+          sum + g.students.reduce((s, st) => s + (parseFloat(st.tra) || 0), 0), 0) / totalStudents).toFixed(2)
+      : '0.00';
+
+    const avgPART = totalStudents > 0
+      ? (currentReg.groups.reduce((sum, g) =>
+          sum + g.students.reduce((s, st) => s + (parseFloat(st.part) || 0), 0), 0) / totalStudents).toFixed(2)
+      : '0.00';
+
+    const avgABS = totalStudents > 0
+      ? (currentReg.groups.reduce((sum, g) =>
+          sum + g.students.reduce((s, st) => s + (parseFloat(st.abs) || 0), 0), 0) / totalStudents).toFixed(2)
+      : '0.00';
+
+    content.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+
+        <!-- Effectifs -->
+        <div style="
+          padding: 16px;
+          background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+          border-radius: 8px;
+          border-left: 4px solid #3b82f6;
+        ">
+          <div style="font-size: 14px; font-weight: 700; color: #1e40af; margin-bottom: 12px;">
+            <i class="fas fa-users"></i> Effectifs
+          </div>
+          <div style="font-size: 13px; color: #374151; line-height: 1.8;">
+            <div><strong>Total :</strong> ${totalStudents} élèves</div>
+            <div><strong>Filles :</strong> ${totalGirls} (${(totalStudents > 0 ? (totalGirls / totalStudents * 100) : 0).toFixed(1)}%)</div>
+            <div><strong>Garçons :</strong> ${totalBoys} (${(totalStudents > 0 ? (totalBoys / totalStudents * 100) : 0).toFixed(1)}%)</div>
+            <div><strong>Groupes :</strong> ${currentReg.groups.length}</div>
+          </div>
+        </div>
+
+        <!-- Scores académiques -->
+        <div style="
+          padding: 16px;
+          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+          border-radius: 8px;
+          border-left: 4px solid #f59e0b;
+        ">
+          <div style="font-size: 14px; font-weight: 700; color: #92400e; margin-bottom: 12px;">
+            <i class="fas fa-chart-line"></i> Scores académiques
+          </div>
+          <div style="font-size: 13px; color: #374151; line-height: 1.8;">
+            <div><strong>Moy Français :</strong> ${avgScoreF} / 4</div>
+            <div><strong>Moy Maths :</strong> ${avgScoreM} / 4</div>
+          </div>
+        </div>
+
+        <!-- Critères comportementaux -->
+        <div style="
+          padding: 16px;
+          background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+          border-radius: 8px;
+          border-left: 4px solid #8b5cf6;
+        ">
+          <div style="font-size: 14px; font-weight: 700; color: #6b21a8; margin-bottom: 12px;">
+            <i class="fas fa-clipboard-check"></i> Critères comportementaux
+          </div>
+          <div style="font-size: 13px; color: #374151; line-height: 1.8;">
+            <div><strong>COM :</strong> ${avgCOM} / 4</div>
+            <div><strong>TRA :</strong> ${avgTRA} / 4</div>
+            <div><strong>PART :</strong> ${avgPART} / 4</div>
+            <div><strong>ABS :</strong> ${avgABS} / 4</div>
+          </div>
+        </div>
+
       </div>
-    `).join('');
+    `;
+  }
+
+  /**
+   * Met à jour le panneau latéral (distribution)
+   */
+  function updateSidebarPanel() {
+    const content = document.getElementById('sidebar-content');
+    if (!content) return;
+
+    const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+    if (!currentReg) {
+      content.innerHTML = '<p style="color: #9ca3af; font-size: 13px;">Aucune donnée</p>';
+      return;
+    }
+
+    const totalStudents = currentReg.groups.reduce((sum, g) => sum + g.students.length, 0);
+    const totalGirls = currentReg.groups.reduce((sum, g) => sum + g.students.filter(s => s.sexe === 'F').length, 0);
+    const totalBoys = totalStudents - totalGirls;
+
+    // Distribution des scores pour chaque groupe
+    const groupDistributions = currentReg.groups.map(group => {
+      const scoreF = group.students.length > 0
+        ? group.students.reduce((sum, s) => sum + (parseFloat(s.scoreF) || 0), 0) / group.students.length
+        : 0;
+      const scoreM = group.students.length > 0
+        ? group.students.reduce((sum, s) => sum + (parseFloat(s.scoreM) || 0), 0) / group.students.length
+        : 0;
+
+      return {
+        name: group.name,
+        scoreF: scoreF.toFixed(2),
+        scoreM: scoreM.toFixed(2),
+        girls: group.students.filter(s => s.sexe === 'F').length,
+        boys: group.students.filter(s => s.sexe === 'M').length
+      };
+    });
+
+    content.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+
+        <!-- Parité -->
+        <div>
+          <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin: 0 0 12px 0;">
+            <i class="fas fa-balance-scale"></i> Parité F/M
+          </h4>
+          <div style="
+            padding: 12px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: #92400e;
+          ">
+            ${totalGirls}F / ${totalBoys}M
+            <div style="font-size: 12px; font-weight: 400; margin-top: 4px;">
+              (${(totalStudents > 0 ? (totalGirls / totalStudents * 100) : 0).toFixed(1)}% / ${(totalStudents > 0 ? (totalBoys / totalStudents * 100) : 0).toFixed(1)}%)
+            </div>
+          </div>
+        </div>
+
+        <!-- Distribution Français -->
+        <div>
+          <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin: 0 0 12px 0;">
+            <i class="fas fa-book"></i> Distribution Français
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            ${groupDistributions.map(dist => {
+              const score = parseFloat(dist.scoreF);
+              const percentage = (score / 4) * 100;
+              const color = score >= 3 ? '#10b981' : score >= 2 ? '#f59e0b' : '#ef4444';
+
+              return `
+                <div>
+                  <div style="font-size: 12px; margin-bottom: 4px; color: #6b7280;">
+                    ${dist.name}: <strong>${dist.scoreF}</strong>
+                  </div>
+                  <div style="
+                    width: 100%;
+                    height: 8px;
+                    background: #e5e7eb;
+                    border-radius: 4px;
+                    overflow: hidden;
+                  ">
+                    <div style="
+                      width: ${percentage}%;
+                      height: 100%;
+                      background: ${color};
+                      transition: width 0.3s;
+                    "></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Distribution Maths -->
+        <div>
+          <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin: 0 0 12px 0;">
+            <i class="fas fa-calculator"></i> Distribution Maths
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            ${groupDistributions.map(dist => {
+              const score = parseFloat(dist.scoreM);
+              const percentage = (score / 4) * 100;
+              const color = score >= 3 ? '#10b981' : score >= 2 ? '#f59e0b' : '#ef4444';
+
+              return `
+                <div>
+                  <div style="font-size: 12px; margin-bottom: 4px; color: #6b7280;">
+                    ${dist.name}: <strong>${dist.scoreM}</strong>
+                  </div>
+                  <div style="
+                    width: 100%;
+                    height: 8px;
+                    background: #e5e7eb;
+                    border-radius: 4px;
+                    overflow: hidden;
+                  ">
+                    <div style="
+                      width: ${percentage}%;
+                      height: 100%;
+                      background: ${color};
+                      transition: width 0.3s;
+                    "></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Moyennes critères -->
+        <div>
+          <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin: 0 0 12px 0;">
+            <i class="fas fa-chart-bar"></i> Moyennes des critères
+          </h4>
+          <div style="
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.8;
+          ">
+            ${currentReg.groups.map(group => {
+              const avgCOM = group.students.length > 0
+                ? (group.students.reduce((sum, s) => sum + (parseFloat(s.com) || 0), 0) / group.students.length).toFixed(1)
+                : '0.0';
+              const avgTRA = group.students.length > 0
+                ? (group.students.reduce((sum, s) => sum + (parseFloat(s.tra) || 0), 0) / group.students.length).toFixed(1)
+                : '0.0';
+              const avgPART = group.students.length > 0
+                ? (group.students.reduce((sum, s) => sum + (parseFloat(s.part) || 0), 0) / group.students.length).toFixed(1)
+                : '0.0';
+              const avgABS = group.students.length > 0
+                ? (group.students.reduce((sum, s) => sum + (parseFloat(s.abs) || 0), 0) / group.students.length).toFixed(1)
+                : '0.0';
+
+              return `
+                <div style="margin-bottom: 8px;">
+                  <div style="font-weight: 600; color: #6366f1; margin-bottom: 4px;">
+                    ${group.name}
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; color: #6b7280;">
+                    <div>COM: ${avgCOM}</div>
+                    <div>TRA: ${avgTRA}</div>
+                    <div>PART: ${avgPART}</div>
+                    <div>ABS: ${avgABS}</div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+      </div>
+    `;
+  }
+
+  /**
+   * Attache les événements au dashboard
+   */
+  function attachDashboardEvents() {
+    // Fermer
+    const closeBtn = document.getElementById('close-dashboard');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        document.getElementById('swap-dashboard').remove();
+      });
+    }
+
+    // Navigation regroupements
+    const prevBtn = document.getElementById('btn-prev-regroupement');
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => navigateRegroupement(-1));
+    }
+
+    const nextBtn = document.getElementById('btn-next-regroupement');
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => navigateRegroupement(1));
+    }
+
+    // Toggle stats panel
+    const statsBtn = document.getElementById('btn-toggle-stats');
+    if (statsBtn) {
+      statsBtn.addEventListener('click', toggleStatsPanel);
+    }
+
+    // Toggle sidebar
+    const sidebarBtn = document.getElementById('btn-toggle-sidebar');
+    if (sidebarBtn) {
+      sidebarBtn.addEventListener('click', toggleSidebar);
+    }
+
+    // Boutons sauvegardes (placeholder)
+    document.getElementById('btn-load')?.addEventListener('click', () => {
+      alert('Fonctionnalité "Charger" à venir');
+    });
+
+    document.getElementById('btn-save-temp')?.addEventListener('click', () => {
+      alert('Sauvegarde temporaire effectuée (fonctionnalité à venir)');
+    });
+
+    document.getElementById('btn-finalize')?.addEventListener('click', () => {
+      if (confirm('Finaliser ce regroupement ? Les données seront sauvegardées de manière permanente.')) {
+        alert('Regroupement finalisé (fonctionnalité à venir)');
+      }
+    });
+
+    // Boutons exports (placeholder)
+    document.getElementById('btn-export-pdf')?.addEventListener('click', () => {
+      alert('Export PDF à venir');
+    });
+
+    document.getElementById('btn-export-csv')?.addEventListener('click', () => {
+      alert('Export CSV à venir');
+    });
+
+    // Régénérer (placeholder)
+    document.getElementById('btn-regenerate')?.addEventListener('click', () => {
+      if (confirm('Régénérer ce regroupement ? Les modifications manuelles seront perdues.')) {
+        alert('Régénération à venir');
+      }
+    });
+  }
+
+  /**
+   * Navigue entre les regroupements
+   */
+  function navigateRegroupement(direction) {
+    const newIndex = state.swapDashboard.currentRegroupementIndex + direction;
+
+    if (newIndex < 0 || newIndex >= state.swapDashboard.allRegroupements.length) {
+      return; // Hors limites
+    }
+
+    state.swapDashboard.currentRegroupementIndex = newIndex;
+
+    // Re-rendre tout
+    renderCurrentRegroupement();
+    updateStatsPanel();
+    updateSidebarPanel();
+
+    // Mettre à jour les boutons de navigation
+    const prevBtn = document.getElementById('btn-prev-regroupement');
+    const nextBtn = document.getElementById('btn-next-regroupement');
+
+    if (prevBtn) {
+      prevBtn.disabled = newIndex === 0;
+      prevBtn.style.opacity = newIndex === 0 ? '0.5' : '1';
+      prevBtn.style.cursor = newIndex === 0 ? 'not-allowed' : 'pointer';
+    }
+
+    if (nextBtn) {
+      nextBtn.disabled = newIndex === state.swapDashboard.allRegroupements.length - 1;
+      nextBtn.style.opacity = newIndex === state.swapDashboard.allRegroupements.length - 1 ? '0.5' : '1';
+      nextBtn.style.cursor = newIndex === state.swapDashboard.allRegroupements.length - 1 ? 'not-allowed' : 'pointer';
+    }
+
+    console.log(`🔄 Navigation: regroupement ${newIndex + 1} / ${state.swapDashboard.allRegroupements.length}`);
+  }
+
+  /**
+   * Toggle du panneau statistiques
+   */
+  function toggleStatsPanel() {
+    state.swapDashboard.statsVisible = !state.swapDashboard.statsVisible;
+
+    const panel = document.getElementById('stats-panel');
+    const btn = document.getElementById('btn-toggle-stats');
+
+    if (panel) {
+      panel.style.left = state.swapDashboard.statsVisible ? '0' : '-350px';
+    }
+
+    if (btn) {
+      btn.style.background = state.swapDashboard.statsVisible
+        ? '#3b82f6'
+        : 'rgba(255, 255, 255, 0.2)';
+    }
+  }
+
+  /**
+   * Toggle du panneau latéral
+   */
+  function toggleSidebar() {
+    state.swapDashboard.sidebarCollapsed = !state.swapDashboard.sidebarCollapsed;
+
+    const panel = document.getElementById('sidebar-panel');
+    const content = document.getElementById('sidebar-content');
+    const btn = document.getElementById('btn-toggle-sidebar');
+
+    if (panel) {
+      panel.style.width = state.swapDashboard.sidebarCollapsed ? '60px' : '320px';
+      panel.style.padding = state.swapDashboard.sidebarCollapsed ? '16px 8px' : '24px';
+    }
+
+    if (content) {
+      content.style.display = state.swapDashboard.sidebarCollapsed ? 'none' : 'block';
+    }
+
+    if (btn) {
+      btn.innerHTML = `<i class="fas fa-chevron-${state.swapDashboard.sidebarCollapsed ? 'left' : 'right'}"></i>`;
+    }
   }
 
   /**

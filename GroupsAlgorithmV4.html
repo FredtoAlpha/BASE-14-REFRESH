@@ -1,60 +1,202 @@
 <script>
 /**
- * GROUPS ALGORITHM V4
- * Algorithme de répartition des élèves en groupes
- * Mode hétérogène et homogène avec gestion des scores
+ * GROUPS ALGORITHM V4 - ALGORITHME COMPLET
+ *
+ * Répartition intelligente avec :
+ * - Normalisation statistique (z-scores)
+ * - Indice pondéré par scénario
+ * - Distribution serpentin/tranches
+ * - Équilibrage automatique de parité (F/M)
+ * - Statistiques complètes (COM, TRA, PART, ABS, Scores F/M)
+ *
+ * Données sources (colonnes Excel) :
+ * - E: SEXE (F/M)
+ * - H: COM (comportement)
+ * - I: TRA (travail)
+ * - J: PART (participation)
+ * - K: ABS (absences)
+ * - U: SCORE F (Français, 1-4)
+ * - V: SCORE M (Maths, 1-4)
  */
 
 const GroupsAlgorithmV4 = (function() {
   'use strict';
 
+  // ══════════════════════════════════════════════════════════
+  // CONFIGURATION DES COEFFICIENTS PAR SCÉNARIO
+  // ══════════════════════════════════════════════════════════
+
+  const SCENARIO_WEIGHTS = {
+    besoins: {
+      // Groupes de besoins : priorité aux scores académiques
+      scoreF: 3.0,
+      scoreM: 3.0,
+      com: 1.5,
+      tra: 1.5,
+      part: 1.0,
+      abs: -2.0 // Pénalité pour absences
+    },
+    lv2: {
+      // Groupes LV2 : priorité à la participation
+      scoreF: 1.0,
+      scoreM: 1.0,
+      com: 1.5,
+      tra: 1.5,
+      part: 4.0, // PRIORITAIRE
+      abs: -2.5
+    },
+    options: {
+      // Groupes options : équilibré
+      scoreF: 2.0,
+      scoreM: 2.0,
+      com: 2.0,
+      tra: 2.0,
+      part: 2.0,
+      abs: -1.5
+    }
+  };
+
+  const PARITY_TOLERANCE = 0.15; // Tolérance d'écart F/M : 15%
+
+  // ══════════════════════════════════════════════════════════
+  // ÉTAPE 1 : CONSOLIDATION DES DONNÉES
+  // ══════════════════════════════════════════════════════════
+
+  function consolidateStudents(students) {
+    return students.map(student => {
+      // Extraire et valider tous les champs
+      const scoreF = parseFloat(student.scoreF || student.scores?.F || 0);
+      const scoreM = parseFloat(student.scoreM || student.scores?.M || 0);
+      const com = parseFloat(student.com || student.COM || 0);
+      const tra = parseFloat(student.tra || student.TRA || 0);
+      const part = parseFloat(student.part || student.PART || 0);
+      const abs = parseFloat(student.abs || student.ABS || 0);
+      const sexe = (student.sexe || student.gender || 'M').toUpperCase();
+
+      return {
+        ...student,
+        scoreF: isNaN(scoreF) ? 0 : scoreF,
+        scoreM: isNaN(scoreM) ? 0 : scoreM,
+        com: isNaN(com) ? 0 : com,
+        tra: isNaN(tra) ? 0 : tra,
+        part: isNaN(part) ? 0 : part,
+        abs: isNaN(abs) ? 0 : abs,
+        sexe: sexe === 'F' || sexe === 'M' ? sexe : 'M',
+        originalClass: student.class || student.classe || ''
+      };
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ÉTAPE 2 : NORMALISATION STATISTIQUE (Z-SCORES)
+  // ══════════════════════════════════════════════════════════
+
   /**
-   * Normalise les scores entre 0 et 1
+   * Calcule la moyenne d'un tableau de valeurs
    */
-  function normalizeScores(students) {
-    const scores = students.map(s => s.score || 0).filter(s => s > 0);
-    if (scores.length === 0) return students;
-
-    const min = Math.min(...scores);
-    const max = Math.max(...scores);
-    const range = max - min || 1;
-
-    return students.map(student => ({
-      ...student,
-      normalizedScore: student.score ? (student.score - min) / range : 0
-    }));
+  function mean(values) {
+    if (!values || values.length === 0) return 0;
+    return values.reduce((sum, val) => sum + val, 0) / values.length;
   }
 
   /**
-   * Distribution hétérogène : mélange les niveaux
-   * Stratégie : serpentin (distribue du meilleur au moins bon, puis inverse)
+   * Calcule l'écart-type d'un tableau de valeurs
+   */
+  function stdDev(values, avg) {
+    if (!values || values.length === 0) return 1;
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / values.length;
+    return Math.sqrt(variance) || 1; // Éviter division par zéro
+  }
+
+  /**
+   * Calcule le z-score (écart normalisé)
+   */
+  function zScore(value, avg, std) {
+    if (std === 0) return 0;
+    return (value - avg) / std;
+  }
+
+  /**
+   * Normalise tous les indicateurs en z-scores
+   */
+  function normalizeWithZScores(students) {
+    const fields = ['scoreF', 'scoreM', 'com', 'tra', 'part', 'abs'];
+    const stats = {};
+
+    // Calculer moyenne et écart-type pour chaque champ
+    fields.forEach(field => {
+      const values = students.map(s => s[field]).filter(v => v !== null && v !== undefined);
+      const avg = mean(values);
+      const std = stdDev(values, avg);
+      stats[field] = { avg, std };
+    });
+
+    // Appliquer les z-scores à chaque élève
+    return students.map(student => {
+      const normalized = { ...student };
+
+      fields.forEach(field => {
+        const { avg, std } = stats[field];
+        normalized[`${field}_z`] = zScore(student[field], avg, std);
+      });
+
+      return normalized;
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ÉTAPE 3 : CALCUL DE L'INDICE PONDÉRÉ PAR SCÉNARIO
+  // ══════════════════════════════════════════════════════════
+
+  function calculateWeightedIndex(student, scenario) {
+    const weights = SCENARIO_WEIGHTS[scenario] || SCENARIO_WEIGHTS.besoins;
+
+    // Indice = somme des (z-score × coefficient)
+    const index =
+      (student.scoreF_z || 0) * weights.scoreF +
+      (student.scoreM_z || 0) * weights.scoreM +
+      (student.com_z || 0) * weights.com +
+      (student.tra_z || 0) * weights.tra +
+      (student.part_z || 0) * weights.part +
+      (student.abs_z || 0) * weights.abs; // Négatif pour pénaliser
+
+    return index;
+  }
+
+  function addWeightedIndices(students, scenario) {
+    return students.map(student => ({
+      ...student,
+      weightedIndex: calculateWeightedIndex(student, scenario)
+    }));
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ÉTAPE 4 : DISTRIBUTION INITIALE
+  // ══════════════════════════════════════════════════════════
+
+  /**
+   * Distribution hétérogène : mélange les niveaux (serpentin)
    */
   function distributeHeterogeneous(students, numGroups) {
-    if (!students || students.length === 0) {
-      return { groups: [], stats: {} };
-    }
-
-    // Normaliser les scores
-    const normalized = normalizeScores(students);
-
-    // Trier par score décroissant
-    const sorted = [...normalized].sort((a, b) =>
-      (b.normalizedScore || 0) - (a.normalizedScore || 0)
-    );
+    // Trier par indice décroissant
+    const sorted = [...students].sort((a, b) => (b.weightedIndex || 0) - (a.weightedIndex || 0));
 
     // Initialiser les groupes
-    const groups = Array.from({ length: numGroups }, () => []);
+    const groups = Array.from({ length: numGroups }, (_, i) => ({
+      id: i + 1,
+      name: `Groupe ${i + 1}`,
+      students: []
+    }));
 
     // Distribution en serpentin
     let groupIndex = 0;
-    let direction = 1; // 1 = forward, -1 = backward
+    let direction = 1; // 1 = vers la droite, -1 = vers la gauche
 
     sorted.forEach(student => {
-      groups[groupIndex].push(student);
-
+      groups[groupIndex].students.push(student);
       groupIndex += direction;
 
-      // Inverser la direction aux extrémités
+      // Inverser aux extrémités
       if (groupIndex >= numGroups) {
         groupIndex = numGroups - 1;
         direction = -1;
@@ -64,93 +206,202 @@ const GroupsAlgorithmV4 = (function() {
       }
     });
 
-    // Calculer les statistiques
-    const stats = calculateGroupStats(groups);
-
-    return { groups, stats };
-  }
-
-  /**
-   * Distribution homogène : équilibre les niveaux
-   * Stratégie : round-robin (distribue équitablement)
-   */
-  function distributeHomogeneous(students, numGroups) {
-    if (!students || students.length === 0) {
-      return { groups: [], stats: {} };
-    }
-
-    // Normaliser les scores
-    const normalized = normalizeScores(students);
-
-    // Trier par score décroissant
-    const sorted = [...normalized].sort((a, b) =>
-      (b.normalizedScore || 0) - (a.normalizedScore || 0)
-    );
-
-    // Initialiser les groupes
-    const groups = Array.from({ length: numGroups }, () => []);
-
-    // Distribution round-robin
-    sorted.forEach((student, index) => {
-      const groupIndex = index % numGroups;
-      groups[groupIndex].push(student);
-    });
-
-    // Équilibrer les genres (parité F/M)
-    balanceGender(groups);
-
-    // Calculer les statistiques
-    const stats = calculateGroupStats(groups);
-
-    return { groups, stats };
-  }
-
-  /**
-   * Équilibre les genres entre les groupes
-   */
-  function balanceGender(groups) {
-    // Compter les F/M par groupe
-    const genderCounts = groups.map(group => {
-      const f = group.filter(s => s.gender === 'F').length;
-      const m = group.filter(s => s.gender === 'M').length;
-      return { f, m, total: group.length };
-    });
-
-    // TODO: implémenter l'algorithme de swap pour équilibrer
-    // Pour l'instant, on garde la distribution par défaut
-
     return groups;
   }
 
   /**
-   * Calcule les statistiques pour chaque groupe
+   * Distribution homogène : groupes de niveaux similaires (tranches)
    */
-  function calculateGroupStats(groups) {
-    return groups.map((group, index) => {
-      const totalStudents = group.length;
-      const females = group.filter(s => s.gender === 'F').length;
-      const males = group.filter(s => s.gender === 'M').length;
+  function distributeHomogeneous(students, numGroups) {
+    // Trier par indice décroissant
+    const sorted = [...students].sort((a, b) => (b.weightedIndex || 0) - (a.weightedIndex || 0));
 
-      const scores = group.map(s => s.normalizedScore || 0).filter(s => s > 0);
-      const avgScore = scores.length > 0
-        ? scores.reduce((sum, s) => sum + s, 0) / scores.length
-        : 0;
+    // Initialiser les groupes
+    const groups = Array.from({ length: numGroups }, (_, i) => ({
+      id: i + 1,
+      name: `Groupe ${i + 1}`,
+      students: []
+    }));
+
+    // Distribution par tranches (round-robin)
+    sorted.forEach((student, index) => {
+      const groupIndex = index % numGroups;
+      groups[groupIndex].students.push(student);
+    });
+
+    return groups;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ÉTAPE 5 : ÉQUILIBRAGE AUTOMATIQUE DE PARITÉ (F/M)
+  // ══════════════════════════════════════════════════════════
+
+  function calculateParityRatio(group) {
+    const total = group.students.length;
+    if (total === 0) return { girls: 0, boys: 0, ratio: 0, total: 0 };
+
+    const girls = group.students.filter(s => s.sexe === 'F').length;
+    const boys = group.students.filter(s => s.sexe === 'M').length;
+    const ratio = girls / total;
+
+    return { girls, boys, ratio, total };
+  }
+
+  function balanceGender(groups) {
+    const maxIterations = 100; // Éviter boucles infinies
+    let iteration = 0;
+    let swapsMade = false;
+
+    do {
+      swapsMade = false;
+      iteration++;
+
+      // Calculer les ratios pour chaque groupe
+      const parityData = groups.map((group, index) => ({
+        index,
+        ...calculateParityRatio(group)
+      }));
+
+      // Trouver les groupes déséquilibrés
+      const targetRatio = mean(parityData.map(p => p.ratio));
+
+      for (let i = 0; i < groups.length; i++) {
+        const groupA = groups[i];
+        const dataA = parityData[i];
+
+        // Si le groupe est trop déséquilibré
+        if (Math.abs(dataA.ratio - targetRatio) > PARITY_TOLERANCE) {
+          // Chercher un groupe avec qui échanger
+          for (let j = i + 1; j < groups.length; j++) {
+            const groupB = groups[j];
+            const dataB = parityData[j];
+
+            // Essayer d'échanger une fille contre un garçon (ou vice-versa)
+            if (dataA.ratio > targetRatio && dataB.ratio < targetRatio) {
+              // Groupe A a trop de filles, groupe B pas assez
+              const girlFromA = groupA.students.find(s => s.sexe === 'F');
+              const boyFromB = groupB.students.find(s => s.sexe === 'M');
+
+              if (girlFromA && boyFromB) {
+                // Swap
+                groupA.students = groupA.students.filter(s => s.id !== girlFromA.id);
+                groupA.students.push(boyFromB);
+                groupB.students = groupB.students.filter(s => s.id !== boyFromB.id);
+                groupB.students.push(girlFromA);
+                swapsMade = true;
+              }
+            } else if (dataA.ratio < targetRatio && dataB.ratio > targetRatio) {
+              // Groupe A a trop de garçons, groupe B trop de filles
+              const boyFromA = groupA.students.find(s => s.sexe === 'M');
+              const girlFromB = groupB.students.find(s => s.sexe === 'F');
+
+              if (boyFromA && girlFromB) {
+                // Swap
+                groupA.students = groupA.students.filter(s => s.id !== boyFromA.id);
+                groupA.students.push(girlFromB);
+                groupB.students = groupB.students.filter(s => s.id !== girlFromB.id);
+                groupB.students.push(boyFromA);
+                swapsMade = true;
+              }
+            }
+          }
+        }
+      }
+    } while (swapsMade && iteration < maxIterations);
+
+    console.log(`✅ Équilibrage de parité terminé après ${iteration} itération(s)`);
+    return groups;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ÉTAPE 6 : CALCUL DES STATISTIQUES COMPLÈTES
+  // ══════════════════════════════════════════════════════════
+
+  function calculateGroupStats(groups) {
+    return groups.map(group => {
+      const students = group.students;
+      const total = students.length;
+
+      if (total === 0) {
+        return {
+          groupId: group.id,
+          name: group.name,
+          totalStudents: 0,
+          girls: 0,
+          boys: 0,
+          parityRatio: 0,
+          avgScoreF: 0,
+          avgScoreM: 0,
+          avgCOM: 0,
+          avgTRA: 0,
+          avgPART: 0,
+          avgABS: 0
+        };
+      }
+
+      const girls = students.filter(s => s.sexe === 'F').length;
+      const boys = students.filter(s => s.sexe === 'M').length;
 
       return {
-        groupId: index + 1,
-        totalStudents,
-        females,
-        males,
-        genderRatio: totalStudents > 0 ? (females / totalStudents * 100).toFixed(1) : 0,
-        avgScore: avgScore.toFixed(2),
-        students: group
+        groupId: group.id,
+        name: group.name,
+        totalStudents: total,
+        girls,
+        boys,
+        parityRatio: (girls / total * 100).toFixed(1) + '%',
+        avgScoreF: mean(students.map(s => s.scoreF)).toFixed(2),
+        avgScoreM: mean(students.map(s => s.scoreM)).toFixed(2),
+        avgCOM: mean(students.map(s => s.com)).toFixed(2),
+        avgTRA: mean(students.map(s => s.tra)).toFixed(2),
+        avgPART: mean(students.map(s => s.part)).toFixed(2),
+        avgABS: mean(students.map(s => s.abs)).toFixed(2)
       };
     });
   }
 
-  /**
-   * Point d'entrée principal
-   */
+  // ══════════════════════════════════════════════════════════
+  // ÉTAPE 7 : VALIDATION FINALE ET ALERTES
+  // ══════════════════════════════════════════════════════════
+
+  function validateAndAlert(groups, stats) {
+    const warnings = [];
+    const alerts = [];
+
+    // Vérifier la parité
+    const parityRatios = stats.map(s => parseFloat(s.parityRatio));
+    const maxParity = Math.max(...parityRatios);
+    const minParity = Math.min(...parityRatios);
+    const parityGap = maxParity - minParity;
+
+    if (parityGap > PARITY_TOLERANCE * 100) {
+      warnings.push(`⚠️ Écart de parité F/M de ${parityGap.toFixed(1)}% entre groupes`);
+    }
+
+    // Vérifier les effectifs
+    const sizes = stats.map(s => s.totalStudents);
+    const maxSize = Math.max(...sizes);
+    const minSize = Math.min(...sizes);
+    const sizeGap = maxSize - minSize;
+
+    if (sizeGap > 2) {
+      warnings.push(`⚠️ Écart d'effectifs de ${sizeGap} élèves entre groupes`);
+    }
+
+    // Vérifier les moyennes de scores
+    const avgScoresF = stats.map(s => parseFloat(s.avgScoreF));
+    const scoreGapF = Math.max(...avgScoresF) - Math.min(...avgScoresF);
+
+    if (scoreGapF > 1.0) {
+      alerts.push(`📊 Écart de moyennes en Français : ${scoreGapF.toFixed(2)} points`);
+    }
+
+    return { warnings, alerts };
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // POINT D'ENTRÉE PRINCIPAL
+  // ══════════════════════════════════════════════════════════
+
   function distribute(config) {
     const {
       students = [],
@@ -158,6 +409,8 @@ const GroupsAlgorithmV4 = (function() {
       numGroups = 3,
       scenario = 'besoins' // 'besoins' | 'lv2' | 'options'
     } = config;
+
+    console.log(`🚀 Algorithme V4 : Distribution ${mode} pour ${students.length} élèves en ${numGroups} groupes (scénario: ${scenario})`);
 
     // Validation
     if (!students || students.length === 0) {
@@ -168,36 +421,77 @@ const GroupsAlgorithmV4 = (function() {
       throw new Error('Le nombre de groupes doit être au minimum 2');
     }
 
-    // Sélectionner l'algorithme
-    const result = mode === 'homogeneous'
-      ? distributeHomogeneous(students, numGroups)
-      : distributeHeterogeneous(students, numGroups);
+    // ÉTAPE 1 : Consolidation
+    console.log('📋 Étape 1/7 : Consolidation des données...');
+    const consolidated = consolidateStudents(students);
 
-    // Ajouter les métadonnées
-    result.metadata = {
-      mode,
-      scenario,
-      numGroups,
-      totalStudents: students.length,
-      timestamp: new Date().toISOString()
+    // ÉTAPE 2 : Normalisation (z-scores)
+    console.log('📊 Étape 2/7 : Normalisation statistique (z-scores)...');
+    const normalized = normalizeWithZScores(consolidated);
+
+    // ÉTAPE 3 : Indice pondéré
+    console.log('⚖️ Étape 3/7 : Calcul des indices pondérés...');
+    const weighted = addWeightedIndices(normalized, scenario);
+
+    // ÉTAPE 4 : Distribution initiale
+    console.log(`🔀 Étape 4/7 : Distribution ${mode}...`);
+    const groups = mode === 'homogeneous'
+      ? distributeHomogeneous(weighted, numGroups)
+      : distributeHeterogeneous(weighted, numGroups);
+
+    // ÉTAPE 5 : Équilibrage de parité
+    console.log('👥 Étape 5/7 : Équilibrage de la parité F/M...');
+    const balanced = balanceGender(groups);
+
+    // ÉTAPE 6 : Statistiques
+    console.log('📈 Étape 6/7 : Calcul des statistiques...');
+    const stats = calculateGroupStats(balanced);
+
+    // ÉTAPE 7 : Validation
+    console.log('✅ Étape 7/7 : Validation finale...');
+    const { warnings, alerts } = validateAndAlert(balanced, stats);
+
+    // Résultat final
+    const result = {
+      groups: balanced,
+      stats,
+      warnings,
+      alerts,
+      metadata: {
+        mode,
+        scenario,
+        numGroups,
+        totalStudents: students.length,
+        timestamp: new Date().toISOString(),
+        algorithm: 'V4-Complete'
+      }
     };
 
+    console.log(`✨ Distribution terminée : ${balanced.length} groupes créés`);
     return result;
   }
 
-  // API publique
+  // ══════════════════════════════════════════════════════════
+  // API PUBLIQUE
+  // ══════════════════════════════════════════════════════════
+
   return {
     distribute,
+    // Exposer les sous-fonctions pour tests
+    consolidateStudents,
+    normalizeWithZScores,
+    calculateWeightedIndex,
     distributeHeterogeneous,
     distributeHomogeneous,
+    balanceGender,
     calculateGroupStats,
-    normalizeScores
+    validateAndAlert
   };
 })();
 
-// Export pour utilisation dans le module
+// Export global
 if (typeof window !== 'undefined') {
   window.GroupsAlgorithmV4 = GroupsAlgorithmV4;
-  console.log('✅ GroupsAlgorithmV4 chargé');
+  console.log('✅ GroupsAlgorithmV4 (Version Complète) chargé');
 }
 </script>
