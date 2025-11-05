@@ -1255,14 +1255,14 @@ const GroupsInterfaceV4 = (function() {
         ">
           <!-- Bandeau comparaison stats -->
           <div id="stats-comparison-banner" style="
-            background: white;
-            border: 2px solid #8b5cf6;
+            background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+            border: 3px solid #6d28d9;
             border-radius: 12px;
-            padding: 16px;
-            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
+            padding: 18px;
+            box-shadow: 0 4px 16px rgba(109, 40, 217, 0.2);
           ">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-              <h3 style="font-size: 16px; font-weight: 700; color: #6366f1; margin: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <h3 style="font-size: 17px; font-weight: 700; color: #6d28d9; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
                 <i class="fas fa-chart-bar"></i> Comparaison des groupes
               </h3>
               <button id="btn-toggle-comparison" style="
@@ -1367,12 +1367,13 @@ const GroupsInterfaceV4 = (function() {
         ">
           <!-- EN-TÊTE DU GROUPE -->
           <div style="
-            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            background: linear-gradient(135deg, #6d28d9 0%, #4f46e5 100%);
             color: white;
             padding: 16px;
             border-radius: 10px 10px 0 0;
+            box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3);
           ">
-            <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">
+            <div style="font-size: 18px; font-weight: 700; margin-bottom: 10px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
               ${group.name}
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
@@ -1380,14 +1381,15 @@ const GroupsInterfaceV4 = (function() {
                 <i class="fas fa-users"></i> ${total} élève${total > 1 ? 's' : ''}
               </span>
               <span>
-                <i class="fas fa-venus" style="color: #fbbf24;"></i> ${girls}F /
-                <i class="fas fa-mars" style="color: #60a5fa;"></i> ${boys}M
+                <i class="fas fa-venus" style="color: #fcd34d;"></i> ${girls}F /
+                <i class="fas fa-mars" style="color: #93c5fd;"></i> ${boys}M
               </span>
               <span style="
-                background: rgba(255, 255, 255, 0.2);
-                padding: 4px 10px;
+                background: rgba(255, 255, 255, 0.25);
+                padding: 5px 12px;
                 border-radius: 6px;
-                font-weight: 600;
+                font-weight: 700;
+                border: 1px solid rgba(255, 255, 255, 0.3);
               ">
                 Moy ${avgScore}
               </span>
@@ -1470,23 +1472,27 @@ const GroupsInterfaceV4 = (function() {
                   <div style="display: flex; gap: 6px;">
                     <span style="
                       display: inline-block;
-                      padding: 3px 8px;
-                      background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+                      padding: 4px 10px;
+                      background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
                       color: white;
-                      border-radius: 4px;
+                      border-radius: 5px;
                       font-size: 11px;
-                      font-weight: 600;
+                      font-weight: 700;
+                      box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+                      letter-spacing: 0.3px;
                     ">
                       F: ${scoreF.toFixed(1)}
                     </span>
                     <span style="
                       display: inline-block;
-                      padding: 3px 8px;
-                      background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+                      padding: 4px 10px;
+                      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
                       color: white;
-                      border-radius: 4px;
+                      border-radius: 5px;
                       font-size: 11px;
-                      font-weight: 600;
+                      font-weight: 700;
+                      box-shadow: 0 2px 4px rgba(67, 56, 202, 0.3);
+                      letter-spacing: 0.3px;
                     ">
                       M: ${scoreM.toFixed(1)}
                     </span>
@@ -1509,35 +1515,38 @@ const GroupsInterfaceV4 = (function() {
       return;
     }
 
-    // Grouper par regroupement en utilisant les noms originaux des regroupements
+    // Grouper par regroupement en utilisant la propriété regroupementName
     const regroupementMap = {};
 
-    state.currentResults.groups.forEach(group => {
-      // Extraire le nom du regroupement depuis le nom du groupe
-      // Format attendu: "Regroupement X - Groupe Y" ou juste "Groupe Y"
-      let regroupementName = 'Regroupement 1';
-
-      // Chercher dans la configuration originale
-      state.regroupements.forEach(reg => {
-        if (group.name.includes(reg.name)) {
-          regroupementName = reg.name;
-        }
-      });
+    state.currentResults.groups.forEach((group, index) => {
+      const regroupementName = group.regroupementName || 'Regroupement 1';
 
       if (!regroupementMap[regroupementName]) {
         regroupementMap[regroupementName] = {
           name: regroupementName,
-          groups: []
+          groups: [],
+          groupCounter: 1
         };
       }
 
-      regroupementMap[regroupementName].groups.push(group);
+      // Renommer le groupe avec hiérarchie claire
+      const renamedGroup = {
+        ...group,
+        originalName: group.name,
+        name: `Groupe ${regroupementMap[regroupementName].groupCounter}`
+      };
+
+      regroupementMap[regroupementName].groups.push(renamedGroup);
+      regroupementMap[regroupementName].groupCounter++;
     });
 
     state.swapDashboard.allRegroupements = Object.values(regroupementMap);
     state.swapDashboard.currentRegroupementIndex = 0;
 
     console.log('📊 Regroupements organisés:', state.swapDashboard.allRegroupements.length);
+    state.swapDashboard.allRegroupements.forEach((reg, i) => {
+      console.log(`  - ${reg.name}: ${reg.groups.length} groupes`);
+    });
   }
 
   /**
@@ -1812,21 +1821,23 @@ const GroupsInterfaceV4 = (function() {
 
               return `
                 <div>
-                  <div style="font-size: 12px; margin-bottom: 4px; color: #6b7280;">
-                    ${dist.name}: <strong>${dist.scoreF}</strong>
+                  <div style="font-size: 12px; margin-bottom: 5px; color: #374151; font-weight: 600;">
+                    ${dist.name}: <strong style="color: ${color};">${dist.scoreF}</strong>
                   </div>
                   <div style="
                     width: 100%;
-                    height: 8px;
+                    height: 12px;
                     background: #e5e7eb;
-                    border-radius: 4px;
+                    border-radius: 6px;
                     overflow: hidden;
+                    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
                   ">
                     <div style="
                       width: ${percentage}%;
                       height: 100%;
                       background: ${color};
                       transition: width 0.3s;
+                      box-shadow: 0 2px 4px ${color}40;
                     "></div>
                   </div>
                 </div>
@@ -1848,21 +1859,23 @@ const GroupsInterfaceV4 = (function() {
 
               return `
                 <div>
-                  <div style="font-size: 12px; margin-bottom: 4px; color: #6b7280;">
-                    ${dist.name}: <strong>${dist.scoreM}</strong>
+                  <div style="font-size: 12px; margin-bottom: 5px; color: #374151; font-weight: 600;">
+                    ${dist.name}: <strong style="color: ${color};">${dist.scoreM}</strong>
                   </div>
                   <div style="
                     width: 100%;
-                    height: 8px;
+                    height: 12px;
                     background: #e5e7eb;
-                    border-radius: 4px;
+                    border-radius: 6px;
                     overflow: hidden;
+                    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
                   ">
                     <div style="
                       width: ${percentage}%;
                       height: 100%;
                       background: ${color};
                       transition: width 0.3s;
+                      box-shadow: 0 2px 4px ${color}40;
                     "></div>
                   </div>
                 </div>
@@ -1974,12 +1987,14 @@ const GroupsInterfaceV4 = (function() {
 
           return `
             <div style="
-              background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
-              border: 2px solid #e5e7eb;
-              border-radius: 8px;
-              padding: 12px;
-            ">
-              <div style="font-size: 14px; font-weight: 700; color: #6366f1; margin-bottom: 8px;">
+              background: white;
+              border: 2px solid #d1d5db;
+              border-radius: 10px;
+              padding: 14px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+              transition: all 0.2s;
+            " onmouseover="this.style.borderColor='#6d28d9'; this.style.boxShadow='0 4px 12px rgba(109, 40, 217, 0.15)'" onmouseout="this.style.borderColor='#d1d5db'; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.08)'">
+              <div style="font-size: 15px; font-weight: 700; color: #6d28d9; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.3px;">
                 ${stats.name}
               </div>
 
@@ -2012,26 +2027,28 @@ const GroupsInterfaceV4 = (function() {
               </div>
 
               <!-- Scores -->
-              <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+              <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                 <div style="
                   flex: 1;
-                  padding: 6px;
-                  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-                  border-radius: 4px;
+                  padding: 8px;
+                  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                  border-radius: 6px;
                   text-align: center;
+                  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
                 ">
-                  <div style="font-size: 10px; color: #1e40af; font-weight: 600;">FRANÇAIS</div>
-                  <div style="font-size: 14px; font-weight: 700; color: #1e3a8a;">${stats.avgScoreF}</div>
+                  <div style="font-size: 10px; color: #dbeafe; font-weight: 600; letter-spacing: 0.5px;">FRANÇAIS</div>
+                  <div style="font-size: 16px; font-weight: 700; color: white; margin-top: 2px;">${stats.avgScoreF}</div>
                 </div>
                 <div style="
                   flex: 1;
-                  padding: 6px;
-                  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-                  border-radius: 4px;
+                  padding: 8px;
+                  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                  border-radius: 6px;
                   text-align: center;
+                  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
                 ">
-                  <div style="font-size: 10px; color: #92400e; font-weight: 600;">MATHS</div>
-                  <div style="font-size: 14px; font-weight: 700; color: #78350f;">${stats.avgScoreM}</div>
+                  <div style="font-size: 10px; color: #fef3c7; font-weight: 600; letter-spacing: 0.5px;">MATHS</div>
+                  <div style="font-size: 16px; font-weight: 700; color: white; margin-top: 2px;">${stats.avgScoreM}</div>
                 </div>
               </div>
 

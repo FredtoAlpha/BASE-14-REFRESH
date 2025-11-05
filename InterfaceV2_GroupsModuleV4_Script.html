@@ -262,9 +262,15 @@
         throw new Error('Aucun élève trouvé après filtrage. Vérifiez la langue sélectionnée et les classes.');
       }
 
-      // Combiner les résultats
+      // Combiner les résultats en préservant l'information du regroupement
       const combinedResults = {
-        groups: validResults.flatMap(r => r.result.groups),
+        groups: validResults.flatMap(r =>
+          r.result.groups.map(group => ({
+            ...group,
+            regroupementName: r.regroupement, // Ajouter le nom du regroupement
+            regroupementId: r.regroupement.replace(/\s+/g, '-').toLowerCase()
+          }))
+        ),
         stats: validResults.flatMap(r => r.result.stats),
         metadata: {
           scenario,
