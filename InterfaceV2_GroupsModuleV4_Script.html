@@ -14,6 +14,78 @@
   let moduleContainer = null;
 
   /**
+   * Normalise un élève depuis les données brutes (copié de groupsModuleComplete)
+   * TOUS LES FALLBACKS pour chaque champ
+   */
+  function normalizeStudentFromSheet(student, className, fallbackIndex = 0) {
+    if (!student) return null;
+
+    const parseNumber = (value) => {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const id = student.id
+      || student.ID
+      || student.ID_ELEVE
+      || student.IDELEVE
+      || student.identifiant
+      || `${className}-${fallbackIndex}`;
+
+    const nom = (student.nom || student.NOM || student.lastName || '').toString().trim();
+    const prenom = (student.prenom || student.PRENOM || student.firstName || '').toString().trim();
+    const sexe = (student.sexe || student.SEXE || student.gender || '').toString().trim().toUpperCase();
+    const lv2 = (student.lv2 || student.LV2 || student.langue || 'ESP').toString().trim().toUpperCase();
+
+    // TOUS LES FALLBACKS pour chaque critère
+    const partValue = parseNumber(student.part ?? student.PART ?? student.participation ?? student.PARTICIPATION);
+    const scoreFValue = parseNumber(student.scoreF ?? student.SCORE_F ?? student.SCOREF ?? student.MOY_FRANCAIS ?? student.MOY_FR ?? student.moyFr);
+    const scoreMValue = parseNumber(student.scoreM ?? student.SCORE_M ?? student.SCOREM ?? student.MOY_MATHS ?? student.MOY_M ?? student.moyMath);
+    const comValue = parseNumber(student.com ?? student.COM ?? student.comportement ?? student.COMPORTEMENT);
+    const traValue = parseNumber(student.tra ?? student.TRA ?? student.travail ?? student.TRAVAIL);
+    const absValue = parseNumber(student.abs ?? student.ABS ?? student.absences ?? student.ABSENCES);
+
+    // Fallback depuis student.scores si propriétés directes absentes
+    const fallbackPart = parseNumber(student.scores?.PART);
+    const fallbackF = parseNumber(student.scores?.F);
+    const fallbackM = parseNumber(student.scores?.M);
+    const fallbackCom = parseNumber(student.scores?.COM);
+    const fallbackTra = parseNumber(student.scores?.TRA);
+    const fallbackAbs = parseNumber(student.scores?.ABS);
+
+    const scores = {
+      ...student.scores,
+      F: Number.isFinite(scoreFValue) ? scoreFValue : (Number.isFinite(fallbackF) ? fallbackF : 0),
+      M: Number.isFinite(scoreMValue) ? scoreMValue : (Number.isFinite(fallbackM) ? fallbackM : 0),
+      PART: Number.isFinite(partValue) ? partValue : (Number.isFinite(fallbackPart) ? fallbackPart : 0),
+      COM: Number.isFinite(comValue) ? comValue : (Number.isFinite(fallbackCom) ? fallbackCom : 0),
+      TRA: Number.isFinite(traValue) ? traValue : (Number.isFinite(fallbackTra) ? fallbackTra : 0),
+      ABS: Number.isFinite(absValue) ? absValue : (Number.isFinite(fallbackAbs) ? fallbackAbs : 0)
+    };
+
+    return {
+      ...student,
+      id,
+      nom,
+      lastName: nom,
+      prenom,
+      firstName: prenom,
+      sexe,
+      gender: sexe,
+      classe: className,
+      class: className,
+      lv2,
+      part: scores.PART,
+      com: scores.COM,
+      tra: scores.TRA,
+      abs: scores.ABS,
+      scores,
+      scoreF: scores.F,
+      scoreM: scores.M
+    };
+  }
+
+  /**
    * Récupère les données des classes depuis le DOM (zones droppables)
    */
   function getClassesData() {
@@ -35,7 +107,7 @@
       // Récupérer les cartes élèves dans cette zone
       const cards = zone.querySelectorAll('.student-card');
 
-      cards.forEach(card => {
+      cards.forEach((card, index) => {
         const studentId = card.getAttribute('data-id') || card.getAttribute('data-student-id');
         if (!studentId) return;
 
@@ -43,47 +115,22 @@
         const student = window.STATE.students[studentId];
 
         if (student) {
-          // Extraire TOUS les champs nécessaires pour l'algorithme V4
-          const extractedStudent = {
-            id: student.id || studentId,
-            firstName: student.firstName || student.prenom || '',
-            lastName: student.lastName || student.nom || '',
-            class: className,
+          // UTILISER normalizeStudentFromSheet avec TOUS les fallbacks
+          const normalizedStudent = normalizeStudentFromSheet(student, className, index);
 
-            // SEXE (colonne E)
-            sexe: (student.sexe || student.gender || 'M').toUpperCase(),
-            gender: student.gender || student.sexe || 'M',
-
-            // CRITÈRES COMPORTEMENTAUX
-            com: parseFloat(student.com || student.COM || 0),        // Colonne H
-            tra: parseFloat(student.tra || student.TRA || 0),        // Colonne I
-            part: parseFloat(student.part || student.PART || 0),     // Colonne J
-            abs: parseFloat(student.abs || student.ABS || 0),        // Colonne K
-
-            // SCORES ACADÉMIQUES
-            scoreF: parseFloat(student.scoreF || student.scores?.F || 0),  // Colonne U (1-4)
-            scoreM: parseFloat(student.scoreM || student.scores?.M || 0),  // Colonne V (1-4)
-            score: parseFloat(student.score || student.scoreF || student.scoreM || 0),
-
-            // AUTRES DONNÉES
-            // Colonne F : LV2 (ESP par défaut si vide)
-            lv2: (student.lv2 || student.LV2 || 'ESP').toUpperCase(),
-            options: student.options || [],
-            scores: student.scores || {}
-          };
-
-          // DEBUG: Log premier élève de chaque classe pour vérifier extraction
+          // DEBUG: Log premier élève de chaque classe
           if (classesData[className].length === 0) {
             console.log(`🔍 Premier élève de ${className}:`, {
-              nom: extractedStudent.lastName,
-              scoreF: extractedStudent.scoreF,
-              scoreM: extractedStudent.scoreM,
-              com: extractedStudent.com,
-              tra: extractedStudent.tra
+              nom: normalizedStudent.lastName,
+              scoreF: normalizedStudent.scoreF,
+              scoreM: normalizedStudent.scoreM,
+              scores: normalizedStudent.scores,
+              com: normalizedStudent.com,
+              tra: normalizedStudent.tra
             });
           }
 
-          classesData[className].push(extractedStudent);
+          classesData[className].push(normalizedStudent);
         }
       });
     });
