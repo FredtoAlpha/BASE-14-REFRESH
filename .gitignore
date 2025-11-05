@@ -1,0 +1,20 @@
+# Fichiers désactivés/backup du projet
+*.disabled
+*.old.html
+*.bak
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Dependency directories
+node_modules/
+
+# Environment variables
+.env
+.env.test
+
+# OS files
+.DS_Store
+Thumbs.db

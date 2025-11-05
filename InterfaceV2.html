@@ -486,6 +486,24 @@
         <span>Comparer</span>
       </button>
 
+      <!-- BOUTON GROUPES V4 -->
+      <button id="btnGroupesV4"
+              class="header-btn flex items-center gap-1.5 rounded-lg
+                     bg-purple-800/90 text-white
+                     border border-purple-700/60
+                     shadow-[0_10px_20px_rgba(147,51,234,0.4)]
+                     hover:bg-purple-700/90
+                     hover:shadow-[0_12px_24px_rgba(147,51,234,0.5)]
+                     hover:border-purple-600/70
+                     transition-all duration-200 ease-out
+                     active:scale-[0.98]"
+              onclick="if(window.openModuleGroupsV4){window.openModuleGroupsV4('creator')}else{alert('Module Groupes V4 en cours de chargement...')}"
+              title="Créer des groupes (Besoins, LV2, Options)"
+              aria-label="Ouvrir le module de création de groupes">
+        <span class="emoji opacity-80">👥</span>
+        <span>Groupes</span>
+      </button>
+
       <button id="btnEditer" data-tour="editer-btn"
               class="header-btn flex items-center gap-1.5 rounded-lg
                      bg-slate-800/90 text-white
@@ -1440,12 +1458,7 @@
 </div>
 <!-- FIN Menu Admin -->
 
-<!-- ========== INCLUSION DU MODULE COMPLET DE GROUPES (GOOGLE APPS SCRIPT) ========== -->
-<!-- ANCIENS MODULES GROUPES (DÉSACTIVÉS) -->
-<!-- <?!= include('groupsModuleComplete'); ?> -->
-<!-- <?!= include('InterfaceV2_GroupsScript'); ?> -->
-
-<!-- ========== MODULE GROUPES V4 - TRIPTYQUE (NOUVEAU) ========== -->
+<!-- ========== MODULE GROUPES V4 ========== -->
 <?!= include('GroupsAlgorithmV4'); ?>
 <?!= include('GroupsInterfaceV4'); ?>
 <?!= include('InterfaceV2_GroupsModuleV4_Script'); ?>

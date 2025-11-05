@@ -1,0 +1,20 @@
+# Ignorer les fichiers désactivés
+*.disabled
+*.old.html
+*.bak
+
+# Ignorer les fichiers de test local
+GroupsModuleV4_Test.html
+
+# Ignorer les fichiers de documentation
+GROUPES_V4_README.md
+README.md
+*.md
+
+# Ignorer les fichiers git
+.git
+.gitignore
+.claspignore
+
+# Ignorer node_modules si présent
+node_modules/

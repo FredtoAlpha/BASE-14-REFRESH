@@ -14,39 +14,55 @@
   let moduleContainer = null;
 
   /**
-   * Récupère les données des classes depuis STATE
+   * Récupère les données des classes depuis le DOM (zones droppables)
    */
   function getClassesData() {
-    if (!window.STATE) {
-      console.error('❌ window.STATE non disponible');
+    if (!window.STATE || !window.STATE.students) {
+      console.error('❌ window.STATE.students non disponible');
       return null;
     }
 
-    // Extraire les élèves et les organiser par classe
-    const students = window.STATE.students || {};
+    // Extraire les classes depuis les zones droppables du DOM
+    const zones = document.querySelectorAll('.droppable-zone[data-classe]');
     const classesData = {};
 
-    Object.values(students).forEach(student => {
-      const className = student.class || student.classe;
+    zones.forEach(zone => {
+      const className = zone.getAttribute('data-classe');
       if (!className) return;
 
-      if (!classesData[className]) {
-        classesData[className] = [];
-      }
+      classesData[className] = [];
 
-      classesData[className].push({
-        id: student.id,
-        firstName: student.firstName || student.prenom,
-        lastName: student.lastName || student.nom,
-        class: className,
-        gender: student.gender || student.sexe || 'M',
-        score: student.score || 0,
-        lv2: student.lv2 || null,
-        options: student.options || []
+      // Récupérer les cartes élèves dans cette zone
+      const cards = zone.querySelectorAll('.student-card');
+
+      cards.forEach(card => {
+        const studentId = card.getAttribute('data-id') || card.getAttribute('data-student-id');
+        if (!studentId) return;
+
+        // Récupérer les données complètes depuis STATE
+        const student = window.STATE.students[studentId];
+
+        if (student) {
+          classesData[className].push({
+            id: student.id || studentId,
+            firstName: student.firstName || student.prenom || '',
+            lastName: student.lastName || student.nom || '',
+            class: className,
+            gender: student.gender || student.sexe || 'M',
+            score: student.score || student.scoreF || student.scoreM || 0,
+            scoreF: student.scoreF || 0,
+            scoreM: student.scoreM || 0,
+            lv2: student.lv2 || null,
+            options: student.options || [],
+            scores: student.scores || {}
+          });
+        }
       });
     });
 
     console.log('📊 Données des classes extraites:', Object.keys(classesData));
+    console.log('📊 Détail:', Object.entries(classesData).map(([c, eleves]) => `${c}: ${eleves.length} élèves`));
+
     return classesData;
   }
 
@@ -84,6 +100,23 @@
     if (!window.GroupsAlgorithmV4) {
       console.error('❌ GroupsAlgorithmV4 non chargé');
       alert('Erreur : Algorithme Groupes V4 non disponible');
+      return;
+    }
+
+    // Vérifier que STATE.students est chargé
+    if (!window.STATE || !window.STATE.students || Object.keys(window.STATE.students).length === 0) {
+      console.warn('⚠️ STATE.students vide ou non chargé, attente...');
+
+      // Attendre 1 seconde que les données se chargent
+      setTimeout(() => {
+        if (!window.STATE || !window.STATE.students || Object.keys(window.STATE.students).length === 0) {
+          alert('Erreur : Les données des élèves ne sont pas encore chargées. Veuillez attendre la fin du chargement et réessayer.');
+          console.error('❌ STATE.students toujours vide après délai');
+          return;
+        }
+        // Réessayer l'ouverture
+        openModuleGroupsV4(mode);
+      }, 1000);
       return;
     }
 
