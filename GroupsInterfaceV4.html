@@ -388,12 +388,25 @@ const GroupsInterfaceV4 = (function() {
     const list = document.getElementById('regroupements-list');
     if (!list) return;
 
+    // Récupérer les classes disponibles depuis window.STATE
+    const availableClasses = [];
+    if (window.STATE && window.STATE.students) {
+      const zones = document.querySelectorAll('.droppable-zone[data-classe]');
+      zones.forEach(zone => {
+        const className = zone.getAttribute('data-classe');
+        if (className && !availableClasses.includes(className)) {
+          availableClasses.push(className);
+        }
+      });
+    }
+
     list.innerHTML = state.regroupements.map(reg => `
       <div class="regroupement-card" data-id="${reg.id}" style="
         padding: 16px;
         background: white;
         border: 1px solid #e5e7eb;
         border-radius: 8px;
+        margin-bottom: 12px;
       ">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <input
@@ -431,8 +444,46 @@ const GroupsInterfaceV4 = (function() {
             </button>
           </div>
         </div>
+
+        <!-- Sélection des classes -->
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 8px;">
+            Sélectionner les classes :
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            ${availableClasses.map(className => `
+              <label style="
+                display: inline-flex;
+                align-items: center;
+                padding: 6px 12px;
+                border: 2px solid ${reg.classes && reg.classes.includes(className) ? '#3b82f6' : '#e5e7eb'};
+                background: ${reg.classes && reg.classes.includes(className) ? '#eff6ff' : 'white'};
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                transition: all 0.2s;
+              ">
+                <input
+                  type="checkbox"
+                  class="class-checkbox"
+                  data-regroupement-id="${reg.id}"
+                  data-class-name="${className}"
+                  ${reg.classes && reg.classes.includes(className) ? 'checked' : ''}
+                  style="margin-right: 6px;"
+                />
+                ${className}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
         <div style="font-size: 13px; color: #6b7280;">
-          <div>Classes : <span id="classes-${reg.id}">Aucune</span></div>
+          <div style="margin-bottom: 8px;">
+            <strong>Classes sélectionnées :</strong>
+            <span id="classes-${reg.id}">
+              ${reg.classes && reg.classes.length > 0 ? reg.classes.join(', ') : 'Aucune'}
+            </span>
+          </div>
           <div style="margin-top: 8px;">
             Nombre de groupes :
             <input
@@ -463,6 +514,35 @@ const GroupsInterfaceV4 = (function() {
    * Attache les événements aux cartes de regroupement
    */
   function attachRegroupementEvents() {
+    // Checkboxes de sélection de classes
+    document.querySelectorAll('.class-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const regId = parseInt(e.target.dataset.regroupementId);
+        const className = e.target.dataset.className;
+        const reg = state.regroupements.find(r => r.id === regId);
+
+        if (reg) {
+          if (!reg.classes) reg.classes = [];
+
+          if (e.target.checked) {
+            if (!reg.classes.includes(className)) {
+              reg.classes.push(className);
+            }
+          } else {
+            reg.classes = reg.classes.filter(c => c !== className);
+          }
+
+          // Mettre à jour l'affichage
+          const display = document.getElementById(`classes-${regId}`);
+          if (display) {
+            display.textContent = reg.classes.length > 0 ? reg.classes.join(', ') : 'Aucune';
+          }
+
+          addToTimeline(`"${reg.name}" : ${reg.classes.length} classe(s) sélectionnée(s)`);
+        }
+      });
+    });
+
     // Renommer
     document.querySelectorAll('.regroupement-name').forEach(input => {
       input.addEventListener('change', (e) => {
@@ -496,7 +576,8 @@ const GroupsInterfaceV4 = (function() {
           const duplicate = {
             ...reg,
             id: Date.now(),
-            name: `${reg.name} (copie)`
+            name: `${reg.name} (copie)`,
+            classes: [...(reg.classes || [])]
           };
           state.regroupements.push(duplicate);
           renderRegroupements();
