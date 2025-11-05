@@ -1441,9 +1441,14 @@
 <!-- FIN Menu Admin -->
 
 <!-- ========== INCLUSION DU MODULE COMPLET DE GROUPES (GOOGLE APPS SCRIPT) ========== -->
-<?!= include('groupsModuleComplete'); ?>
+<!-- ANCIENS MODULES GROUPES (DÉSACTIVÉS) -->
+<!-- <?!= include('groupsModuleComplete'); ?> -->
+<!-- <?!= include('InterfaceV2_GroupsScript'); ?> -->
 
-  <?!= include('InterfaceV2_GroupsScript'); ?>
+<!-- ========== MODULE GROUPES V4 - TRIPTYQUE (NOUVEAU) ========== -->
+<?!= include('GroupsAlgorithmV4'); ?>
+<?!= include('GroupsInterfaceV4'); ?>
+<?!= include('InterfaceV2_GroupsModuleV4_Script'); ?>
 
 <!-- ============================================================ -->
 <!-- TOOLTIPS SYSTEM -->

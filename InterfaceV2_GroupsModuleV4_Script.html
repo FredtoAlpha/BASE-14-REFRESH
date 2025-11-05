@@ -1,0 +1,314 @@
+<script>
+/**
+ * GROUPS MODULE V4 - LOADER
+ * Connecte l'interface triptyque au bouton Groupes du header
+ * et fait le pont avec l'algorithme de répartition
+ */
+
+(function() {
+  'use strict';
+
+  console.log('🔌 Initialisation du module Groupes V4...');
+
+  // Container plein écran pour l'interface
+  let moduleContainer = null;
+
+  /**
+   * Récupère les données des classes depuis STATE
+   */
+  function getClassesData() {
+    if (!window.STATE) {
+      console.error('❌ window.STATE non disponible');
+      return null;
+    }
+
+    // Extraire les élèves et les organiser par classe
+    const students = window.STATE.students || {};
+    const classesData = {};
+
+    Object.values(students).forEach(student => {
+      const className = student.class || student.classe;
+      if (!className) return;
+
+      if (!classesData[className]) {
+        classesData[className] = [];
+      }
+
+      classesData[className].push({
+        id: student.id,
+        firstName: student.firstName || student.prenom,
+        lastName: student.lastName || student.nom,
+        class: className,
+        gender: student.gender || student.sexe || 'M',
+        score: student.score || 0,
+        lv2: student.lv2 || null,
+        options: student.options || []
+      });
+    });
+
+    console.log('📊 Données des classes extraites:', Object.keys(classesData));
+    return classesData;
+  }
+
+  /**
+   * Vérifie que les données sont disponibles
+   */
+  function validateData() {
+    const classesData = getClassesData();
+
+    if (!classesData || Object.keys(classesData).length === 0) {
+      console.error('❌ Aucune classe trouvée dans STATE');
+      console.log('Diagnostic :');
+      console.log('- STATE existe :', !!window.STATE);
+      console.log('- STATE.students existe :', !!window.STATE?.students);
+      console.log('- Nombre d\'élèves :', Object.keys(window.STATE?.students || {}).length);
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Ouvre l'interface du module Groupes V4
+   */
+  function openModuleGroupsV4(mode) {
+    console.log('🚀 Ouverture du module Groupes V4, mode:', mode);
+
+    // Vérifier les dépendances
+    if (!window.GroupsInterfaceV4) {
+      console.error('❌ GroupsInterfaceV4 non chargé');
+      alert('Erreur : Interface Groupes V4 non disponible');
+      return;
+    }
+
+    if (!window.GroupsAlgorithmV4) {
+      console.error('❌ GroupsAlgorithmV4 non chargé');
+      alert('Erreur : Algorithme Groupes V4 non disponible');
+      return;
+    }
+
+    // Valider les données
+    if (!validateData()) {
+      alert('Erreur : Aucune classe disponible. Veuillez charger des données d\'abord.');
+      return;
+    }
+
+    // Créer le container plein écran
+    if (!moduleContainer) {
+      moduleContainer = document.createElement('div');
+      moduleContainer.id = 'groups-v4-container';
+      moduleContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 9999;
+        background: white;
+      `;
+
+      // Ajouter un bouton de fermeture
+      const closeBtn = document.createElement('button');
+      closeBtn.innerHTML = '<i class="fas fa-times"></i> Fermer';
+      closeBtn.style.cssText = `
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 10000;
+        padding: 8px 16px;
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      `;
+      closeBtn.addEventListener('click', closeModuleGroupsV4);
+
+      moduleContainer.appendChild(closeBtn);
+      document.body.appendChild(moduleContainer);
+    }
+
+    // Rendre l'interface triptyque
+    window.GroupsInterfaceV4.renderInitialStructure(moduleContainer);
+
+    // Afficher le container
+    moduleContainer.style.display = 'block';
+
+    console.log('✅ Module Groupes V4 ouvert');
+  }
+
+  /**
+   * Ferme l'interface du module
+   */
+  function closeModuleGroupsV4() {
+    if (moduleContainer) {
+      moduleContainer.style.display = 'none';
+      console.log('✅ Module Groupes V4 fermé');
+    }
+  }
+
+  /**
+   * Gère l'événement de génération des groupes
+   */
+  function handleGenerateGroups(event) {
+    const { scenario, mode, regroupements } = event.detail;
+
+    console.log('🎯 Génération des groupes demandée:', { scenario, mode, regroupements });
+
+    try {
+      // Pour chaque regroupement, générer les groupes
+      const allResults = regroupements.map(regroupement => {
+        // Récupérer les élèves des classes du regroupement
+        const classesData = getClassesData();
+        const students = [];
+
+        // Si aucune classe spécifiée, prendre toutes les classes
+        const classesToUse = regroupement.classes.length > 0
+          ? regroupement.classes
+          : Object.keys(classesData);
+
+        classesToUse.forEach(className => {
+          if (classesData[className]) {
+            students.push(...classesData[className]);
+          }
+        });
+
+        console.log(`📚 Regroupement "${regroupement.name}" : ${students.length} élèves`);
+
+        // Appeler l'algorithme
+        const result = window.GroupsAlgorithmV4.distribute({
+          students,
+          mode,
+          numGroups: regroupement.numGroups,
+          scenario
+        });
+
+        return {
+          regroupement: regroupement.name,
+          result
+        };
+      });
+
+      // Combiner les résultats
+      const combinedResults = {
+        groups: allResults.flatMap(r => r.result.groups),
+        stats: allResults.flatMap(r => r.result.stats),
+        metadata: {
+          scenario,
+          mode,
+          totalRegroupements: regroupements.length,
+          totalStudents: allResults.reduce((sum, r) => sum + r.result.metadata.totalStudents, 0),
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      // Émettre l'événement de succès
+      const successEvent = new CustomEvent('groups:generated', {
+        detail: combinedResults
+      });
+      document.dispatchEvent(successEvent);
+
+      console.log('✅ Groupes générés avec succès', combinedResults);
+
+    } catch (error) {
+      console.error('❌ Erreur lors de la génération:', error);
+
+      // Émettre l'événement d'erreur
+      const errorEvent = new CustomEvent('groups:error', {
+        detail: { message: error.message }
+      });
+      document.dispatchEvent(errorEvent);
+    }
+  }
+
+  /**
+   * Gère l'événement de résultats générés
+   */
+  function handleGroupsGenerated(event) {
+    console.log('📊 Résultats reçus:', event.detail);
+
+    // Afficher les résultats dans l'interface
+    if (window.GroupsInterfaceV4) {
+      window.GroupsInterfaceV4.displayResults(event.detail);
+    }
+  }
+
+  /**
+   * Gère l'événement d'erreur
+   */
+  function handleGroupsError(event) {
+    console.error('❌ Erreur reçue:', event.detail);
+
+    // Afficher l'erreur dans l'interface
+    if (window.GroupsInterfaceV4) {
+      window.GroupsInterfaceV4.displayError(event.detail);
+    }
+  }
+
+  /**
+   * Remplace la fonction openGroupsInterface existante
+   */
+  function replaceOpenGroupsInterface() {
+    // Sauvegarder l'ancienne fonction si elle existe
+    if (window.openGroupsInterface) {
+      window._oldOpenGroupsInterface = window.openGroupsInterface;
+      console.log('💾 Ancienne openGroupsInterface sauvegardée');
+    }
+
+    // Remplacer par la nouvelle
+    window.openGroupsInterface = function(mode) {
+      console.log('🔄 openGroupsInterface appelée avec mode:', mode);
+
+      // Rediriger vers le module V4
+      openModuleGroupsV4(mode);
+    };
+
+    console.log('✅ openGroupsInterface remplacée par la version V4');
+  }
+
+  /**
+   * Restaure l'ancienne fonction openGroupsInterface
+   */
+  function restoreOpenGroupsInterface() {
+    if (window._oldOpenGroupsInterface) {
+      window.openGroupsInterface = window._oldOpenGroupsInterface;
+      delete window._oldOpenGroupsInterface;
+      console.log('✅ openGroupsInterface restaurée');
+    }
+  }
+
+  /**
+   * Initialisation du module
+   */
+  function init() {
+    // Écouter les événements
+    document.addEventListener('groups:generate', handleGenerateGroups);
+    document.addEventListener('groups:generated', handleGroupsGenerated);
+    document.addEventListener('groups:error', handleGroupsError);
+
+    // Remplacer la fonction du header
+    replaceOpenGroupsInterface();
+
+    // Exposer les fonctions globalement
+    window.openModuleGroupsV4 = openModuleGroupsV4;
+    window.closeModuleGroupsV4 = closeModuleGroupsV4;
+
+    console.log('✅ Module Groupes V4 initialisé et connecté au header');
+  }
+
+  // Initialiser au chargement du DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    // DOM déjà chargé
+    setTimeout(init, 100);
+  }
+
+  // Nettoyer à la fermeture
+  window.addEventListener('beforeunload', () => {
+    restoreOpenGroupsInterface();
+  });
+
+})();
+</script>

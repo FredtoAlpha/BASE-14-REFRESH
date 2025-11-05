@@ -1,0 +1,648 @@
+/**
+ * GROUPS INTERFACE V4 - TRIPTYQUE
+ * Interface utilisateur en trois volets pour la création de groupes
+ * Architecture : Volet A (30%) - Volet B (40%) - Volet C (30%)
+ */
+
+const GroupsInterfaceV4 = (function() {
+  'use strict';
+
+  // État interne de l'interface
+  const state = {
+    scenario: null,        // 'besoins' | 'lv2' | 'options'
+    mode: null,           // 'heterogeneous' | 'homogeneous'
+    regroupements: [],    // Liste des regroupements configurés
+    currentResults: null, // Résultats de la génération en cours
+    timeline: [],         // Historique des actions
+    carouselIndex: 0      // Index du carrousel de groupes
+  };
+
+  /**
+   * Rendu de la structure HTML complète (triptyque 30/40/30)
+   */
+  function renderInitialStructure(container) {
+    container.innerHTML = `
+      <div class="groups-v4-triptyque" style="display: flex; height: 100vh; background: #f8f9fa;">
+
+        <!-- VOLET A : Paramètres (30%) -->
+        <div class="volet-a" style="flex: 0 0 30%; background: white; border-right: 1px solid #e5e7eb; overflow-y: auto;">
+          <div style="padding: 24px;">
+            <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 24px;">
+              <i class="fas fa-cog"></i> Paramètres
+            </h2>
+
+            <!-- Scénario -->
+            <div style="margin-bottom: 32px;">
+              <h3 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #6b7280;">
+                Choisir un scénario
+              </h3>
+              <div id="scenario-buttons" style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="scenario-btn" data-scenario="besoins" style="
+                  padding: 12px 16px;
+                  border: 2px solid #e5e7eb;
+                  border-radius: 8px;
+                  background: white;
+                  cursor: pointer;
+                  text-align: left;
+                  transition: all 0.2s;
+                ">
+                  <i class="fas fa-user-graduate"></i> Besoins pédagogiques
+                </button>
+                <button class="scenario-btn" data-scenario="lv2" style="
+                  padding: 12px 16px;
+                  border: 2px solid #e5e7eb;
+                  border-radius: 8px;
+                  background: white;
+                  cursor: pointer;
+                  text-align: left;
+                  transition: all 0.2s;
+                ">
+                  <i class="fas fa-language"></i> Langues vivantes (LV2)
+                </button>
+                <button class="scenario-btn" data-scenario="options" style="
+                  padding: 12px 16px;
+                  border: 2px solid #e5e7eb;
+                  border-radius: 8px;
+                  background: white;
+                  cursor: pointer;
+                  text-align: left;
+                  transition: all 0.2s;
+                ">
+                  <i class="fas fa-star"></i> Options spécifiques
+                </button>
+              </div>
+            </div>
+
+            <!-- Mode de distribution -->
+            <div id="mode-section" style="display: none; margin-bottom: 32px;">
+              <h3 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #6b7280;">
+                Mode de distribution
+              </h3>
+              <div id="mode-buttons" style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="mode-btn" data-mode="heterogeneous" style="
+                  padding: 12px 16px;
+                  border: 2px solid #e5e7eb;
+                  border-radius: 8px;
+                  background: white;
+                  cursor: pointer;
+                  text-align: left;
+                  transition: all 0.2s;
+                ">
+                  <i class="fas fa-random"></i> Hétérogène
+                  <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
+                    Mélange les niveaux pour équilibrer
+                  </div>
+                </button>
+                <button class="mode-btn" data-mode="homogeneous" style="
+                  padding: 12px 16px;
+                  border: 2px solid #e5e7eb;
+                  border-radius: 8px;
+                  background: white;
+                  cursor: pointer;
+                  text-align: left;
+                  transition: all 0.2s;
+                ">
+                  <i class="fas fa-equals"></i> Homogène
+                  <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
+                    Groupes de niveaux similaires
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Aide contextuelle -->
+            <div id="help-box" style="
+              padding: 12px;
+              background: #eff6ff;
+              border-left: 4px solid #3b82f6;
+              border-radius: 4px;
+              font-size: 13px;
+              color: #1e40af;
+              display: none;
+            ">
+              <i class="fas fa-info-circle"></i>
+              <span id="help-text"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- VOLET B : Regroupements (40%) -->
+        <div class="volet-b" style="flex: 0 0 40%; background: #f9fafb; overflow-y: auto;">
+          <div style="padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+              <h2 style="font-size: 18px; font-weight: 600;">
+                <i class="fas fa-layer-group"></i> Regroupements
+              </h2>
+              <button id="btn-add-regroupement" style="
+                padding: 8px 16px;
+                background: #10b981;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                display: none;
+              ">
+                <i class="fas fa-plus"></i> Ajouter
+              </button>
+            </div>
+
+            <div id="regroupements-list" style="display: flex; flex-direction: column; gap: 16px;">
+              <div id="regroupements-placeholder" style="
+                padding: 48px 24px;
+                text-align: center;
+                color: #9ca3af;
+                border: 2px dashed #e5e7eb;
+                border-radius: 8px;
+              ">
+                <i class="fas fa-arrow-left" style="font-size: 24px; margin-bottom: 16px;"></i>
+                <div style="font-size: 14px;">
+                  Sélectionnez un scénario et un mode pour commencer
+                </div>
+              </div>
+            </div>
+
+            <!-- Bandeau d'actions -->
+            <div id="actions-banner" style="
+              display: none;
+              margin-top: 24px;
+              padding: 16px;
+              background: white;
+              border-radius: 8px;
+              border: 1px solid #e5e7eb;
+            ">
+              <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="btn-reset" style="
+                  padding: 10px 20px;
+                  background: #ef4444;
+                  color: white;
+                  border: none;
+                  border-radius: 6px;
+                  cursor: pointer;
+                ">
+                  <i class="fas fa-redo"></i> Réinitialiser
+                </button>
+                <button id="btn-generate" style="
+                  padding: 10px 20px;
+                  background: #3b82f6;
+                  color: white;
+                  border: none;
+                  border-radius: 6px;
+                  cursor: pointer;
+                  font-weight: 500;
+                ">
+                  <i class="fas fa-magic"></i> Générer les groupes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VOLET C : Récapitulatif (30%) -->
+        <div class="volet-c" style="flex: 0 0 30%; background: white; border-left: 1px solid #e5e7eb; overflow-y: auto;">
+          <div style="padding: 24px;">
+            <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 24px;">
+              <i class="fas fa-chart-bar"></i> Récapitulatif
+            </h2>
+
+            <!-- Scénario et mode sélectionnés -->
+            <div id="recap-selection" style="
+              padding: 16px;
+              background: #f9fafb;
+              border-radius: 8px;
+              margin-bottom: 24px;
+              font-size: 14px;
+            ">
+              <div style="margin-bottom: 8px;">
+                <strong>Scénario :</strong> <span id="recap-scenario">-</span>
+              </div>
+              <div>
+                <strong>Mode :</strong> <span id="recap-mode">-</span>
+              </div>
+            </div>
+
+            <!-- Statistiques -->
+            <div id="recap-stats" style="display: none; margin-bottom: 24px;">
+              <h3 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #6b7280;">
+                Statistiques
+              </h3>
+              <div id="stats-content"></div>
+            </div>
+
+            <!-- Timeline -->
+            <div id="recap-timeline" style="margin-bottom: 24px;">
+              <h3 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #6b7280;">
+                Timeline
+              </h3>
+              <div id="timeline-content" style="
+                font-size: 13px;
+                color: #6b7280;
+              ">
+                Aucune action pour le moment
+              </div>
+            </div>
+
+            <!-- Aperçu des groupes (carrousel) -->
+            <div id="recap-groups" style="display: none;">
+              <h3 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #6b7280;">
+                Aperçu des groupes
+              </h3>
+              <div id="groups-carousel"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    // Initialiser les événements
+    initializeEvents(container);
+  }
+
+  /**
+   * Initialise les événements de l'interface
+   */
+  function initializeEvents(container) {
+    // Boutons de scénario
+    container.querySelectorAll('.scenario-btn').forEach(btn => {
+      btn.addEventListener('click', () => selectScenario(btn.dataset.scenario));
+    });
+
+    // Boutons de mode
+    container.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => selectMode(btn.dataset.mode));
+    });
+
+    // Bouton ajouter regroupement
+    const btnAdd = container.querySelector('#btn-add-regroupement');
+    if (btnAdd) {
+      btnAdd.addEventListener('click', addRegroupement);
+    }
+
+    // Bouton générer
+    const btnGenerate = container.querySelector('#btn-generate');
+    if (btnGenerate) {
+      btnGenerate.addEventListener('click', generateGroups);
+    }
+
+    // Bouton réinitialiser
+    const btnReset = container.querySelector('#btn-reset');
+    if (btnReset) {
+      btnReset.addEventListener('click', resetInterface);
+    }
+  }
+
+  /**
+   * Sélection du scénario
+   */
+  function selectScenario(scenario) {
+    state.scenario = scenario;
+
+    // Mettre à jour l'UI
+    document.querySelectorAll('.scenario-btn').forEach(btn => {
+      if (btn.dataset.scenario === scenario) {
+        btn.style.borderColor = '#3b82f6';
+        btn.style.background = '#eff6ff';
+      } else {
+        btn.style.borderColor = '#e5e7eb';
+        btn.style.background = 'white';
+      }
+    });
+
+    // Afficher la section mode
+    const modeSection = document.getElementById('mode-section');
+    if (modeSection) modeSection.style.display = 'block';
+
+    // Mettre à jour le récapitulatif
+    updateRecap();
+
+    // Ajouter à la timeline
+    addToTimeline(`Scénario "${scenario}" sélectionné`);
+
+    console.log('✅ Scénario sélectionné:', scenario);
+  }
+
+  /**
+   * Sélection du mode
+   */
+  function selectMode(mode) {
+    state.mode = mode;
+
+    // Mettre à jour l'UI
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      if (btn.dataset.mode === mode) {
+        btn.style.borderColor = '#10b981';
+        btn.style.background = '#f0fdf4';
+      } else {
+        btn.style.borderColor = '#e5e7eb';
+        btn.style.background = 'white';
+      }
+    });
+
+    // Activer le volet B
+    activateVoletB();
+
+    // Mettre à jour le récapitulatif
+    updateRecap();
+
+    // Ajouter à la timeline
+    addToTimeline(`Mode "${mode}" sélectionné`);
+
+    console.log('✅ Mode sélectionné:', mode);
+  }
+
+  /**
+   * Active le volet B (regroupements)
+   */
+  function activateVoletB() {
+    const placeholder = document.getElementById('regroupements-placeholder');
+    const btnAdd = document.getElementById('btn-add-regroupement');
+    const actionsBanner = document.getElementById('actions-banner');
+
+    if (placeholder) placeholder.style.display = 'none';
+    if (btnAdd) btnAdd.style.display = 'inline-block';
+    if (actionsBanner) actionsBanner.style.display = 'block';
+  }
+
+  /**
+   * Ajoute un regroupement
+   */
+  function addRegroupement() {
+    const regroupement = {
+      id: Date.now(),
+      name: `Regroupement ${state.regroupements.length + 1}`,
+      classes: [],
+      numGroups: 3
+    };
+
+    state.regroupements.push(regroupement);
+    renderRegroupements();
+    addToTimeline(`Regroupement "${regroupement.name}" ajouté`);
+  }
+
+  /**
+   * Rendu de la liste des regroupements
+   */
+  function renderRegroupements() {
+    const list = document.getElementById('regroupements-list');
+    if (!list) return;
+
+    list.innerHTML = state.regroupements.map(reg => `
+      <div class="regroupement-card" data-id="${reg.id}" style="
+        padding: 16px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+      ">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <input
+            type="text"
+            value="${reg.name}"
+            data-id="${reg.id}"
+            class="regroupement-name"
+            style="
+              font-weight: 500;
+              border: none;
+              background: transparent;
+              outline: none;
+              font-size: 14px;
+            "
+          />
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-duplicate" data-id="${reg.id}" style="
+              padding: 4px 8px;
+              border: 1px solid #e5e7eb;
+              background: white;
+              border-radius: 4px;
+              cursor: pointer;
+            ">
+              <i class="fas fa-copy"></i>
+            </button>
+            <button class="btn-delete" data-id="${reg.id}" style="
+              padding: 4px 8px;
+              border: 1px solid #e5e7eb;
+              background: white;
+              border-radius: 4px;
+              cursor: pointer;
+              color: #ef4444;
+            ">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        <div style="font-size: 13px; color: #6b7280;">
+          <div>Classes : <span id="classes-${reg.id}">Aucune</span></div>
+          <div style="margin-top: 8px;">
+            Nombre de groupes :
+            <input
+              type="number"
+              value="${reg.numGroups}"
+              min="2"
+              max="10"
+              data-id="${reg.id}"
+              class="num-groups-input"
+              style="
+                width: 60px;
+                padding: 4px 8px;
+                border: 1px solid #e5e7eb;
+                border-radius: 4px;
+                text-align: center;
+              "
+            />
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    // Réattacher les événements
+    attachRegroupementEvents();
+  }
+
+  /**
+   * Attache les événements aux cartes de regroupement
+   */
+  function attachRegroupementEvents() {
+    // Renommer
+    document.querySelectorAll('.regroupement-name').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const id = parseInt(e.target.dataset.id);
+        const reg = state.regroupements.find(r => r.id === id);
+        if (reg) {
+          reg.name = e.target.value;
+          addToTimeline(`"${reg.name}" renommé`);
+        }
+      });
+    });
+
+    // Changer le nombre de groupes
+    document.querySelectorAll('.num-groups-input').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const id = parseInt(e.target.dataset.id);
+        const reg = state.regroupements.find(r => r.id === id);
+        if (reg) {
+          reg.numGroups = parseInt(e.target.value);
+          addToTimeline(`"${reg.name}" : ${reg.numGroups} groupes`);
+        }
+      });
+    });
+
+    // Dupliquer
+    document.querySelectorAll('.btn-duplicate').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.target.closest('button').dataset.id);
+        const reg = state.regroupements.find(r => r.id === id);
+        if (reg) {
+          const duplicate = {
+            ...reg,
+            id: Date.now(),
+            name: `${reg.name} (copie)`
+          };
+          state.regroupements.push(duplicate);
+          renderRegroupements();
+          addToTimeline(`"${duplicate.name}" créé par duplication`);
+        }
+      });
+    });
+
+    // Supprimer
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.target.closest('button').dataset.id);
+        const reg = state.regroupements.find(r => r.id === id);
+        if (reg && confirm(`Supprimer "${reg.name}" ?`)) {
+          state.regroupements = state.regroupements.filter(r => r.id !== id);
+          renderRegroupements();
+          addToTimeline(`"${reg.name}" supprimé`);
+        }
+      });
+    });
+  }
+
+  /**
+   * Génère les groupes
+   */
+  function generateGroups() {
+    if (!state.scenario || !state.mode) {
+      alert('Veuillez sélectionner un scénario et un mode');
+      return;
+    }
+
+    if (state.regroupements.length === 0) {
+      alert('Veuillez ajouter au moins un regroupement');
+      return;
+    }
+
+    // Émettre l'événement
+    const event = new CustomEvent('groups:generate', {
+      detail: {
+        scenario: state.scenario,
+        mode: state.mode,
+        regroupements: state.regroupements
+      }
+    });
+
+    document.dispatchEvent(event);
+    console.log('🚀 Événement groups:generate émis', event.detail);
+
+    addToTimeline('Génération des groupes lancée...');
+  }
+
+  /**
+   * Réinitialise l'interface
+   */
+  function resetInterface() {
+    if (!confirm('Réinitialiser tous les regroupements ?')) return;
+
+    state.regroupements = [];
+    state.currentResults = null;
+    renderRegroupements();
+    addToTimeline('Interface réinitialisée');
+  }
+
+  /**
+   * Met à jour le récapitulatif
+   */
+  function updateRecap() {
+    const recapScenario = document.getElementById('recap-scenario');
+    const recapMode = document.getElementById('recap-mode');
+
+    if (recapScenario) {
+      recapScenario.textContent = state.scenario || '-';
+    }
+
+    if (recapMode) {
+      recapMode.textContent = state.mode || '-';
+    }
+  }
+
+  /**
+   * Ajoute une entrée à la timeline
+   */
+  function addToTimeline(message) {
+    const timestamp = new Date().toLocaleTimeString('fr-FR');
+    state.timeline.push({ timestamp, message });
+
+    const timelineContent = document.getElementById('timeline-content');
+    if (timelineContent) {
+      const entry = document.createElement('div');
+      entry.style.marginBottom = '8px';
+      entry.innerHTML = `
+        <span style="color: #9ca3af;">[${timestamp}]</span>
+        ${message}
+      `;
+      timelineContent.appendChild(entry);
+
+      // Scroll vers le bas
+      timelineContent.scrollTop = timelineContent.scrollHeight;
+    }
+  }
+
+  /**
+   * Affiche les résultats de génération
+   */
+  function displayResults(results) {
+    state.currentResults = results;
+
+    // Afficher les statistiques
+    const statsSection = document.getElementById('recap-stats');
+    const statsContent = document.getElementById('stats-content');
+
+    if (statsSection && statsContent) {
+      statsSection.style.display = 'block';
+      statsContent.innerHTML = `
+        <div style="font-size: 13px;">
+          <div style="margin-bottom: 4px;">
+            <strong>Groupes générés :</strong> ${results.stats.length}
+          </div>
+          <div style="margin-bottom: 4px;">
+            <strong>Total élèves :</strong> ${results.metadata.totalStudents}
+          </div>
+        </div>
+      `;
+    }
+
+    addToTimeline(`${results.stats.length} groupes générés avec succès`);
+  }
+
+  /**
+   * Affiche une erreur
+   */
+  function displayError(error) {
+    alert('Erreur : ' + error.message);
+    addToTimeline(`Erreur : ${error.message}`);
+  }
+
+  // API publique
+  return {
+    renderInitialStructure,
+    displayResults,
+    displayError,
+    state
+  };
+})();
+
+// Export pour utilisation dans le module
+if (typeof window !== 'undefined') {
+  window.GroupsInterfaceV4 = GroupsInterfaceV4;
+  console.log('✅ GroupsInterfaceV4 chargé');
+}
