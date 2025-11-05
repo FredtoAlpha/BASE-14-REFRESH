@@ -103,6 +103,23 @@
       return;
     }
 
+    // Vérifier que STATE.students est chargé
+    if (!window.STATE || !window.STATE.students || Object.keys(window.STATE.students).length === 0) {
+      console.warn('⚠️ STATE.students vide ou non chargé, attente...');
+
+      // Attendre 1 seconde que les données se chargent
+      setTimeout(() => {
+        if (!window.STATE || !window.STATE.students || Object.keys(window.STATE.students).length === 0) {
+          alert('Erreur : Les données des élèves ne sont pas encore chargées. Veuillez attendre la fin du chargement et réessayer.');
+          console.error('❌ STATE.students toujours vide après délai');
+          return;
+        }
+        // Réessayer l'ouverture
+        openModuleGroupsV4(mode);
+      }, 1000);
+      return;
+    }
+
     // Valider les données
     if (!validateData()) {
       alert('Erreur : Aucune classe disponible. Veuillez charger des données d\'abord.');
