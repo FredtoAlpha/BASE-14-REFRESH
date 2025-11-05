@@ -43,16 +43,30 @@
         const student = window.STATE.students[studentId];
 
         if (student) {
+          // Extraire TOUS les champs nécessaires pour l'algorithme V4
           classesData[className].push({
             id: student.id || studentId,
             firstName: student.firstName || student.prenom || '',
             lastName: student.lastName || student.nom || '',
             class: className,
+
+            // SEXE (colonne E)
+            sexe: (student.sexe || student.gender || 'M').toUpperCase(),
             gender: student.gender || student.sexe || 'M',
+
+            // CRITÈRES COMPORTEMENTAUX
+            com: student.com || student.COM || 0,        // Colonne H
+            tra: student.tra || student.TRA || 0,        // Colonne I
+            part: student.part || student.PART || 0,     // Colonne J
+            abs: student.abs || student.ABS || 0,        // Colonne K
+
+            // SCORES ACADÉMIQUES
+            scoreF: student.scoreF || student.scores?.F || 0,  // Colonne U (1-4)
+            scoreM: student.scoreM || student.scores?.M || 0,  // Colonne V (1-4)
             score: student.score || student.scoreF || student.scoreM || 0,
-            scoreF: student.scoreF || 0,
-            scoreM: student.scoreM || 0,
-            lv2: student.lv2 || null,
+
+            // AUTRES DONNÉES
+            lv2: student.lv2 || student.LV2 || null,
             options: student.options || [],
             scores: student.scores || {}
           });
