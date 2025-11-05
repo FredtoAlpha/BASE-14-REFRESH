@@ -26,15 +26,15 @@ const GroupsInterfaceV4 = (function() {
       <div class="groups-v4-triptyque" style="display: flex; height: 100vh; background: #f8f9fa;">
 
         <!-- VOLET A : Paramètres (30%) -->
-        <div class="volet-a" style="flex: 0 0 30%; background: white; border-right: 1px solid #e5e7eb; overflow-y: auto;">
+        <div class="volet-a" style="flex: 0 0 30%; background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%); border-right: 1px solid #e5e7eb; overflow-y: auto;">
           <div style="padding: 24px;">
-            <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 24px;">
+            <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 24px; color: #1f2937; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
               <i class="fas fa-cog"></i> Paramètres
             </h2>
 
             <!-- Scénario -->
             <div style="margin-bottom: 32px;">
-              <h3 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #6b7280;">
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #374151;">
                 Choisir un scénario
               </h3>
               <div id="scenario-buttons" style="display: flex; flex-direction: column; gap: 8px;">
@@ -76,7 +76,7 @@ const GroupsInterfaceV4 = (function() {
 
             <!-- Mode de distribution -->
             <div id="mode-section" style="display: none; margin-bottom: 32px;">
-              <h3 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #6b7280;">
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #374151;">
                 Mode de distribution
               </h3>
               <div id="mode-buttons" style="display: flex; flex-direction: column; gap: 8px;">
@@ -111,6 +111,27 @@ const GroupsInterfaceV4 = (function() {
               </div>
             </div>
 
+            <!-- Classes détectées -->
+            <div id="classes-detected-section" style="display: none; margin-bottom: 32px;">
+              <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #374151;">
+                <i class="fas fa-school"></i> Classes détectées
+              </h3>
+              <div id="classes-detected-list" style="
+                padding: 12px;
+                background: #f0fdf4;
+                border: 1px solid #86efac;
+                border-radius: 8px;
+                font-size: 13px;
+              ">
+                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                  <!-- Les classes détectées s'afficheront ici -->
+                </div>
+              </div>
+              <div style="margin-top: 8px; font-size: 12px; color: #6b7280;">
+                <i class="fas fa-info-circle"></i> Ces classes sont disponibles pour créer des regroupements
+              </div>
+            </div>
+
             <!-- Aide contextuelle -->
             <div id="help-box" style="
               padding: 12px;
@@ -128,10 +149,10 @@ const GroupsInterfaceV4 = (function() {
         </div>
 
         <!-- VOLET B : Regroupements (40%) -->
-        <div class="volet-b" style="flex: 0 0 40%; background: #f9fafb; overflow-y: auto;">
+        <div class="volet-b" style="flex: 0 0 40%; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); overflow-y: auto;">
           <div style="padding: 24px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-              <h2 style="font-size: 18px; font-weight: 600;">
+              <h2 style="font-size: 20px; font-weight: 700; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                 <i class="fas fa-layer-group"></i> Regroupements
               </h2>
               <button id="btn-add-regroupement" style="
@@ -200,9 +221,9 @@ const GroupsInterfaceV4 = (function() {
         </div>
 
         <!-- VOLET C : Récapitulatif (30%) -->
-        <div class="volet-c" style="flex: 0 0 30%; background: white; border-left: 1px solid #e5e7eb; overflow-y: auto;">
+        <div class="volet-c" style="flex: 0 0 30%; background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%); border-left: 1px solid #e5e7eb; overflow-y: auto;">
           <div style="padding: 24px;">
-            <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 24px;">
+            <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 24px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
               <i class="fas fa-chart-bar"></i> Récapitulatif
             </h2>
 
@@ -224,16 +245,16 @@ const GroupsInterfaceV4 = (function() {
 
             <!-- Statistiques -->
             <div id="recap-stats" style="display: none; margin-bottom: 24px;">
-              <h3 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #6b7280;">
-                Statistiques
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #374151;">
+                <i class="fas fa-chart-pie"></i> Statistiques
               </h3>
               <div id="stats-content"></div>
             </div>
 
             <!-- Timeline -->
             <div id="recap-timeline" style="margin-bottom: 24px;">
-              <h3 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #6b7280;">
-                Timeline
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #374151;">
+                <i class="fas fa-clock"></i> Timeline
               </h3>
               <div id="timeline-content" style="
                 font-size: 13px;
@@ -245,10 +266,32 @@ const GroupsInterfaceV4 = (function() {
 
             <!-- Aperçu des groupes (carrousel) -->
             <div id="recap-groups" style="display: none;">
-              <h3 style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #6b7280;">
-                Aperçu des groupes
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #374151;">
+                <i class="fas fa-users"></i> Aperçu des groupes
               </h3>
               <div id="groups-carousel"></div>
+            </div>
+
+            <!-- Interface de swap -->
+            <div id="recap-swap-section" style="display: none; margin-top: 24px;">
+              <button id="btn-open-swap" style="
+                width: 100%;
+                padding: 14px 20px;
+                background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+                transition: all 0.2s;
+              " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(139, 92, 246, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(139, 92, 246, 0.3)'">
+                <i class="fas fa-exchange-alt"></i> Ouvrir l'interface de swap
+              </button>
+              <div style="margin-top: 8px; font-size: 12px; color: #6b7280; text-align: center;">
+                <i class="fas fa-info-circle"></i> Échangez les élèves entre les groupes
+              </div>
             </div>
           </div>
         </div>
@@ -290,6 +333,12 @@ const GroupsInterfaceV4 = (function() {
     const btnReset = container.querySelector('#btn-reset');
     if (btnReset) {
       btnReset.addEventListener('click', resetInterface);
+    }
+
+    // Bouton ouvrir swap interface
+    const btnOpenSwap = container.querySelector('#btn-open-swap');
+    if (btnOpenSwap) {
+      btnOpenSwap.addEventListener('click', openSwapInterface);
     }
   }
 
@@ -340,6 +389,9 @@ const GroupsInterfaceV4 = (function() {
       }
     });
 
+    // Afficher la section des classes détectées
+    displayDetectedClasses();
+
     // Activer le volet B
     activateVoletB();
 
@@ -350,6 +402,50 @@ const GroupsInterfaceV4 = (function() {
     addToTimeline(`Mode "${mode}" sélectionné`);
 
     console.log('✅ Mode sélectionné:', mode);
+  }
+
+  /**
+   * Affiche la liste des classes détectées depuis le DOM
+   */
+  function displayDetectedClasses() {
+    const section = document.getElementById('classes-detected-section');
+    const listContainer = document.querySelector('#classes-detected-list > div');
+
+    if (!section || !listContainer) return;
+
+    // Détecter les classes depuis le DOM
+    const zones = document.querySelectorAll('.droppable-zone[data-classe]');
+    const classes = [];
+    zones.forEach(zone => {
+      const className = zone.getAttribute('data-classe');
+      if (className && !classes.includes(className)) {
+        classes.push(className);
+      }
+    });
+
+    if (classes.length === 0) {
+      listContainer.innerHTML = '<span style="color: #ef4444;">Aucune classe détectée</span>';
+    } else {
+      listContainer.innerHTML = classes.map(className => `
+        <span style="
+          display: inline-block;
+          padding: 4px 10px;
+          background: white;
+          border: 1px solid #10b981;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 500;
+          color: #059669;
+        ">
+          <i class="fas fa-graduation-cap" style="margin-right: 4px;"></i>${className}
+        </span>
+      `).join('');
+    }
+
+    // Afficher la section
+    section.style.display = 'block';
+
+    console.log(`✅ ${classes.length} classe(s) détectée(s):`, classes);
   }
 
   /**
@@ -388,12 +484,25 @@ const GroupsInterfaceV4 = (function() {
     const list = document.getElementById('regroupements-list');
     if (!list) return;
 
+    // Récupérer les classes disponibles depuis window.STATE
+    const availableClasses = [];
+    if (window.STATE && window.STATE.students) {
+      const zones = document.querySelectorAll('.droppable-zone[data-classe]');
+      zones.forEach(zone => {
+        const className = zone.getAttribute('data-classe');
+        if (className && !availableClasses.includes(className)) {
+          availableClasses.push(className);
+        }
+      });
+    }
+
     list.innerHTML = state.regroupements.map(reg => `
       <div class="regroupement-card" data-id="${reg.id}" style="
         padding: 16px;
         background: white;
         border: 1px solid #e5e7eb;
         border-radius: 8px;
+        margin-bottom: 12px;
       ">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <input
@@ -431,8 +540,46 @@ const GroupsInterfaceV4 = (function() {
             </button>
           </div>
         </div>
+
+        <!-- Sélection des classes -->
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 8px;">
+            Sélectionner les classes :
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            ${availableClasses.map(className => `
+              <label style="
+                display: inline-flex;
+                align-items: center;
+                padding: 6px 12px;
+                border: 2px solid ${reg.classes && reg.classes.includes(className) ? '#3b82f6' : '#e5e7eb'};
+                background: ${reg.classes && reg.classes.includes(className) ? '#eff6ff' : 'white'};
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                transition: all 0.2s;
+              ">
+                <input
+                  type="checkbox"
+                  class="class-checkbox"
+                  data-regroupement-id="${reg.id}"
+                  data-class-name="${className}"
+                  ${reg.classes && reg.classes.includes(className) ? 'checked' : ''}
+                  style="margin-right: 6px;"
+                />
+                ${className}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
         <div style="font-size: 13px; color: #6b7280;">
-          <div>Classes : <span id="classes-${reg.id}">Aucune</span></div>
+          <div style="margin-bottom: 8px;">
+            <strong>Classes sélectionnées :</strong>
+            <span id="classes-${reg.id}">
+              ${reg.classes && reg.classes.length > 0 ? reg.classes.join(', ') : 'Aucune'}
+            </span>
+          </div>
           <div style="margin-top: 8px;">
             Nombre de groupes :
             <input
@@ -463,6 +610,35 @@ const GroupsInterfaceV4 = (function() {
    * Attache les événements aux cartes de regroupement
    */
   function attachRegroupementEvents() {
+    // Checkboxes de sélection de classes
+    document.querySelectorAll('.class-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const regId = parseInt(e.target.dataset.regroupementId);
+        const className = e.target.dataset.className;
+        const reg = state.regroupements.find(r => r.id === regId);
+
+        if (reg) {
+          if (!reg.classes) reg.classes = [];
+
+          if (e.target.checked) {
+            if (!reg.classes.includes(className)) {
+              reg.classes.push(className);
+            }
+          } else {
+            reg.classes = reg.classes.filter(c => c !== className);
+          }
+
+          // Mettre à jour l'affichage
+          const display = document.getElementById(`classes-${regId}`);
+          if (display) {
+            display.textContent = reg.classes.length > 0 ? reg.classes.join(', ') : 'Aucune';
+          }
+
+          addToTimeline(`"${reg.name}" : ${reg.classes.length} classe(s) sélectionnée(s)`);
+        }
+      });
+    });
+
     // Renommer
     document.querySelectorAll('.regroupement-name').forEach(input => {
       input.addEventListener('change', (e) => {
@@ -496,7 +672,8 @@ const GroupsInterfaceV4 = (function() {
           const duplicate = {
             ...reg,
             id: Date.now(),
-            name: `${reg.name} (copie)`
+            name: `${reg.name} (copie)`,
+            classes: [...(reg.classes || [])]
           };
           state.regroupements.push(duplicate);
           renderRegroupements();
@@ -622,7 +799,173 @@ const GroupsInterfaceV4 = (function() {
       `;
     }
 
+    // Afficher la section swap
+    const swapSection = document.getElementById('recap-swap-section');
+    if (swapSection) {
+      swapSection.style.display = 'block';
+    }
+
     addToTimeline(`${results.stats.length} groupes générés avec succès`);
+  }
+
+  /**
+   * Ouvre l'interface de swap
+   */
+  function openSwapInterface() {
+    if (!state.currentResults || !state.currentResults.groups) {
+      alert('Aucun groupe à afficher. Veuillez d\'abord générer les groupes.');
+      return;
+    }
+
+    // Créer le modal de swap
+    const modal = document.createElement('div');
+    modal.id = 'swap-interface-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    `;
+
+    const content = document.createElement('div');
+    content.style.cssText = `
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 95vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    `;
+
+    // Construire le contenu
+    content.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 style="font-size: 24px; font-weight: 700; margin: 0; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+          <i class="fas fa-exchange-alt"></i> Interface de Swap
+        </h2>
+        <button id="close-swap-modal" style="
+          background: none;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+          color: #9ca3af;
+          transition: color 0.2s;
+        " onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#9ca3af'">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div style="margin-bottom: 24px; padding: 16px; background: linear-gradient(135deg, #eff6ff 0%, #f3e8ff 100%); border-radius: 12px; border-left: 4px solid #8b5cf6;">
+        <p style="margin: 0; font-size: 14px; color: #4c1d95;">
+          <i class="fas fa-info-circle"></i> Glissez-déposez les élèves entre les groupes pour les réorganiser
+        </p>
+      </div>
+
+      <div id="swap-groups-container" style="
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+      ">
+        ${renderSwapGroups(state.currentResults.groups)}
+      </div>
+    `;
+
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+
+    // Fermer le modal
+    document.getElementById('close-swap-modal').addEventListener('click', () => {
+      modal.remove();
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+
+    console.log('✅ Interface de swap ouverte');
+  }
+
+  /**
+   * Rendu des groupes dans l'interface de swap
+   */
+  function renderSwapGroups(groups) {
+    return groups.map((group, groupIndex) => `
+      <div class="swap-group" data-group-index="${groupIndex}" style="
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        transition: all 0.2s;
+      ">
+        <h3 style="
+          font-size: 16px;
+          font-weight: 700;
+          margin: 0 0 16px 0;
+          padding-bottom: 12px;
+          border-bottom: 2px solid #8b5cf6;
+          color: #6366f1;
+        ">
+          ${group.name}
+          <span style="font-size: 12px; font-weight: 400; color: #6b7280; margin-left: 8px;">
+            (${group.students.length} élèves)
+          </span>
+        </h3>
+        <div class="swap-students-list" data-group-index="${groupIndex}" style="
+          min-height: 100px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        ">
+          ${group.students.map((student, studentIndex) => `
+            <div
+              class="swap-student-card"
+              draggable="true"
+              data-group-index="${groupIndex}"
+              data-student-index="${studentIndex}"
+              data-student-id="${student.id}"
+              style="
+                padding: 10px 12px;
+                background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                cursor: move;
+                font-size: 13px;
+                transition: all 0.2s;
+              "
+              onmouseover="this.style.borderColor='#8b5cf6'; this.style.boxShadow='0 2px 8px rgba(139, 92, 246, 0.2)'"
+              onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'"
+            >
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-grip-vertical" style="color: #9ca3af;"></i>
+                <span style="font-weight: 600; color: #374151;">
+                  ${student.lastName} ${student.firstName}
+                </span>
+                ${student.class ? `
+                  <span style="
+                    font-size: 11px;
+                    padding: 2px 6px;
+                    background: #dbeafe;
+                    color: #1e40af;
+                    border-radius: 4px;
+                    margin-left: auto;
+                  ">${student.class}</span>
+                ` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
   }
 
   /**
