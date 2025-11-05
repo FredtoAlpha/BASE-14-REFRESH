@@ -44,7 +44,7 @@
 
         if (student) {
           // Extraire TOUS les champs nécessaires pour l'algorithme V4
-          classesData[className].push({
+          const extractedStudent = {
             id: student.id || studentId,
             firstName: student.firstName || student.prenom || '',
             lastName: student.lastName || student.nom || '',
@@ -55,22 +55,35 @@
             gender: student.gender || student.sexe || 'M',
 
             // CRITÈRES COMPORTEMENTAUX
-            com: student.com || student.COM || 0,        // Colonne H
-            tra: student.tra || student.TRA || 0,        // Colonne I
-            part: student.part || student.PART || 0,     // Colonne J
-            abs: student.abs || student.ABS || 0,        // Colonne K
+            com: parseFloat(student.com || student.COM || 0),        // Colonne H
+            tra: parseFloat(student.tra || student.TRA || 0),        // Colonne I
+            part: parseFloat(student.part || student.PART || 0),     // Colonne J
+            abs: parseFloat(student.abs || student.ABS || 0),        // Colonne K
 
             // SCORES ACADÉMIQUES
-            scoreF: student.scoreF || student.scores?.F || 0,  // Colonne U (1-4)
-            scoreM: student.scoreM || student.scores?.M || 0,  // Colonne V (1-4)
-            score: student.score || student.scoreF || student.scoreM || 0,
+            scoreF: parseFloat(student.scoreF || student.scores?.F || 0),  // Colonne U (1-4)
+            scoreM: parseFloat(student.scoreM || student.scores?.M || 0),  // Colonne V (1-4)
+            score: parseFloat(student.score || student.scoreF || student.scoreM || 0),
 
             // AUTRES DONNÉES
             // Colonne F : LV2 (ESP par défaut si vide)
             lv2: (student.lv2 || student.LV2 || 'ESP').toUpperCase(),
             options: student.options || [],
             scores: student.scores || {}
-          });
+          };
+
+          // DEBUG: Log premier élève de chaque classe pour vérifier extraction
+          if (classesData[className].length === 0) {
+            console.log(`🔍 Premier élève de ${className}:`, {
+              nom: extractedStudent.lastName,
+              scoreF: extractedStudent.scoreF,
+              scoreM: extractedStudent.scoreM,
+              com: extractedStudent.com,
+              tra: extractedStudent.tra
+            });
+          }
+
+          classesData[className].push(extractedStudent);
         }
       });
     });

@@ -962,6 +962,15 @@ const GroupsInterfaceV4 = (function() {
    * Affiche les résultats de génération
    */
   function displayResults(results) {
+    console.log('🔍 DEBUG displayResults - Résultats reçus:', {
+      totalGroups: results.groups?.length,
+      firstGroup: results.groups?.[0] ? {
+        name: results.groups[0].name,
+        studentCount: results.groups[0].students?.length,
+        firstStudent: results.groups[0].students?.[0]
+      } : null
+    });
+
     state.currentResults = results;
 
     // Afficher les statistiques
@@ -1567,6 +1576,18 @@ const GroupsInterfaceV4 = (function() {
     const counterEl = document.getElementById('regroupement-counter');
     if (nameEl) nameEl.textContent = currentReg.name;
     if (counterEl) counterEl.textContent = state.swapDashboard.currentRegroupementIndex + 1;
+
+    // DEBUG: Vérifier les données avant le rendu
+    console.log('🔍 DEBUG renderCurrentRegroupement - Premier groupe:', {
+      name: currentReg.groups[0]?.name,
+      studentCount: currentReg.groups[0]?.students.length,
+      firstStudent: currentReg.groups[0]?.students[0] ? {
+        nom: currentReg.groups[0].students[0].lastName,
+        scoreF: currentReg.groups[0].students[0].scoreF,
+        scoreM: currentReg.groups[0].students[0].scoreM,
+        com: currentReg.groups[0].students[0].com
+      } : null
+    });
 
     // Rendre les groupes
     container.innerHTML = renderSwapGroups(currentReg.groups);
