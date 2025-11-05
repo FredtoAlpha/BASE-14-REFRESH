@@ -1,3 +1,203 @@
 <script>
-<?!= include('GroupsAlgorithmV4.js'); ?>
+/**
+ * GROUPS ALGORITHM V4
+ * Algorithme de répartition des élèves en groupes
+ * Mode hétérogène et homogène avec gestion des scores
+ */
+
+const GroupsAlgorithmV4 = (function() {
+  'use strict';
+
+  /**
+   * Normalise les scores entre 0 et 1
+   */
+  function normalizeScores(students) {
+    const scores = students.map(s => s.score || 0).filter(s => s > 0);
+    if (scores.length === 0) return students;
+
+    const min = Math.min(...scores);
+    const max = Math.max(...scores);
+    const range = max - min || 1;
+
+    return students.map(student => ({
+      ...student,
+      normalizedScore: student.score ? (student.score - min) / range : 0
+    }));
+  }
+
+  /**
+   * Distribution hétérogène : mélange les niveaux
+   * Stratégie : serpentin (distribue du meilleur au moins bon, puis inverse)
+   */
+  function distributeHeterogeneous(students, numGroups) {
+    if (!students || students.length === 0) {
+      return { groups: [], stats: {} };
+    }
+
+    // Normaliser les scores
+    const normalized = normalizeScores(students);
+
+    // Trier par score décroissant
+    const sorted = [...normalized].sort((a, b) =>
+      (b.normalizedScore || 0) - (a.normalizedScore || 0)
+    );
+
+    // Initialiser les groupes
+    const groups = Array.from({ length: numGroups }, () => []);
+
+    // Distribution en serpentin
+    let groupIndex = 0;
+    let direction = 1; // 1 = forward, -1 = backward
+
+    sorted.forEach(student => {
+      groups[groupIndex].push(student);
+
+      groupIndex += direction;
+
+      // Inverser la direction aux extrémités
+      if (groupIndex >= numGroups) {
+        groupIndex = numGroups - 1;
+        direction = -1;
+      } else if (groupIndex < 0) {
+        groupIndex = 0;
+        direction = 1;
+      }
+    });
+
+    // Calculer les statistiques
+    const stats = calculateGroupStats(groups);
+
+    return { groups, stats };
+  }
+
+  /**
+   * Distribution homogène : équilibre les niveaux
+   * Stratégie : round-robin (distribue équitablement)
+   */
+  function distributeHomogeneous(students, numGroups) {
+    if (!students || students.length === 0) {
+      return { groups: [], stats: {} };
+    }
+
+    // Normaliser les scores
+    const normalized = normalizeScores(students);
+
+    // Trier par score décroissant
+    const sorted = [...normalized].sort((a, b) =>
+      (b.normalizedScore || 0) - (a.normalizedScore || 0)
+    );
+
+    // Initialiser les groupes
+    const groups = Array.from({ length: numGroups }, () => []);
+
+    // Distribution round-robin
+    sorted.forEach((student, index) => {
+      const groupIndex = index % numGroups;
+      groups[groupIndex].push(student);
+    });
+
+    // Équilibrer les genres (parité F/M)
+    balanceGender(groups);
+
+    // Calculer les statistiques
+    const stats = calculateGroupStats(groups);
+
+    return { groups, stats };
+  }
+
+  /**
+   * Équilibre les genres entre les groupes
+   */
+  function balanceGender(groups) {
+    // Compter les F/M par groupe
+    const genderCounts = groups.map(group => {
+      const f = group.filter(s => s.gender === 'F').length;
+      const m = group.filter(s => s.gender === 'M').length;
+      return { f, m, total: group.length };
+    });
+
+    // TODO: implémenter l'algorithme de swap pour équilibrer
+    // Pour l'instant, on garde la distribution par défaut
+
+    return groups;
+  }
+
+  /**
+   * Calcule les statistiques pour chaque groupe
+   */
+  function calculateGroupStats(groups) {
+    return groups.map((group, index) => {
+      const totalStudents = group.length;
+      const females = group.filter(s => s.gender === 'F').length;
+      const males = group.filter(s => s.gender === 'M').length;
+
+      const scores = group.map(s => s.normalizedScore || 0).filter(s => s > 0);
+      const avgScore = scores.length > 0
+        ? scores.reduce((sum, s) => sum + s, 0) / scores.length
+        : 0;
+
+      return {
+        groupId: index + 1,
+        totalStudents,
+        females,
+        males,
+        genderRatio: totalStudents > 0 ? (females / totalStudents * 100).toFixed(1) : 0,
+        avgScore: avgScore.toFixed(2),
+        students: group
+      };
+    });
+  }
+
+  /**
+   * Point d'entrée principal
+   */
+  function distribute(config) {
+    const {
+      students = [],
+      mode = 'heterogeneous', // 'heterogeneous' | 'homogeneous'
+      numGroups = 3,
+      scenario = 'besoins' // 'besoins' | 'lv2' | 'options'
+    } = config;
+
+    // Validation
+    if (!students || students.length === 0) {
+      throw new Error('Aucun élève fourni pour la répartition');
+    }
+
+    if (numGroups < 2) {
+      throw new Error('Le nombre de groupes doit être au minimum 2');
+    }
+
+    // Sélectionner l'algorithme
+    const result = mode === 'homogeneous'
+      ? distributeHomogeneous(students, numGroups)
+      : distributeHeterogeneous(students, numGroups);
+
+    // Ajouter les métadonnées
+    result.metadata = {
+      mode,
+      scenario,
+      numGroups,
+      totalStudents: students.length,
+      timestamp: new Date().toISOString()
+    };
+
+    return result;
+  }
+
+  // API publique
+  return {
+    distribute,
+    distributeHeterogeneous,
+    distributeHomogeneous,
+    calculateGroupStats,
+    normalizeScores
+  };
+})();
+
+// Export pour utilisation dans le module
+if (typeof window !== 'undefined') {
+  window.GroupsAlgorithmV4 = GroupsAlgorithmV4;
+  console.log('✅ GroupsAlgorithmV4 chargé');
+}
 </script>
