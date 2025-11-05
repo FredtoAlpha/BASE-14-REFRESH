@@ -12,6 +12,8 @@ const GroupsInterfaceV4 = (function() {
   const state = {
     scenario: null,        // 'besoins' | 'lv2' | 'options'
     mode: null,           // 'heterogeneous' | 'homogeneous'
+    selectedLanguage: null, // 'ESP' | 'ITA' | 'ALL' | 'CHI' | 'ARA' | etc.
+    availableLanguages: [], // [{ lang: 'ESP', count: 45 }, ...]
     regroupements: [],    // Liste des regroupements configurés
     currentResults: null, // Résultats de la génération en cours
     timeline: [],         // Historique des actions
@@ -108,6 +110,19 @@ const GroupsInterfaceV4 = (function() {
                     Groupes de niveaux similaires
                   </div>
                 </button>
+              </div>
+            </div>
+
+            <!-- Sélection de la langue LV2 -->
+            <div id="language-section" style="display: none; margin-bottom: 32px;">
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #374151;">
+                <i class="fas fa-language"></i> Langue à regrouper
+              </h3>
+              <div id="language-buttons" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- Les langues seront insérées ici dynamiquement -->
+              </div>
+              <div style="margin-top: 8px; font-size: 12px; color: #6b7280;">
+                <i class="fas fa-info-circle"></i> <span id="language-info">Sélectionnez une langue</span>
               </div>
             </div>
 
@@ -238,8 +253,11 @@ const GroupsInterfaceV4 = (function() {
               <div style="margin-bottom: 8px;">
                 <strong>Scénario :</strong> <span id="recap-scenario">-</span>
               </div>
-              <div>
+              <div style="margin-bottom: 8px;">
                 <strong>Mode :</strong> <span id="recap-mode">-</span>
+              </div>
+              <div id="recap-language-row" style="display: none;">
+                <strong>Langue :</strong> <span id="recap-language">-</span>
               </div>
             </div>
 
@@ -363,6 +381,16 @@ const GroupsInterfaceV4 = (function() {
     const modeSection = document.getElementById('mode-section');
     if (modeSection) modeSection.style.display = 'block';
 
+    // Si scénario LV2, afficher le sélecteur de langue
+    if (scenario === 'lv2') {
+      displayLanguageSelection();
+    } else {
+      // Masquer la section langue pour les autres scénarios
+      const languageSection = document.getElementById('language-section');
+      if (languageSection) languageSection.style.display = 'none';
+      state.selectedLanguage = null;
+    }
+
     // Mettre à jour le récapitulatif
     updateRecap();
 
@@ -446,6 +474,133 @@ const GroupsInterfaceV4 = (function() {
     section.style.display = 'block';
 
     console.log(`✅ ${classes.length} classe(s) détectée(s):`, classes);
+  }
+
+  /**
+   * Détecte les langues LV2 disponibles depuis les données
+   */
+  function detectAvailableLanguages() {
+    if (!window.STATE || !window.STATE.students) {
+      console.warn('⚠️ STATE.students non disponible pour détecter les langues');
+      return [];
+    }
+
+    // Compter les élèves par langue
+    const languageCounts = {};
+
+    Object.values(window.STATE.students).forEach(student => {
+      const lang = (student.lv2 || student.LV2 || 'ESP').toUpperCase();
+      languageCounts[lang] = (languageCounts[lang] || 0) + 1;
+    });
+
+    // Convertir en tableau
+    const languages = Object.entries(languageCounts).map(([lang, count]) => ({
+      lang,
+      count
+    }));
+
+    // Trier par nombre d'élèves décroissant
+    languages.sort((a, b) => b.count - a.count);
+
+    console.log('🌍 Langues détectées:', languages);
+    return languages;
+  }
+
+  /**
+   * Affiche le sélecteur de langues
+   */
+  function displayLanguageSelection() {
+    const section = document.getElementById('language-section');
+    const buttonsContainer = document.getElementById('language-buttons');
+    const infoSpan = document.getElementById('language-info');
+
+    if (!section || !buttonsContainer || !infoSpan) return;
+
+    // Détecter les langues disponibles
+    state.availableLanguages = detectAvailableLanguages();
+
+    if (state.availableLanguages.length === 0) {
+      buttonsContainer.innerHTML = '<p style="color: #ef4444; font-size: 13px;">Aucune langue détectée</p>';
+      section.style.display = 'block';
+      return;
+    }
+
+    // Afficher les langues sous forme de boutons
+    buttonsContainer.innerHTML = state.availableLanguages.map(({ lang, count }) => {
+      const langNames = {
+        'ESP': 'Espagnol 🇪🇸',
+        'ITA': 'Italien 🇮🇹',
+        'ALL': 'Allemand 🇩🇪',
+        'CHI': 'Chinois 🇨🇳',
+        'ARA': 'Arabe 🇦🇪'
+      };
+      const displayName = langNames[lang] || `${lang} 🌍`;
+
+      return `
+        <button class="language-btn" data-language="${lang}" style="
+          padding: 12px 16px;
+          border: 2px solid ${state.selectedLanguage === lang ? '#8b5cf6' : '#e5e7eb'};
+          border-radius: 8px;
+          background: ${state.selectedLanguage === lang ? '#f3e8ff' : 'white'};
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.2s;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        ">
+          <span style="font-weight: ${state.selectedLanguage === lang ? '600' : '400'};">
+            ${displayName}
+          </span>
+          <span style="
+            padding: 2px 8px;
+            background: #dbeafe;
+            color: #1e40af;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+          ">
+            ${count}
+          </span>
+        </button>
+      `;
+    }).join('');
+
+    // Mettre à jour le texte d'info
+    if (state.selectedLanguage) {
+      const selectedLang = state.availableLanguages.find(l => l.lang === state.selectedLanguage);
+      if (selectedLang) {
+        infoSpan.textContent = `${selectedLang.count} élève(s) en ${state.selectedLanguage}`;
+      }
+    } else {
+      infoSpan.textContent = 'Sélectionnez une langue';
+    }
+
+    // Afficher la section
+    section.style.display = 'block';
+
+    // Attacher les événements
+    document.querySelectorAll('.language-btn').forEach(btn => {
+      btn.addEventListener('click', () => selectLanguage(btn.dataset.language));
+    });
+  }
+
+  /**
+   * Sélectionne une langue
+   */
+  function selectLanguage(language) {
+    state.selectedLanguage = language;
+
+    // Mettre à jour l'UI
+    displayLanguageSelection();
+
+    // Mettre à jour le récapitulatif
+    updateRecap();
+
+    // Ajouter à la timeline
+    addToTimeline(`Langue "${language}" sélectionnée`);
+
+    console.log('✅ Langue sélectionnée:', language);
   }
 
   /**
@@ -705,6 +860,12 @@ const GroupsInterfaceV4 = (function() {
       return;
     }
 
+    // Pour LV2, vérifier qu'une langue est sélectionnée
+    if (state.scenario === 'lv2' && !state.selectedLanguage) {
+      alert('Veuillez sélectionner une langue pour le scénario LV2');
+      return;
+    }
+
     if (state.regroupements.length === 0) {
       alert('Veuillez ajouter au moins un regroupement');
       return;
@@ -715,6 +876,7 @@ const GroupsInterfaceV4 = (function() {
       detail: {
         scenario: state.scenario,
         mode: state.mode,
+        selectedLanguage: state.selectedLanguage, // Ajout de la langue sélectionnée
         regroupements: state.regroupements
       }
     });
@@ -743,6 +905,8 @@ const GroupsInterfaceV4 = (function() {
   function updateRecap() {
     const recapScenario = document.getElementById('recap-scenario');
     const recapMode = document.getElementById('recap-mode');
+    const recapLanguageRow = document.getElementById('recap-language-row');
+    const recapLanguage = document.getElementById('recap-language');
 
     if (recapScenario) {
       recapScenario.textContent = state.scenario || '-';
@@ -750,6 +914,16 @@ const GroupsInterfaceV4 = (function() {
 
     if (recapMode) {
       recapMode.textContent = state.mode || '-';
+    }
+
+    // Afficher la langue si scénario LV2
+    if (recapLanguageRow && recapLanguage) {
+      if (state.scenario === 'lv2') {
+        recapLanguageRow.style.display = 'block';
+        recapLanguage.textContent = state.selectedLanguage || '-';
+      } else {
+        recapLanguageRow.style.display = 'none';
+      }
     }
   }
 

@@ -66,7 +66,8 @@
             score: student.score || student.scoreF || student.scoreM || 0,
 
             // AUTRES DONNÉES
-            lv2: student.lv2 || student.LV2 || null,
+            // Colonne F : LV2 (ESP par défaut si vide)
+            lv2: (student.lv2 || student.LV2 || 'ESP').toUpperCase(),
             options: student.options || [],
             scores: student.scores || {}
           });
@@ -199,16 +200,16 @@
    * Gère l'événement de génération des groupes
    */
   function handleGenerateGroups(event) {
-    const { scenario, mode, regroupements } = event.detail;
+    const { scenario, mode, selectedLanguage, regroupements } = event.detail;
 
-    console.log('🎯 Génération des groupes demandée:', { scenario, mode, regroupements });
+    console.log('🎯 Génération des groupes demandée:', { scenario, mode, selectedLanguage, regroupements });
 
     try {
       // Pour chaque regroupement, générer les groupes
       const allResults = regroupements.map(regroupement => {
         // Récupérer les élèves des classes du regroupement
         const classesData = getClassesData();
-        const students = [];
+        let students = [];
 
         // Si aucune classe spécifiée, prendre toutes les classes
         const classesToUse = regroupement.classes.length > 0
@@ -221,7 +222,24 @@
           }
         });
 
-        console.log(`📚 Regroupement "${regroupement.name}" : ${students.length} élèves`);
+        console.log(`📚 Regroupement "${regroupement.name}" : ${students.length} élèves (avant filtrage)`);
+
+        // FILTRAGE PAR LANGUE pour le scénario LV2
+        if (scenario === 'lv2' && selectedLanguage) {
+          const beforeFilter = students.length;
+          students = students.filter(student => {
+            const studentLang = (student.lv2 || 'ESP').toUpperCase();
+            return studentLang === selectedLanguage;
+          });
+          console.log(`🌍 Filtrage LV2 (${selectedLanguage}): ${beforeFilter} → ${students.length} élèves`);
+        }
+
+        if (students.length === 0) {
+          console.warn(`⚠️ Aucun élève pour "${regroupement.name}" après filtrage`);
+          return null;
+        }
+
+        console.log(`📚 Regroupement "${regroupement.name}" : ${students.length} élèves (après filtrage)`);
 
         // Appeler l'algorithme
         const result = window.GroupsAlgorithmV4.distribute({
@@ -237,15 +255,23 @@
         };
       });
 
+      // Filtrer les résultats null (regroupements vides)
+      const validResults = allResults.filter(r => r !== null);
+
+      if (validResults.length === 0) {
+        throw new Error('Aucun élève trouvé après filtrage. Vérifiez la langue sélectionnée et les classes.');
+      }
+
       // Combiner les résultats
       const combinedResults = {
-        groups: allResults.flatMap(r => r.result.groups),
-        stats: allResults.flatMap(r => r.result.stats),
+        groups: validResults.flatMap(r => r.result.groups),
+        stats: validResults.flatMap(r => r.result.stats),
         metadata: {
           scenario,
           mode,
-          totalRegroupements: regroupements.length,
-          totalStudents: allResults.reduce((sum, r) => sum + r.result.metadata.totalStudents, 0),
+          selectedLanguage,
+          totalRegroupements: validResults.length,
+          totalStudents: validResults.reduce((sum, r) => sum + r.result.metadata.totalStudents, 0),
           timestamp: new Date().toISOString()
         }
       };
