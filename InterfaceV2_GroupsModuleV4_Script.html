@@ -13,14 +13,97 @@
   // Container plein écran pour l'interface
   let moduleContainer = null;
 
+  // Cache pour les données FIN
+  let finSheetsDataCache = null;
+
   /**
-   * Récupère les données des classes depuis le DOM (zones droppables)
+   * Charge les données depuis les onglets FIN avec scores (colonnes U et V)
    */
-  function getClassesData() {
-    if (!window.STATE || !window.STATE.students) {
-      console.error('❌ window.STATE.students non disponible');
+  async function loadFINData() {
+    if (finSheetsDataCache) {
+      console.log('📦 Utilisation du cache FIN');
+      return finSheetsDataCache;
+    }
+
+    console.log('📡 Chargement des onglets FIN avec SCORE F (col U) et SCORE M (col V)...');
+
+    try {
+      const result = await gsRun('loadFINSheetsWithScores');
+
+      if (!result || typeof result !== 'object') {
+        console.error('❌ loadFINSheetsWithScores a retourné un format invalide');
+        return null;
+      }
+
+      finSheetsDataCache = result;
+      console.log('✅ Données FIN chargées:', Object.keys(result));
+      return result;
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement des onglets FIN:', error);
       return null;
     }
+  }
+
+  /**
+   * Récupère les données des classes depuis les onglets FIN (avec scores académiques)
+   * IMPORTANT: Cette fonction charge DIRECTEMENT depuis les onglets FIN pour avoir
+   * accès aux colonnes SCORE F (U) et SCORE M (V)
+   */
+  function getClassesData() {
+    // Si nous avons déjà chargé les données FIN en cache, les utiliser
+    if (finSheetsDataCache) {
+      console.log('📊 Utilisation des données FIN en cache');
+
+      // Transformer le format loadFINSheetsWithScores en format attendu par l'algorithme
+      const formattedData = {};
+
+      Object.keys(finSheetsDataCache).forEach(className => {
+        const classData = finSheetsDataCache[className];
+
+        // Le format retourné par loadFINSheetsWithScores est { classe: string, eleves: array }
+        const students = classData.eleves || classData;
+
+        formattedData[className] = students.map(student => ({
+          id: student.id,
+          firstName: student.prenom || '',
+          lastName: student.nom || '',
+          class: className,
+
+          // SEXE
+          sexe: (student.sexe || 'M').toUpperCase(),
+          gender: student.sexe || 'M',
+
+          // CRITÈRES COMPORTEMENTAUX
+          com: student.scores?.COM || student.com || 0,
+          tra: student.scores?.TRA || student.tra || 0,
+          part: student.scores?.PART || student.part || 0,
+          abs: student.scores?.ABS || student.abs || 0,
+
+          // SCORES ACADÉMIQUES (COLONNES U ET V DES ONGLETS FIN)
+          scoreF: student.scoreF || student.scores?.F || 0,  // Colonne U (1-4)
+          scoreM: student.scoreM || student.scores?.M || 0,  // Colonne V (1-4)
+          score: student.scoreF || student.scores?.F || 0,
+
+          // AUTRES DONNÉES
+          lv2: (student.lv2 || 'ESP').toUpperCase(),
+          options: student.options || [],
+          scores: student.scores || {}
+        }));
+      });
+
+      console.log('📊 Données FIN formatées:', Object.keys(formattedData));
+      console.log('📊 Détail:', Object.entries(formattedData).map(([c, eleves]) => `${c}: ${eleves.length} élèves`));
+
+      return formattedData;
+    }
+
+    // Sinon, fallback sur STATE.students (mode legacy)
+    if (!window.STATE || !window.STATE.students) {
+      console.error('❌ window.STATE.students non disponible et pas de cache FIN');
+      return null;
+    }
+
+    console.warn('⚠️ Fallback sur STATE.students (peut ne pas contenir les scores académiques)');
 
     // Extraire les classes depuis les zones droppables du DOM
     const zones = document.querySelectorAll('.droppable-zone[data-classe]');
@@ -101,8 +184,9 @@
 
   /**
    * Ouvre l'interface du module Groupes V4
+   * CHARGE AUTOMATIQUEMENT LES ONGLETS FIN AVEC SCORES (colonnes U et V)
    */
-  function openModuleGroupsV4(mode) {
+  async function openModuleGroupsV4(mode) {
     console.log('🚀 Ouverture du module Groupes V4, mode:', mode);
 
     // Vérifier les dépendances
@@ -118,27 +202,40 @@
       return;
     }
 
-    // Vérifier que STATE.students est chargé
-    if (!window.STATE || !window.STATE.students || Object.keys(window.STATE.students).length === 0) {
-      console.warn('⚠️ STATE.students vide ou non chargé, attente...');
+    // 🔑 CHARGER LES DONNÉES FIN AVEC SCORES (colonnes U et V)
+    console.log('📡 Chargement des onglets FIN avec SCORE F (colonne U) et SCORE M (colonne V)...');
+    const finData = await loadFINData();
 
-      // Attendre 1 seconde que les données se chargent
-      setTimeout(() => {
-        if (!window.STATE || !window.STATE.students || Object.keys(window.STATE.students).length === 0) {
-          alert('Erreur : Les données des élèves ne sont pas encore chargées. Veuillez attendre la fin du chargement et réessayer.');
-          console.error('❌ STATE.students toujours vide après délai');
-          return;
-        }
-        // Réessayer l'ouverture
-        openModuleGroupsV4(mode);
-      }, 1000);
-      return;
-    }
+    if (!finData || Object.keys(finData).length === 0) {
+      console.error('❌ Aucune donnée FIN chargée');
 
-    // Valider les données
-    if (!validateData()) {
-      alert('Erreur : Aucune classe disponible. Veuillez charger des données d\'abord.');
-      return;
+      // Fallback sur STATE.students
+      console.warn('⚠️ Fallback sur STATE.students...');
+
+      // Vérifier que STATE.students est chargé
+      if (!window.STATE || !window.STATE.students || Object.keys(window.STATE.students).length === 0) {
+        console.warn('⚠️ STATE.students vide ou non chargé, attente...');
+
+        // Attendre 1 seconde que les données se chargent
+        setTimeout(() => {
+          if (!window.STATE || !window.STATE.students || Object.keys(window.STATE.students).length === 0) {
+            alert('Erreur : Les données des élèves ne sont pas encore chargées. Veuillez attendre la fin du chargement et réessayer.');
+            console.error('❌ STATE.students toujours vide après délai');
+            return;
+          }
+          // Réessayer l'ouverture
+          openModuleGroupsV4(mode);
+        }, 1000);
+        return;
+      }
+
+      // Valider les données
+      if (!validateData()) {
+        alert('Erreur : Aucune classe disponible. Veuillez charger des données d\'abord.');
+        return;
+      }
+    } else {
+      console.log('✅ Données FIN chargées avec succès:', Object.keys(finData).length, 'classes');
     }
 
     // Créer le container plein écran
