@@ -30,14 +30,15 @@
     try {
       const result = await gsRun('loadFINSheetsWithScores');
 
-      if (!result || typeof result !== 'object') {
-        console.error('❌ loadFINSheetsWithScores a retourné un format invalide');
+      if (!result || !result.success || !result.data) {
+        console.error('❌ loadFINSheetsWithScores a retourné un format invalide:', result);
         return null;
       }
 
-      finSheetsDataCache = result;
-      console.log('✅ Données FIN chargées:', Object.keys(result));
-      return result;
+      // Extraire les données (result.data contient { "6°1FIN": { eleves: [...] }, ... })
+      finSheetsDataCache = result.data;
+      console.log('✅ Données FIN chargées:', Object.keys(result.data));
+      return result.data;
     } catch (error) {
       console.error('❌ Erreur lors du chargement des onglets FIN:', error);
       return null;
@@ -60,8 +61,17 @@
       Object.keys(finSheetsDataCache).forEach(className => {
         const classData = finSheetsDataCache[className];
 
-        // Le format retourné par loadFINSheetsWithScores est { classe: string, eleves: array }
+        // Debug: vérifier le format
+        console.log(`🔍 Classe ${className}:`, classData);
+
+        // Le format retourné par loadFINSheetsWithScores est { eleves: array }
         const students = classData.eleves || classData;
+
+        // Vérifier que students est bien un tableau
+        if (!Array.isArray(students)) {
+          console.error(`❌ ${className}: students n'est pas un tableau:`, students);
+          return;
+        }
 
         formattedData[className] = students.map(student => ({
           id: student.id,
@@ -89,6 +99,8 @@
           options: student.options || [],
           scores: student.scores || {}
         }));
+
+        console.log(`✅ ${className}: ${formattedData[className].length} élèves formatés`);
       });
 
       console.log('📊 Données FIN formatées:', Object.keys(formattedData));
