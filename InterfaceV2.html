@@ -9,22 +9,73 @@
     try {
       var p = new URLSearchParams(location.search);
       if (p.get('createOAuthDialog') === 'true') {
+        // Bloquer document.write
         var orig = document.write.bind(document);
         document.write = function(s){
           console.warn('Blocked document.write from external script:', String(s).slice(0,60));
           // ne rien écrire pour éviter le HTML dans le flux JS
         };
+
+        // Capturer les erreurs de syntaxe pendant OAuth
+        window.addEventListener('error', function(e) {
+          if (e && e.message && e.message.includes('Unexpected token')) {
+            console.warn('OAuth serialization error suppressed:', e.message);
+            e.preventDefault();
+            return true;
+          }
+        }, true);
+
+        // Bloquer console.error pour les erreurs de syntaxe OAuth
+        var originalError = console.error;
+        console.error = function(...args) {
+          var msg = args[0];
+          if (typeof msg === 'string' &&
+              (msg.includes('Unexpected token') ||
+               msg.includes('SyntaxError'))) {
+            // Ignorer silencieusement les erreurs de syntaxe OAuth
+            return;
+          }
+          originalError.apply(console, args);
+        };
       }
-    } catch(e){}
+    } catch(e){
+      // Erreur dans la protection elle-même - ne rien faire
+    }
   })();
   </script>
-  
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Répartition Classes - Version Universelle</title>
-  
-  <!-- Tailwind CSS -->
+
+  <!-- Tailwind CSS avec configuration pour supprimer les warnings -->
+  <script>
+    // Configuration Tailwind pour supprimer le warning PostCSS
+    window.tailwindConfig = {
+      // Configuration silencieuse pour environnement CDN
+      corePlugins: {
+        preflight: true,
+      }
+    };
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Supprimer le warning PostCSS de Tailwind CDN
+    (function() {
+      const originalWarn = console.warn;
+      console.warn = function(...args) {
+        const msg = args[0];
+        // Filtrer les warnings Tailwind PostCSS et CLI
+        if (typeof msg === 'string' &&
+            (msg.includes('PostCSS plugin') ||
+             msg.includes('Tailwind CLI') ||
+             msg.includes('install it as'))) {
+          return; // Ignorer silencieusement
+        }
+        originalWarn.apply(console, args);
+      };
+    })();
+  </script>
   <!-- SortableJS pour drag & drop -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <!-- Font Awesome pour les icônes -->
