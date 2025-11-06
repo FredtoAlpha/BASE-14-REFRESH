@@ -430,6 +430,8 @@ const ELEVES_ALIAS = {
   tra     : ['TRA'],
   part    : ['PART'],
   abs     : ['ABS'],
+  scoreF  : ['SCORE F','SCORE_F','SCOREF','BESOINS F','BESOINSF'],
+  scoreM  : ['SCORE M','SCORE_M','SCOREM','BESOINS M','BESOINSM'],
   source  : ['SOURCE','ORIGINE','CLASSE_ORIGINE'],
   dispo   : ['DISPO','PAI','PPRE','PAP','GEVASCO'],
   mobilite: ['MOBILITE','MOB']
@@ -523,6 +525,9 @@ const ElevesBackend = (function(global) {
         mobilite = 'PERMUT';
       }
 
+      const scoreF = valueAt('scoreF', toNumberValue);
+      const scoreM = valueAt('scoreM', toNumberValue);
+
       return {
         id,
         nom: valueAt('nom'),
@@ -533,11 +538,15 @@ const ElevesBackend = (function(global) {
         disso: valueAt('disso', toUpperValue),
         asso: valueAt('asso', toUpperValue),
         scores: {
+          F: scoreF,      // Score Français (1-4)
+          M: scoreM,      // Score Mathématiques (1-4)
           COM: valueAt('com', toNumberValue),
           TRA: valueAt('tra', toNumberValue),
           PART: valueAt('part', toNumberValue),
           ABS: valueAt('abs', toNumberValue)
         },
+        scoreF: scoreF,   // Duplicate top-level pour compatibilité
+        scoreM: scoreM,   // Duplicate top-level pour compatibilité
         source: valueAt('source'),
         dispo: valueAt('dispo', toUpperValue),
         mobilite: mobilite
