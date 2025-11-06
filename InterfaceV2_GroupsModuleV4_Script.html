@@ -45,35 +45,124 @@
     }
   }
 
+  // ========== SYSTÈME DE REPORTING CENTRALISÉ ==========
+  const ErrorReporter = {
+    errors: [],
+    warnings: [],
+
+    error(context, message, data = null) {
+      const entry = { context, message, data, timestamp: new Date().toISOString() };
+      this.errors.push(entry);
+      console.error(`❌ [${context}] ${message}`, data || '');
+      return entry;
+    },
+
+    warn(context, message, data = null) {
+      const entry = { context, message, data, timestamp: new Date().toISOString() };
+      this.warnings.push(entry);
+      console.warn(`⚠️ [${context}] ${message}`, data || '');
+      return entry;
+    },
+
+    info(context, message, data = null) {
+      console.log(`ℹ️ [${context}] ${message}`, data || '');
+    },
+
+    getReport() {
+      return {
+        errors: this.errors,
+        warnings: this.warnings,
+        summary: `${this.errors.length} erreur(s), ${this.warnings.length} avertissement(s)`
+      };
+    },
+
+    clear() {
+      this.errors = [];
+      this.warnings = [];
+    },
+
+    displayToUser() {
+      if (this.errors.length === 0 && this.warnings.length === 0) return;
+
+      const report = this.getReport();
+      const message = `⚠️ Rapport de chargement:\n\n${report.summary}\n\n` +
+        (this.errors.length > 0 ? `Erreurs:\n${this.errors.map(e => `- ${e.message}`).join('\n')}` : '') +
+        (this.warnings.length > 0 ? `\n\nAvertissements:\n${this.warnings.map(w => `- ${w.message}`).join('\n')}` : '');
+
+      if (this.errors.length > 0) {
+        alert(message);
+      } else {
+        console.warn(message);
+      }
+    }
+  };
+
+  // ========== VALIDATION ET NORMALISATION DES DONNÉES ==========
+
   /**
-   * Récupère les données des classes depuis les onglets FIN (avec scores académiques)
-   * IMPORTANT: Cette fonction charge DIRECTEMENT depuis les onglets FIN pour avoir
-   * accès aux colonnes SCORE F (U) et SCORE M (V)
+   * Vérifie si un objet ressemble à un élève valide
+   * @param {*} obj - Objet à vérifier
+   * @returns {boolean} true si l'objet est un élève valide
    */
-  function getClassesData() {
-    // Si nous avons déjà chargé les données FIN en cache, les utiliser
-    if (finSheetsDataCache) {
-      console.log('📊 Utilisation des données FIN en cache');
+  function isStudentLike(obj) {
+    if (!obj || typeof obj !== 'object') {
+      return false;
+    }
 
-      // Transformer le format loadFINSheetsWithScores en format attendu par l'algorithme
-      const formattedData = {};
+    // Un élève DOIT avoir un ID
+    if (!obj.id || typeof obj.id !== 'string' || obj.id.trim() === '') {
+      return false;
+    }
 
-      Object.keys(finSheetsDataCache).forEach(className => {
-        const classData = finSheetsDataCache[className];
+    // Optionnel mais recommandé : nom et prénom
+    const hasName = (obj.nom || obj.prenom);
 
-        // Debug: vérifier le format
-        console.log(`🔍 Classe ${className}:`, classData);
+    // Accepter si au moins l'ID est présent
+    return true;
+  }
 
-        // Le format retourné par loadFINSheetsWithScores est { eleves: array }
-        const students = classData.eleves || classData;
+  /**
+   * Normalise les données d'une classe depuis le format FIN
+   * @param {string} className - Nom de la classe
+   * @param {*} classData - Données brutes de la classe
+   * @returns {Array|null} Tableau d'élèves normalisés ou null si invalide
+   */
+  function normalizeClassStudents(className, classData) {
+    if (!classData) {
+      ErrorReporter.error('normalizeClassStudents', `Classe ${className}: données nulles ou undefined`);
+      return null;
+    }
 
-        // Vérifier que students est bien un tableau
-        if (!Array.isArray(students)) {
-          console.error(`❌ ${className}: students n'est pas un tableau:`, students);
-          return;
-        }
+    // Extraire le tableau d'élèves (format: { eleves: [...] } ou directement [...])
+    let students = classData.eleves || classData;
 
-        formattedData[className] = students.map(student => ({
+    // Vérifier que students est un tableau
+    if (!Array.isArray(students)) {
+      ErrorReporter.error('normalizeClassStudents',
+        `Classe ${className}: students n'est pas un tableau`,
+        { type: typeof students, value: students }
+      );
+      return null;
+    }
+
+    // Filtrer et normaliser les élèves
+    const normalized = [];
+    let skippedCount = 0;
+
+    students.forEach((student, index) => {
+      // Valider que c'est un élève
+      if (!isStudentLike(student)) {
+        ErrorReporter.warn('normalizeClassStudents',
+          `Classe ${className}: élève #${index} invalide (pas d'ID ou format incorrect)`,
+          student
+        );
+        skippedCount++;
+        return;
+      }
+
+      // Normaliser l'élève
+      try {
+        const normalizedStudent = {
           id: student.id,
           firstName: student.prenom || '',
           lastName: student.nom || '',
@@ -98,13 +187,81 @@
           lv2: (student.lv2 || 'ESP').toUpperCase(),
           options: student.options || [],
           scores: student.scores || {}
-        }));
+        };
 
-        console.log(`✅ ${className}: ${formattedData[className].length} élèves formatés`);
+        // Avertir si les scores académiques sont absents
+        if (normalizedStudent.scoreF === 0 && normalizedStudent.scoreM === 0) {
+          ErrorReporter.warn('normalizeClassStudents',
+            `Classe ${className}: élève ${student.id} sans scores académiques (scoreF et scoreM à 0)`
+          );
+        }
+
+        normalized.push(normalizedStudent);
+      } catch (error) {
+        ErrorReporter.error('normalizeClassStudents',
+          `Classe ${className}: erreur lors de la normalisation de l'élève #${index}`,
+          { error: error.message, student }
+        );
+        skippedCount++;
+      }
+    });
+
+    // Rapport final pour cette classe
+    if (skippedCount > 0) {
+      ErrorReporter.warn('normalizeClassStudents',
+        `Classe ${className}: ${skippedCount} élève(s) ignoré(s) sur ${students.length}`
+      );
+    }
+
+    ErrorReporter.info('normalizeClassStudents',
+      `Classe ${className}: ${normalized.length} élève(s) normalisé(s) avec succès`
+    );
+
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  /**
+   * Récupère les données des classes depuis les onglets FIN (avec scores académiques)
+   * IMPORTANT: Cette fonction charge DIRECTEMENT depuis les onglets FIN pour avoir
+   * accès aux colonnes SCORE F (U) et SCORE M (V)
+   */
+  function getClassesData() {
+    // Réinitialiser le rapport d'erreurs
+    ErrorReporter.clear();
+
+    // Si nous avons déjà chargé les données FIN en cache, les utiliser
+    if (finSheetsDataCache) {
+      ErrorReporter.info('getClassesData', 'Utilisation des données FIN en cache');
+
+      const formattedData = {};
+
+      Object.keys(finSheetsDataCache).forEach(className => {
+        const classData = finSheetsDataCache[className];
+
+        // Utiliser la fonction de normalisation
+        const normalizedStudents = normalizeClassStudents(className, classData);
+
+        if (normalizedStudents && normalizedStudents.length > 0) {
+          formattedData[className] = normalizedStudents;
+        } else {
+          ErrorReporter.warn('getClassesData',
+            `Classe ${className} ignorée (aucun élève valide après normalisation)`
+          );
+        }
       });
 
-      console.log('📊 Données FIN formatées:', Object.keys(formattedData));
-      console.log('📊 Détail:', Object.entries(formattedData).map(([c, eleves]) => `${c}: ${eleves.length} élèves`));
+      // Afficher le rapport
+      ErrorReporter.info('getClassesData',
+        `Données FIN formatées: ${Object.keys(formattedData).length} classe(s)`
+      );
+      ErrorReporter.info('getClassesData',
+        'Détail: ' + Object.entries(formattedData).map(([c, eleves]) => `${c}: ${eleves.length} élèves`).join(', ')
+      );
+
+      // Afficher les erreurs/warnings à l'utilisateur si nécessaire
+      if (ErrorReporter.errors.length > 0) {
+        ErrorReporter.displayToUser();
+      }
 
       return formattedData;
     }
