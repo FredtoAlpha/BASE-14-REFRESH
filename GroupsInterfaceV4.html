@@ -26,6 +26,7 @@ const GroupsInterfaceV4 = (function() {
       statsVisible: false,           // Panneau statistiques visible
       sidebarCollapsed: false,       // Panneau latéral rétracté
       comparisonVisible: true,       // Bandeau comparaison visible
+      headerVisible: true,           // Header avec boutons visible (NOUVEAU)
       sortState: {}                  // État des tris (parity, scoreF, scoreM, com) : { critère: 'asc'|'desc' }
     }
   };
@@ -1062,27 +1063,41 @@ const GroupsInterfaceV4 = (function() {
 
     dashboard.innerHTML = `
       <!-- Bouton fermeture (coin supérieur droit) -->
-      <button id="close-dashboard" style="
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        z-index: 10001;
-        background: #ef4444;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 10px 16px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 600;
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-        transition: all 0.2s;
-      " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        <i class="fas fa-times"></i> Fermer
-      </button>
+      <!-- Boutons de contrôle (fixés en haut) -->
+      <div style="position: absolute; top: 16px; right: 16px; z-index: 10001; display: flex; gap: 8px;">
+        <button id="btn-toggle-header" style="
+          background: #3b82f6;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          padding: 10px 16px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+          transition: all 0.2s;
+        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+          <i class="fas fa-eye${state.swapDashboard.headerVisible ? '-slash' : ''}"></i> ${state.swapDashboard.headerVisible ? 'Masquer' : 'Afficher'} Header
+        </button>
+        <button id="close-dashboard" style="
+          background: #ef4444;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          padding: 10px 16px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+          transition: all 0.2s;
+        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+          <i class="fas fa-times"></i> Fermer
+        </button>
+      </div>
 
       <!-- EN-TÊTE 3 ZONES -->
-      <div style="
+      <div id="dashboard-header" style="
+        display: ${state.swapDashboard.headerVisible ? 'block' : 'none'};
         background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
         color: white;
         padding: 20px 24px;
@@ -1353,6 +1368,7 @@ const GroupsInterfaceV4 = (function() {
         ">
           <!-- Bandeau comparaison stats -->
           <div id="stats-comparison-banner" style="
+            display: ${state.swapDashboard.comparisonVisible ? 'block' : 'none'};
             background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
             border: 3px solid #6d28d9;
             border-radius: 12px;
@@ -1534,69 +1550,67 @@ const GroupsInterfaceV4 = (function() {
                   data-student-index="${studentIndex}"
                   data-student-id="${student.id}"
                   style="
-                    padding: 12px;
+                    padding: 6px 10px;
                     background: #f9fafb;
                     border: 1px solid #e5e7eb;
-                    border-radius: 8px;
+                    border-radius: 6px;
                     cursor: move;
-                    font-size: 13px;
+                    font-size: 12px;
                     transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
                   "
                   onmouseover="this.style.borderColor='#8b5cf6'; this.style.boxShadow='0 2px 8px rgba(139, 92, 246, 0.2)'; this.style.transform='translateX(4px)'"
                   onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'; this.style.transform='translateX(0)'"
                 >
-                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-                      ${genderIcon}
-                      <span style="
-                        font-weight: 600;
-                        color: ${isCOM1 ? '#ef4444' : '#374151'};
-                        ${isCOM1 ? 'text-decoration: underline;' : ''}
-                      ">
-                        ${student.lastName} ${student.firstName}
-                      </span>
-                      ${student.class ? `
-                        <span style="
-                          font-size: 11px;
-                          padding: 2px 6px;
-                          background: #dbeafe;
-                          color: #1e40af;
-                          border-radius: 4px;
-                        ">${student.class}</span>
-                      ` : ''}
-                    </div>
-                    <i class="fas fa-grip-vertical" style="color: #d1d5db;"></i>
-                  </div>
-
-                  <!-- Badges scores -->
-                  <div style="display: flex; gap: 6px;">
+                  <!-- ✅ TOUT SUR UNE LIGNE -->
+                  ${genderIcon}
+                  <span style="
+                    font-weight: 700;
+                    color: ${isCOM1 ? '#ef4444' : '#1f2937'};
+                    ${isCOM1 ? 'text-decoration: underline;' : ''}
+                    flex: 1;
+                    min-width: 0;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  ">
+                    ${student.lastName} ${student.firstName}
+                  </span>
+                  ${student.class ? `
                     <span style="
-                      display: inline-block;
-                      padding: 4px 10px;
-                      background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-                      color: white;
-                      border-radius: 5px;
-                      font-size: 11px;
-                      font-weight: 700;
-                      box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
-                      letter-spacing: 0.3px;
-                    ">
-                      F: ${scoreF.toFixed(1)}
-                    </span>
-                    <span style="
-                      display: inline-block;
-                      padding: 4px 10px;
-                      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-                      color: white;
-                      border-radius: 5px;
-                      font-size: 11px;
-                      font-weight: 700;
-                      box-shadow: 0 2px 4px rgba(67, 56, 202, 0.3);
-                      letter-spacing: 0.3px;
-                    ">
-                      M: ${scoreM.toFixed(1)}
-                    </span>
-                  </div>
+                      font-size: 10px;
+                      padding: 2px 5px;
+                      background: #dbeafe;
+                      color: #1e40af;
+                      border-radius: 3px;
+                      font-weight: 600;
+                    ">${student.class}</span>
+                  ` : ''}
+                  <span style="
+                    padding: 2px 7px;
+                    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+                    color: white;
+                    border-radius: 4px;
+                    font-size: 10px;
+                    font-weight: 800;
+                    letter-spacing: 0.3px;
+                  ">
+                    F:${scoreF.toFixed(1)}
+                  </span>
+                  <span style="
+                    padding: 2px 7px;
+                    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+                    color: white;
+                    border-radius: 4px;
+                    font-size: 10px;
+                    font-weight: 800;
+                    letter-spacing: 0.3px;
+                  ">
+                    M:${scoreM.toFixed(1)}
+                  </span>
+                  <i class="fas fa-grip-vertical" style="color: #d1d5db;"></i>
                 </div>
               `;
             }).join('')}
@@ -2410,6 +2424,20 @@ const GroupsInterfaceV4 = (function() {
     if (closeBtn) {
       closeBtn.addEventListener('click', () => {
         document.getElementById('swap-dashboard').remove();
+      });
+    }
+
+    // Toggle header
+    const toggleHeaderBtn = document.getElementById('btn-toggle-header');
+    if (toggleHeaderBtn) {
+      toggleHeaderBtn.addEventListener('click', () => {
+        state.swapDashboard.headerVisible = !state.swapDashboard.headerVisible;
+        const header = document.getElementById('dashboard-header');
+        if (header) {
+          header.style.display = state.swapDashboard.headerVisible ? 'block' : 'none';
+        }
+        // Mettre à jour le bouton
+        toggleHeaderBtn.innerHTML = `<i class="fas fa-eye${state.swapDashboard.headerVisible ? '-slash' : ''}"></i> ${state.swapDashboard.headerVisible ? 'Masquer' : 'Afficher'} Header`;
       });
     }
 
