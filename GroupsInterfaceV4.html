@@ -39,9 +39,28 @@ const GroupsInterfaceV4 = (function() {
         <!-- VOLET A : Paramètres (30%) -->
         <div class="volet-a" style="flex: 0 0 30%; background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%); border-right: 1px solid #e5e7eb; overflow-y: auto;">
           <div style="padding: 24px;">
-            <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 24px; color: #1f2937; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-              <i class="fas fa-cog"></i> Paramètres
-            </h2>
+            <!-- Header avec bouton de fermeture -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+              <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: #1f2937; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                <i class="fas fa-cog"></i> Paramètres
+              </h2>
+              <button id="close-groups-interface" style="
+                padding: 8px 12px;
+                background: #ef4444;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+              " onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+                <i class="fas fa-times"></i> Fermer
+              </button>
+            </div>
 
             <!-- Scénario -->
             <div style="margin-bottom: 32px;">
@@ -1054,34 +1073,96 @@ const GroupsInterfaceV4 = (function() {
       ">
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; max-width: 100%; margin: 0 auto;">
 
-          <!-- ZONE GAUCHE : CAGLE & APPC -->
-          <div style="flex: 1; display: flex; gap: 12px; align-items: center;">
-            <button id="btn-toggle-stats" style="
-              padding: 10px 18px;
-              background: ${state.swapDashboard.statsVisible ? '#3b82f6' : 'rgba(255, 255, 255, 0.2)'};
-              color: white;
-              border: 1px solid rgba(255, 255, 255, 0.3);
-              border-radius: 8px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: 600;
-              transition: all 0.2s;
-            ">
-              <i class="fas fa-chart-bar"></i> Statistiques
-            </button>
-            <button id="btn-regenerate" style="
-              padding: 10px 18px;
-              background: rgba(255, 255, 255, 0.2);
-              color: white;
-              border: 1px solid rgba(255, 255, 255, 0.3);
-              border-radius: 8px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: 600;
-              transition: all 0.2s;
-            ">
-              <i class="fas fa-sync-alt"></i> Régénérer
-            </button>
+          <!-- ZONE GAUCHE : STATS, REGENER & TRI -->
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+            <!-- Ligne 1: Stats + Régénérer -->
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <button id="btn-toggle-stats" style="
+                padding: 10px 18px;
+                background: ${state.swapDashboard.statsVisible ? '#3b82f6' : 'rgba(255, 255, 255, 0.2)'};
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s;
+              ">
+                <i class="fas fa-chart-bar"></i> Statistiques
+              </button>
+              <button id="btn-regenerate" style="
+                padding: 10px 18px;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s;
+              ">
+                <i class="fas fa-sync-alt"></i> Régénérer
+              </button>
+            </div>
+
+            <!-- Ligne 2: Options de tri -->
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span style="font-size: 12px; font-weight: 600; opacity: 0.9;">
+                <i class="fas fa-sort"></i> Trier par:
+              </span>
+              <button id="btn-sort-parity" data-sort="parity" class="sort-btn" style="
+                padding: 6px 12px;
+                background: rgba(255, 255, 255, 0.15);
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 500;
+                transition: all 0.2s;
+              ">
+                F/M
+              </button>
+              <button id="btn-sort-scoreF" data-sort="scoreF" class="sort-btn" style="
+                padding: 6px 12px;
+                background: rgba(255, 255, 255, 0.15);
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 500;
+                transition: all 0.2s;
+              ">
+                Score F
+              </button>
+              <button id="btn-sort-scoreM" data-sort="scoreM" class="sort-btn" style="
+                padding: 6px 12px;
+                background: rgba(255, 255, 255, 0.15);
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 500;
+                transition: all 0.2s;
+              ">
+                Score M
+              </button>
+              <button id="btn-sort-com" data-sort="com" class="sort-btn" style="
+                padding: 6px 12px;
+                background: rgba(255, 255, 255, 0.15);
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 500;
+                transition: all 0.2s;
+              ">
+                COM
+              </button>
+            </div>
           </div>
 
           <!-- ZONE CENTRE : NAVIGATION REGROUPEMENTS + SAUVEGARDES -->
@@ -2073,6 +2154,176 @@ const GroupsInterfaceV4 = (function() {
   }
 
   /**
+   * Trie les élèves d'un groupe selon un critère
+   */
+  function sortGroupStudents(groupIndex, sortBy) {
+    const currentRegroupement = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+    const group = currentRegroupement.groups[groupIndex];
+
+    if (!group || !group.students) return;
+
+    group.students.sort((a, b) => {
+      switch (sortBy) {
+        case 'parity':
+          // F avant M
+          if (a.sexe === 'F' && b.sexe === 'M') return -1;
+          if (a.sexe === 'M' && b.sexe === 'F') return 1;
+          return 0;
+        case 'scoreF':
+          return (b.scoreF || 0) - (a.scoreF || 0);
+        case 'scoreM':
+          return (b.scoreM || 0) - (a.scoreM || 0);
+        case 'com':
+          return (b.scores?.COM || 0) - (a.scores?.COM || 0);
+        default:
+          return 0;
+      }
+    });
+
+    // Re-render le regroupement
+    renderCurrentRegroupement();
+  }
+
+  /**
+   * Trie tous les groupes selon un critère
+   */
+  function sortAllGroups(sortBy) {
+    const currentRegroupement = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+
+    if (!currentRegroupement || !currentRegroupement.groups) return;
+
+    currentRegroupement.groups.forEach((group, index) => {
+      sortGroupStudents(index, sortBy);
+    });
+  }
+
+  /**
+   * Exporte les groupes en PDF (via impression navigateur)
+   */
+  function exportToPDF() {
+    const currentRegroupement = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+
+    if (!currentRegroupement) {
+      alert('Aucun regroupement à exporter');
+      return;
+    }
+
+    // Créer une fenêtre d'impression avec le contenu formaté
+    const printWindow = window.open('', '_blank');
+    const content = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Groupes - ${currentRegroupement.name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { color: #333; }
+          .group { margin-bottom: 30px; page-break-inside: avoid; }
+          .group-header { background: #4A90E2; color: white; padding: 10px; font-weight: bold; }
+          .student { padding: 8px; border-bottom: 1px solid #ddd; }
+          .student:nth-child(even) { background: #f9f9f9; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { text-align: left; padding: 8px; }
+        </style>
+      </head>
+      <body>
+        <h1>${currentRegroupement.name}</h1>
+        <p><strong>Classes:</strong> ${currentRegroupement.classes.join(', ')}</p>
+        <p><strong>Mode:</strong> ${state.groupsGeneration.mode === 'heterogeneous' ? 'Hétérogène' : 'Homogène'}</p>
+        <p><strong>Scénario:</strong> ${state.groupsGeneration.scenario}</p>
+        <hr>
+        ${currentRegroupement.groups.map((group, idx) => `
+          <div class="group">
+            <div class="group-header">Groupe ${idx + 1} (${group.students.length} élèves)</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Prénom</th>
+                  <th>Sexe</th>
+                  <th>Score F</th>
+                  <th>Score M</th>
+                  <th>COM</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${group.students.map(s => `
+                  <tr>
+                    <td>${s.nom || ''}</td>
+                    <td>${s.prenom || ''}</td>
+                    <td>${s.sexe || ''}</td>
+                    <td>${s.scoreF?.toFixed(1) || '-'}</td>
+                    <td>${s.scoreM?.toFixed(1) || '-'}</td>
+                    <td>${s.scores?.COM?.toFixed(1) || '-'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `).join('')}
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.focus();
+
+    // Lancer l'impression après le chargement
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  }
+
+  /**
+   * Exporte les groupes en CSV
+   */
+  function exportToCSV() {
+    const currentRegroupement = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+
+    if (!currentRegroupement) {
+      alert('Aucun regroupement à exporter');
+      return;
+    }
+
+    // Créer le CSV
+    let csv = 'Groupe,Nom,Prénom,Sexe,Score F,Score M,COM,TRA,PART,ABS,LV2,Options\n';
+
+    currentRegroupement.groups.forEach((group, groupIdx) => {
+      group.students.forEach(student => {
+        const row = [
+          `Groupe ${groupIdx + 1}`,
+          student.nom || '',
+          student.prenom || '',
+          student.sexe || '',
+          student.scoreF?.toFixed(2) || '0',
+          student.scoreM?.toFixed(2) || '0',
+          student.scores?.COM?.toFixed(2) || '0',
+          student.scores?.TRA?.toFixed(2) || '0',
+          student.scores?.PART?.toFixed(2) || '0',
+          student.scores?.ABS?.toFixed(2) || '0',
+          student.lv2 || '',
+          Array.isArray(student.options) ? student.options.join(';') : ''
+        ];
+        csv += row.map(field => `"${field}"`).join(',') + '\n';
+      });
+    });
+
+    // Créer le fichier et déclencher le téléchargement
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `groupes_${currentRegroupement.name.replace(/\s+/g, '_')}_${Date.now()}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  /**
    * Attache les événements au dashboard
    */
   function attachDashboardEvents() {
@@ -2128,14 +2379,15 @@ const GroupsInterfaceV4 = (function() {
       }
     });
 
-    // Boutons exports (placeholder)
-    document.getElementById('btn-export-pdf')?.addEventListener('click', () => {
-      alert('Export PDF à venir');
-    });
+    // Boutons exports
+    document.getElementById('btn-export-pdf')?.addEventListener('click', exportToPDF);
+    document.getElementById('btn-export-csv')?.addEventListener('click', exportToCSV);
 
-    document.getElementById('btn-export-csv')?.addEventListener('click', () => {
-      alert('Export CSV à venir');
-    });
+    // Boutons de tri
+    document.getElementById('btn-sort-parity')?.addEventListener('click', () => sortAllGroups('parity'));
+    document.getElementById('btn-sort-scoreF')?.addEventListener('click', () => sortAllGroups('scoreF'));
+    document.getElementById('btn-sort-scoreM')?.addEventListener('click', () => sortAllGroups('scoreM'));
+    document.getElementById('btn-sort-com')?.addEventListener('click', () => sortAllGroups('com'));
 
     // Régénérer (placeholder)
     document.getElementById('btn-regenerate')?.addEventListener('click', () => {
