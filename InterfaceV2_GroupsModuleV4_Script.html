@@ -938,6 +938,19 @@
 
     console.log('🎯 Génération des groupes demandée:', { scenario, mode, selectedLanguage, regroupements });
 
+    // Afficher le LoadingOverlay
+    if (window.UIComponents && window.UIComponents.LoadingOverlay) {
+      window.UIComponents.LoadingOverlay.show('Génération des groupes en cours...');
+    }
+
+    // Écouter les événements de progression
+    const progressHandler = (e) => {
+      if (window.UIComponents && window.UIComponents.LoadingOverlay) {
+        window.UIComponents.LoadingOverlay.setStep(e.detail.step);
+      }
+    };
+    document.addEventListener('algorithm:progress', progressHandler);
+
     try {
       // Pour chaque regroupement, générer les groupes
       const allResults = regroupements.map(regroupement => {
@@ -1034,8 +1047,34 @@
 
       console.log('✅ Groupes générés avec succès', combinedResults);
 
+      // Masquer le LoadingOverlay après un court délai
+      setTimeout(() => {
+        if (window.UIComponents && window.UIComponents.LoadingOverlay) {
+          window.UIComponents.LoadingOverlay.hide();
+        }
+        document.removeEventListener('algorithm:progress', progressHandler);
+
+        // Toast de succès
+        if (window.UIComponents && window.UIComponents.Toast) {
+          window.UIComponents.Toast.success(
+            `✨ ${combinedResults.metadata.totalGroups} groupe(s) créé(s) avec succès !`
+          );
+        }
+      }, 500);
+
     } catch (error) {
       console.error('❌ Erreur lors de la génération:', error);
+
+      // Masquer le LoadingOverlay
+      if (window.UIComponents && window.UIComponents.LoadingOverlay) {
+        window.UIComponents.LoadingOverlay.hide();
+      }
+      document.removeEventListener('algorithm:progress', progressHandler);
+
+      // Toast d'erreur
+      if (window.UIComponents && window.UIComponents.Toast) {
+        window.UIComponents.Toast.error(`❌ Erreur : ${error.message}`);
+      }
 
       // Émettre l'événement d'erreur
       const errorEvent = new CustomEvent('groups:error', {

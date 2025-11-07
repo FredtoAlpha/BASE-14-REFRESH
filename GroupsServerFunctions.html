@@ -5,12 +5,12 @@
  */
 
 /**
- * Sauvegarde les groupes dans des onglets Google Sheets
+ * Sauvegarde les groupes dans des onglets Google Sheets (VERSION V4)
  * @param {Array} groupsData - Tableau d'objets {sheetName, students, metadata}
  * @param {boolean} isTemp - Si true, créer onglets TEMP, sinon définitifs
  * @returns {Object} Résultat {success, created, updated, deleted, sheetNames, error}
  */
-function saveGroupsToSheets(groupsData, isTemp) {
+function saveGroupsToSheetsV4(groupsData, isTemp) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const result = {
@@ -106,7 +106,7 @@ function saveGroupsToSheets(groupsData, isTemp) {
     return result;
 
   } catch (error) {
-    Logger.log('❌ Erreur saveGroupsToSheets: ' + error.toString());
+    Logger.log('❌ Erreur saveGroupsToSheetsV4: ' + error.toString());
     return {
       success: false,
       error: error.toString()
@@ -115,11 +115,11 @@ function saveGroupsToSheets(groupsData, isTemp) {
 }
 
 /**
- * Charge les groupes depuis les onglets Google Sheets
+ * Charge les groupes depuis les onglets Google Sheets (VERSION V4)
  * Recherche tous les onglets commençant par "6°Grp" (B/LV/Op) avec ou sans TEMP
  * @returns {Object} Résultat {success, groups, sheetNames, error}
  */
-function loadGroupsFromSheets() {
+function loadGroupsFromSheetsV4() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const allSheets = ss.getSheets();
@@ -219,7 +219,7 @@ function loadGroupsFromSheets() {
     return result;
 
   } catch (error) {
-    Logger.log('❌ Erreur loadGroupsFromSheets: ' + error.toString());
+    Logger.log('❌ Erreur loadGroupsFromSheetsV4: ' + error.toString());
     return {
       success: false,
       error: error.toString(),
