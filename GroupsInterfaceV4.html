@@ -1546,6 +1546,9 @@ const GroupsInterfaceV4 = (function() {
                 <div
                   class="swap-student-card"
                   draggable="true"
+                  tabindex="0"
+                  role="button"
+                  aria-label="Élève ${student.lastName} ${student.firstName}, Français ${scoreF.toFixed(1)}, Maths ${scoreM.toFixed(1)}"
                   data-group-index="${groupIndex}"
                   data-student-index="${studentIndex}"
                   data-student-id="${student.id}"
@@ -1687,6 +1690,40 @@ const GroupsInterfaceV4 = (function() {
 
     // Activer le drag & drop
     enableDragAndDrop();
+
+    // ✅ NOUVEAU : Attacher les événements de clic pour le mode Focus élève
+    attachStudentFocusEvents();
+  }
+
+  /**
+   * Attache les événements de clic sur les cartes élèves pour le mode Focus
+   */
+  function attachStudentFocusEvents() {
+    const cards = document.querySelectorAll('.swap-student-card');
+    cards.forEach(card => {
+      // Double-clic pour ouvrir le mode Focus
+      card.addEventListener('dblclick', (e) => {
+        const groupIndex = parseInt(card.dataset.groupIndex);
+        const studentIndex = parseInt(card.dataset.studentIndex);
+        const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+
+        if (currentReg && currentReg.groups[groupIndex]) {
+          const group = currentReg.groups[groupIndex];
+          const student = group.students[studentIndex];
+
+          if (student) {
+            openStudentFocusModal(student, group.name);
+          }
+        }
+      });
+
+      // Support clavier (Entrée)
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          card.dispatchEvent(new Event('dblclick'));
+        }
+      });
+    });
   }
 
   /**
@@ -1806,6 +1843,85 @@ const GroupsInterfaceV4 = (function() {
 
     content.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 16px;">
+
+        <!-- ✅ NOUVEAU : Pondérations actives -->
+        ${(() => {
+          // Récupérer les pondérations depuis les métadonnées
+          const metadata = state.currentResults?.metadata || {};
+          const weights = metadata.criteriaWeights || {
+            scoreF: 1,
+            scoreM: 1,
+            com: 0.5,
+            tra: 0.5,
+            part: 0.5,
+            abs: -0.5
+          };
+
+          // Normaliser pour affichage (valeur absolue pour les barres)
+          const criteria = [
+            { key: 'scoreF', label: 'Score Français', value: weights.scoreF || 0, color: '#7c3aed' },
+            { key: 'scoreM', label: 'Score Maths', value: weights.scoreM || 0, color: '#4f46e5' },
+            { key: 'com', label: 'Communication', value: weights.com || 0, color: '#06b6d4' },
+            { key: 'tra', label: 'Travail', value: weights.tra || 0, color: '#10b981' },
+            { key: 'part', label: 'Participation', value: weights.part || 0, color: '#f59e0b' },
+            { key: 'abs', label: 'Absences', value: weights.abs || 0, color: '#ef4444' }
+          ];
+
+          const maxWeight = Math.max(...criteria.map(c => Math.abs(c.value)), 1);
+
+          return `
+        <div style="
+          padding: 16px;
+          background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+          border-radius: 8px;
+          border-left: 4px solid #a855f7;
+        " role="region" aria-label="Pondérations actives">
+          <div style="font-size: 14px; font-weight: 700; color: #7e22ce; margin-bottom: 12px;">
+            <i class="fas fa-sliders-h"></i> Pondérations actives
+          </div>
+          <div style="font-size: 11px; color: #374151; margin-bottom: 12px; line-height: 1.4;">
+            ${metadata.scenarioApplied ? `Scénario : <strong>${metadata.scenarioApplied}</strong>` : 'Pondérations par défaut'}
+          </div>
+          ${criteria.map(crit => {
+            const absValue = Math.abs(crit.value);
+            const percentage = (absValue / maxWeight) * 100;
+            const sign = crit.value < 0 ? '−' : '+';
+
+            return `
+            <div style="margin-bottom: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-size: 11px; font-weight: 600; color: #374151;">${crit.label}</span>
+                <span style="
+                  font-size: 11px;
+                  font-weight: 800;
+                  color: ${crit.value < 0 ? '#dc2626' : '#059669'};
+                  padding: 2px 6px;
+                  background: ${crit.value < 0 ? '#fee2e2' : '#d1fae5'};
+                  border-radius: 3px;
+                ">${sign}${absValue.toFixed(1)}</span>
+              </div>
+              <div style="
+                width: 100%;
+                height: 8px;
+                background: #e5e7eb;
+                border-radius: 4px;
+                overflow: hidden;
+                position: relative;
+              " role="progressbar" aria-valuenow="${absValue}" aria-valuemin="0" aria-valuemax="${maxWeight}" aria-label="${crit.label}: ${crit.value}">
+                <div style="
+                  width: ${percentage}%;
+                  height: 100%;
+                  background: linear-gradient(90deg, ${crit.color} 0%, ${crit.color}dd 100%);
+                  transition: width 0.3s ease;
+                  box-shadow: 0 0 4px ${crit.color}80;
+                "></div>
+              </div>
+            </div>
+            `;
+          }).join('')}
+        </div>
+          `;
+        })()}
 
         <!-- Effectifs -->
         <div style="
@@ -2413,6 +2529,221 @@ const GroupsInterfaceV4 = (function() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  /**
+   * Mode "Focus élève" - Modal de comparaison
+   */
+  let focusedStudents = []; // [student1, student2]
+
+  function openStudentFocusModal(student, groupName) {
+    // Ajouter l'élève à la sélection
+    const existing = focusedStudents.findIndex(s => s.id === student.id);
+    if (existing >= 0) {
+      // Déjà sélectionné, le retirer
+      focusedStudents.splice(existing, 1);
+    } else {
+      focusedStudents.push({ ...student, groupName });
+      // Limiter à 2 élèves
+      if (focusedStudents.length > 2) {
+        focusedStudents.shift(); // Retirer le premier
+      }
+    }
+
+    // Si 2 élèves sélectionnés, afficher la modal de comparaison
+    if (focusedStudents.length === 2) {
+      displayComparisonModal(focusedStudents[0], focusedStudents[1]);
+    }
+  }
+
+  function displayComparisonModal(student1, student2) {
+    // Supprimer l'ancienne modal si existe
+    const oldModal = document.getElementById('student-comparison-modal');
+    if (oldModal) oldModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'student-comparison-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 10002;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    `;
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'comparison-title');
+
+    const renderStudentCard = (student, index) => {
+      return `
+        <div style="
+          flex: 1;
+          padding: 24px;
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        ">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div style="
+              font-size: 48px;
+              color: ${student.sexe === 'F' ? '#ec4899' : '#3b82f6'};
+              margin-bottom: 8px;
+            ">
+              <i class="fas fa-user-circle"></i>
+            </div>
+            <h3 style="
+              font-size: 18px;
+              font-weight: 800;
+              color: #1f2937;
+              margin: 0 0 8px 0;
+            ">${student.lastName} ${student.firstName}</h3>
+            <div style="
+              font-size: 12px;
+              color: #6b7280;
+              background: #f3f4f6;
+              padding: 4px 12px;
+              border-radius: 4px;
+              display: inline-block;
+            ">${student.groupName || 'Groupe'} • ${student.class || ''}</div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Scores académiques -->
+            <div style="
+              padding: 12px;
+              background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+              border-radius: 8px;
+              border-left: 4px solid #a855f7;
+            ">
+              <div style="font-size: 12px; font-weight: 700; color: #7e22ce; margin-bottom: 8px;">
+                📚 Scores académiques
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div style="text-align: center; padding: 8px; background: white; border-radius: 6px;">
+                  <div style="font-size: 10px; color: #6b7280;">Français</div>
+                  <div style="font-size: 20px; font-weight: 800; color: #7c3aed;">${(student.scoreF || 0).toFixed(1)}</div>
+                </div>
+                <div style="text-align: center; padding: 8px; background: white; border-radius: 6px;">
+                  <div style="font-size: 10px; color: #6b7280;">Maths</div>
+                  <div style="font-size: 20px; font-weight: 800; color: #4f46e5;">${(student.scoreM || 0).toFixed(1)}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Critères comportementaux -->
+            <div style="
+              padding: 12px;
+              background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+              border-radius: 8px;
+              border-left: 4px solid #3b82f6;
+            ">
+              <div style="font-size: 12px; font-weight: 700; color: #1e40af; margin-bottom: 8px;">
+                🎯 Comportement
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 11px;">
+                <div><strong>COM:</strong> ${(student.com || 0).toFixed(1)}</div>
+                <div><strong>TRA:</strong> ${(student.tra || 0).toFixed(1)}</div>
+                <div><strong>PART:</strong> ${(student.part || 0).toFixed(1)}</div>
+                <div><strong>ABS:</strong> ${(student.abs || 0).toFixed(1)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    modal.innerHTML = `
+      <div style="
+        max-width: 900px;
+        width: 90%;
+        padding: 32px;
+        background: #f9fafb;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        position: relative;
+      " role="document">
+        <button id="close-comparison-modal" style="
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          background: #ef4444;
+          color: white;
+          border: none;
+          border-radius: 50%;
+          width: 36px;
+          height: 36px;
+          cursor: pointer;
+          font-size: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+          transition: all 0.2s;
+        " aria-label="Fermer la comparaison">
+          <i class="fas fa-times"></i>
+        </button>
+
+        <h2 id="comparison-title" style="
+          font-size: 24px;
+          font-weight: 800;
+          color: #1f2937;
+          margin: 0 0 24px 0;
+          text-align: center;
+        ">
+          <i class="fas fa-balance-scale"></i> Comparaison d'élèves
+        </h2>
+
+        <div style="display: flex; gap: 24px;">
+          ${renderStudentCard(student1, 0)}
+          <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+          ">
+            <div style="
+              width: 3px;
+              height: 100%;
+              background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
+              border-radius: 2px;
+            "></div>
+          </div>
+          ${renderStudentCard(student2, 1)}
+        </div>
+
+        <div style="
+          margin-top: 24px;
+          text-align: center;
+          font-size: 12px;
+          color: #6b7280;
+        ">
+          Cliquez sur d'autres élèves pour changer la comparaison
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event listener fermeture
+    const closeBtn = modal.querySelector('#close-comparison-modal');
+    closeBtn.addEventListener('click', () => {
+      modal.remove();
+      focusedStudents = [];
+    });
+
+    // Fermer en cliquant en dehors
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+        focusedStudents = [];
+      }
+    });
   }
 
   /**
