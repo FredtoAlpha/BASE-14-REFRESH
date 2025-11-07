@@ -300,6 +300,8 @@ function runAllTests() {
 
   const results = {
     isStudentLike: testIsStudentLike(),
+    collectStudentsRecursive: testCollectStudentsRecursive(),
+    prepareStudentForAlgorithm: testPrepareStudentForAlgorithm(),
     normalizeClassStudents: testNormalizeClassStudents(),
     integration: testIntegration()
   };
@@ -323,6 +325,220 @@ function runAllTests() {
   return allPassed;
 }
 
+/**
+ * Teste la fonction collectStudentsRecursive
+ */
+function testCollectStudentsRecursive() {
+  console.log('====== TEST: collectStudentsRecursive ======');
+
+  const tests = [
+    {
+      name: 'Direct array of students',
+      input: [
+        { id: 'A', nom: 'Test' },
+        { id: 'B', nom: 'Test2' }
+      ],
+      expectedIds: ['A', 'B']
+    },
+    {
+      name: 'Nested in eleves property',
+      input: {
+        eleves: [
+          { id: 'C', nom: 'Test3' },
+          { id: 'D', nom: 'Test4' }
+        ]
+      },
+      expectedIds: ['C', 'D']
+    },
+    {
+      name: 'Deep nesting',
+      input: {
+        data: {
+          classes: {
+            eleves: [
+              { id: 'E', nom: 'Test5' }
+            ]
+          }
+        }
+      },
+      expectedIds: ['E']
+    },
+    {
+      name: 'Mixed with non-students',
+      input: {
+        metadata: { timestamp: 123456 },
+        eleves: [
+          { id: 'F', nom: 'Test6' },
+          { invalid: true },  // Pas un élève
+          { id: 'G', nom: 'Test7' }
+        ]
+      },
+      expectedIds: ['F', 'G']
+    },
+    {
+      name: 'Deduplication',
+      input: [
+        { id: 'H', nom: 'Test8' },
+        { id: 'H', nom: 'Duplicate' },  // Même ID
+        { id: 'I', nom: 'Test9' }
+      ],
+      expectedIds: ['H', 'I']  // H une seule fois
+    },
+    {
+      name: 'Empty structure',
+      input: {},
+      expectedIds: []
+    },
+    {
+      name: 'Null input',
+      input: null,
+      expectedIds: []
+    }
+  ];
+
+  let passed = 0;
+  let failed = 0;
+
+  tests.forEach(test => {
+    const result = collectStudentsRecursive(test.input);
+    const resultIds = result.map(s => s.id).sort();
+    const expectedIds = test.expectedIds.sort();
+
+    const match = JSON.stringify(resultIds) === JSON.stringify(expectedIds);
+    const status = match ? '✅ PASS' : '❌ FAIL';
+
+    console.log(`${status}: ${test.name}`);
+
+    if (match) {
+      passed++;
+    } else {
+      failed++;
+      console.log(`  Expected IDs: ${JSON.stringify(expectedIds)}`);
+      console.log(`  Got IDs: ${JSON.stringify(resultIds)}`);
+    }
+  });
+
+  console.log(`\nRésultat: ${passed} réussis, ${failed} échoués\n`);
+  return failed === 0;
+}
+
+/**
+ * Teste la fonction prepareStudentForAlgorithm
+ */
+function testPrepareStudentForAlgorithm() {
+  console.log('====== TEST: prepareStudentForAlgorithm ======');
+
+  const tests = [
+    {
+      name: 'Valid student with all fields',
+      input: {
+        id: 'TEST_001',
+        nom: 'DUPONT',
+        prenom: 'Jean',
+        sexe: 'M',
+        scoreF: 3.5,
+        scoreM: 2.8,
+        com: 3,
+        tra: 2,
+        lv2: 'ESPAGNOL'
+      },
+      expected: {
+        id: 'TEST_001',
+        sexe: 'M',
+        scoreF: 3.5,
+        scoreM: 2.8,
+        lv2: 'ESP'
+      }
+    },
+    {
+      name: 'Sexe normalization (FILLE → F)',
+      input: {
+        id: 'TEST_002',
+        sexe: 'FILLE'
+      },
+      expected: {
+        sexe: 'F',
+        gender: 'F'
+      }
+    },
+    {
+      name: 'Score clamping (> 4)',
+      input: {
+        id: 'TEST_003',
+        scoreF: 5.5,  // Devrait être clampé à 4
+        scoreM: -1    // Devrait être clampé à 0
+      },
+      expected: {
+        scoreF: 4,
+        scoreM: 0
+      }
+    },
+    {
+      name: 'LV2 normalization',
+      input: {
+        id: 'TEST_004',
+        lv2: 'ALLEMAND'
+      },
+      expected: {
+        lv2: 'ALL'
+      }
+    },
+    {
+      name: 'Options as string',
+      input: {
+        id: 'TEST_005',
+        options: 'LATIN,GREC'
+      },
+      expected: {
+        options: ['LATIN', 'GREC']
+      }
+    },
+    {
+      name: 'Missing scores (fallback 0)',
+      input: {
+        id: 'TEST_006'
+        // Pas de scores
+      },
+      expected: {
+        scoreF: 0,
+        scoreM: 0,
+        com: 0,
+        tra: 0
+      }
+    }
+  ];
+
+  let passed = 0;
+  let failed = 0;
+
+  tests.forEach(test => {
+    const result = prepareStudentForAlgorithm(test.input, '6°TEST');
+
+    // Vérifier chaque champ attendu
+    let allMatch = true;
+    Object.keys(test.expected).forEach(key => {
+      const resultValue = result[key];
+      const expectedValue = test.expected[key];
+
+      if (JSON.stringify(resultValue) !== JSON.stringify(expectedValue)) {
+        allMatch = false;
+        console.log(`❌ FAIL: ${test.name}`);
+        console.log(`  Field '${key}': Expected ${JSON.stringify(expectedValue)}, Got ${JSON.stringify(resultValue)}`);
+      }
+    });
+
+    if (allMatch) {
+      console.log(`✅ PASS: ${test.name}`);
+      passed++;
+    } else {
+      failed++;
+    }
+  });
+
+  console.log(`\nRésultat: ${passed} réussis, ${failed} échoués\n`);
+  return failed === 0;
+}
+
 // ========== EXPORTER POUR UTILISATION ==========
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -330,6 +546,8 @@ if (typeof module !== 'undefined' && module.exports) {
     TEST_CASES,
     testIsStudentLike,
     testNormalizeClassStudents,
+    testCollectStudentsRecursive,
+    testPrepareStudentForAlgorithm,
     testIntegration,
     runAllTests
   };

@@ -122,7 +122,219 @@
   }
 
   /**
+   * Collecte récursivement tous les objets élèves dans une structure de données
+   * Parcourt en profondeur pour gérer des imbrications complexes (Apps Script)
+   * @param {*} data - Structure de données à parcourir
+   * @param {Set} seen - Set des IDs déjà vus (pour déduplication)
+   * @param {number} depth - Profondeur actuelle (limite à 10 pour éviter boucles infinies)
+   * @returns {Array} Tableau d'objets élèves dédupliqués
+   */
+  function collectStudentsRecursive(data, seen = new Set(), depth = 0) {
+    const MAX_DEPTH = 10;
+    const students = [];
+
+    // Garde contre récursion infinie
+    if (depth > MAX_DEPTH) {
+      ErrorReporter.warn('collectStudentsRecursive', `Profondeur maximale atteinte (${MAX_DEPTH})`);
+      return students;
+    }
+
+    // Cas null/undefined
+    if (data == null) {
+      return students;
+    }
+
+    // Cas primitif (string, number, boolean)
+    if (typeof data !== 'object') {
+      return students;
+    }
+
+    // Cas tableau
+    if (Array.isArray(data)) {
+      data.forEach((item, index) => {
+        // Si c'est un élève, l'ajouter
+        if (isStudentLike(item)) {
+          // Déduplication par ID
+          if (!seen.has(item.id)) {
+            seen.add(item.id);
+            students.push(item);
+          }
+        } else {
+          // Sinon, parcourir récursivement
+          const nested = collectStudentsRecursive(item, seen, depth + 1);
+          students.push(...nested);
+        }
+      });
+      return students;
+    }
+
+    // Cas objet
+    if (typeof data === 'object') {
+      // Si l'objet lui-même est un élève
+      if (isStudentLike(data)) {
+        if (!seen.has(data.id)) {
+          seen.add(data.id);
+          students.push(data);
+        }
+        return students;
+      }
+
+      // Sinon, parcourir toutes les propriétés
+      Object.keys(data).forEach(key => {
+        const value = data[key];
+        const nested = collectStudentsRecursive(value, seen, depth + 1);
+        students.push(...nested);
+      });
+
+      return students;
+    }
+
+    return students;
+  }
+
+  /**
+   * Prépare un élève pour l'algorithme V4 avec gardes renforcées et valeurs de repli
+   * TOUS les champs critiques pour l'algorithme sont validés et normalisés
+   * @param {Object} student - Objet élève brut
+   * @param {string} className - Nom de la classe (pour contexte)
+   * @returns {Object} Élève normalisé avec tous les champs requis
+   */
+  function prepareStudentForAlgorithm(student, className) {
+    // ========== CHAMPS IDENTITÉ ==========
+    const id = String(student.id || '').trim();
+    const firstName = String(student.prenom || student.firstName || '').trim();
+    const lastName = String(student.nom || student.lastName || '').trim();
+
+    // ========== SEXE (CRITIQUE POUR PARITÉ) ==========
+    let sexe = String(student.sexe || student.gender || 'M').trim().toUpperCase();
+    // Normaliser : accepter F/M/FEMME/HOMME/FILLE/GARCON
+    if (sexe.startsWith('F') || sexe === 'FEMME' || sexe === 'FILLE') {
+      sexe = 'F';
+    } else if (sexe.startsWith('M') || sexe === 'HOMME' || sexe === 'GARCON') {
+      sexe = 'M';
+    } else {
+      // Valeur invalide → warning et fallback M
+      ErrorReporter.warn('prepareStudentForAlgorithm',
+        `Classe ${className}: élève ${id} a un sexe invalide "${sexe}", fallback sur M`
+      );
+      sexe = 'M';
+    }
+
+    // ========== SCORES ACADÉMIQUES (CRITIQUES POUR Z-SCORES V4) ==========
+    // Extraction multi-source avec garde de type
+    const extractScore = (sources, defaultValue = 0) => {
+      for (const source of sources) {
+        const value = parseFloat(source);
+        if (!isNaN(value) && isFinite(value)) {
+          // Clamp entre 0 et 4 (échelle FIN)
+          return Math.max(0, Math.min(4, value));
+        }
+      }
+      return defaultValue;
+    };
+
+    const scoreF = extractScore([
+      student.scoreF,
+      student.scores?.F,
+      student.scores?.SCOREF,
+      student.besoinsF
+    ]);
+
+    const scoreM = extractScore([
+      student.scoreM,
+      student.scores?.M,
+      student.scores?.SCOREM,
+      student.besoinsM
+    ]);
+
+    // ========== CRITÈRES COMPORTEMENTAUX (POUR Z-SCORES V4) ==========
+    const com = extractScore([student.scores?.COM, student.com]);
+    const tra = extractScore([student.scores?.TRA, student.tra]);
+    const part = extractScore([student.scores?.PART, student.part]);
+    const abs = extractScore([student.scores?.ABS, student.abs]);
+
+    // ========== LV2 (POUR CRITÈRES OPTIONNELS) ==========
+    let lv2 = String(student.lv2 || student.LV2 || 'ESP').trim().toUpperCase();
+    // Normaliser les abréviations
+    const lv2Map = {
+      'ESPAGNOL': 'ESP', 'ESPA': 'ESP', 'SPA': 'ESP',
+      'ALLEMAND': 'ALL', 'ALLEM': 'ALL', 'GER': 'ALL',
+      'ITALIEN': 'ITA', 'ITAL': 'ITA',
+      'ANGLAIS': 'ANG', 'ANGL': 'ANG', 'ENG': 'ANG'
+    };
+    lv2 = lv2Map[lv2] || lv2;
+
+    // ========== OPTIONS (POUR QUOTAS) ==========
+    let options = student.options || [];
+    if (!Array.isArray(options)) {
+      if (typeof options === 'string') {
+        options = options.split(',').map(o => o.trim()).filter(Boolean);
+      } else {
+        options = [];
+      }
+    }
+    // Normaliser en majuscules
+    options = options.map(opt => String(opt).toUpperCase());
+
+    // ========== CONSTRUIRE L'OBJET NORMALISÉ ==========
+    const normalized = {
+      // Identité
+      id,
+      firstName,
+      lastName,
+      class: className,
+
+      // Sexe (format dual pour compatibilité)
+      sexe,
+      gender: sexe,
+
+      // Scores académiques (CRITIQUES)
+      scoreF,
+      scoreM,
+      score: scoreF,  // Alias pour compatibilité
+
+      // Critères comportementaux
+      com,
+      tra,
+      part,
+      abs,
+
+      // Autres
+      lv2,
+      options,
+
+      // Objet scores consolidé
+      scores: {
+        F: scoreF,
+        M: scoreM,
+        COM: com,
+        TRA: tra,
+        PART: part,
+        ABS: abs
+      }
+    };
+
+    // ========== VALIDATIONS FINALES ==========
+    // Avertir si scores académiques absents
+    if (scoreF === 0 && scoreM === 0) {
+      ErrorReporter.warn('prepareStudentForAlgorithm',
+        `Classe ${className}: élève ${id} sans scores académiques (scoreF et scoreM à 0) → impact z-scores V4 nul`
+      );
+    }
+
+    // Avertir si nom/prénom manquants
+    if (!firstName && !lastName) {
+      ErrorReporter.warn('prepareStudentForAlgorithm',
+        `Classe ${className}: élève ${id} sans nom ni prénom`
+      );
+    }
+
+    return normalized;
+  }
+
+  /**
    * Normalise les données d'une classe depuis le format FIN
+   * UTILISE COLLECTE RÉCURSIVE pour gérer les structures complexes
    * @param {string} className - Nom de la classe
    * @param {*} classData - Données brutes de la classe
    * @returns {Array|null} Tableau d'élèves normalisés ou null si invalide
@@ -133,88 +345,48 @@
       return null;
     }
 
-    // Extraire le tableau d'élèves (format: { eleves: [...] } ou directement [...])
-    let students = classData.eleves || classData;
+    // ========== COLLECTE RÉCURSIVE ET DÉDUPLIQUÉE ==========
+    ErrorReporter.info('normalizeClassStudents', `Classe ${className}: début collecte récursive`);
+    const students = collectStudentsRecursive(classData);
 
-    // Vérifier que students est un tableau
-    if (!Array.isArray(students)) {
+    if (students.length === 0) {
       ErrorReporter.error('normalizeClassStudents',
-        `Classe ${className}: students n'est pas un tableau`,
-        { type: typeof students, value: students }
+        `Classe ${className}: aucun élève trouvé après collecte récursive`,
+        { dataType: typeof classData, isArray: Array.isArray(classData) }
       );
       return null;
     }
 
-    // Filtrer et normaliser les élèves
+    ErrorReporter.info('normalizeClassStudents',
+      `Classe ${className}: ${students.length} élève(s) collecté(s) (dédupliqués)`
+    );
+
+    // ========== PRÉPARATION POUR ALGORITHME V4 ==========
     const normalized = [];
     let skippedCount = 0;
 
     students.forEach((student, index) => {
-      // Valider que c'est un élève
-      if (!isStudentLike(student)) {
-        ErrorReporter.warn('normalizeClassStudents',
-          `Classe ${className}: élève #${index} invalide (pas d'ID ou format incorrect)`,
-          student
-        );
-        skippedCount++;
-        return;
-      }
-
-      // Normaliser l'élève
       try {
-        const normalizedStudent = {
-          id: student.id,
-          firstName: student.prenom || '',
-          lastName: student.nom || '',
-          class: className,
-
-          // SEXE
-          sexe: (student.sexe || 'M').toUpperCase(),
-          gender: student.sexe || 'M',
-
-          // CRITÈRES COMPORTEMENTAUX
-          com: student.scores?.COM || student.com || 0,
-          tra: student.scores?.TRA || student.tra || 0,
-          part: student.scores?.PART || student.part || 0,
-          abs: student.scores?.ABS || student.abs || 0,
-
-          // SCORES ACADÉMIQUES (COLONNES U ET V DES ONGLETS FIN)
-          scoreF: student.scoreF || student.scores?.F || 0,  // Colonne U (1-4)
-          scoreM: student.scoreM || student.scores?.M || 0,  // Colonne V (1-4)
-          score: student.scoreF || student.scores?.F || 0,
-
-          // AUTRES DONNÉES
-          lv2: (student.lv2 || 'ESP').toUpperCase(),
-          options: student.options || [],
-          scores: student.scores || {}
-        };
-
-        // Avertir si les scores académiques sont absents
-        if (normalizedStudent.scoreF === 0 && normalizedStudent.scoreM === 0) {
-          ErrorReporter.warn('normalizeClassStudents',
-            `Classe ${className}: élève ${student.id} sans scores académiques (scoreF et scoreM à 0)`
-          );
-        }
-
-        normalized.push(normalizedStudent);
+        const prepared = prepareStudentForAlgorithm(student, className);
+        normalized.push(prepared);
       } catch (error) {
         ErrorReporter.error('normalizeClassStudents',
-          `Classe ${className}: erreur lors de la normalisation de l'élève #${index}`,
-          { error: error.message, student }
+          `Classe ${className}: erreur préparation élève #${index} (${student.id || 'ID inconnu'})`,
+          { error: error.message, stack: error.stack }
         );
         skippedCount++;
       }
     });
 
-    // Rapport final pour cette classe
+    // ========== RAPPORT FINAL ==========
     if (skippedCount > 0) {
       ErrorReporter.warn('normalizeClassStudents',
-        `Classe ${className}: ${skippedCount} élève(s) ignoré(s) sur ${students.length}`
+        `Classe ${className}: ${skippedCount} élève(s) ignoré(s) sur ${students.length} (erreur préparation)`
       );
     }
 
     ErrorReporter.info('normalizeClassStudents',
-      `Classe ${className}: ${normalized.length} élève(s) normalisé(s) avec succès`
+      `Classe ${className}: ${normalized.length} élève(s) prêts pour algorithme V4`
     );
 
     return normalized.length > 0 ? normalized : null;
