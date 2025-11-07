@@ -25,7 +25,8 @@ const GroupsInterfaceV4 = (function() {
       allRegroupements: [],          // Tous les regroupements générés
       statsVisible: false,           // Panneau statistiques visible
       sidebarCollapsed: false,       // Panneau latéral rétracté
-      comparisonVisible: true        // Bandeau comparaison visible
+      comparisonVisible: true,       // Bandeau comparaison visible
+      sortState: {}                  // État des tris (parity, scoreF, scoreM, com) : { critère: 'asc'|'desc' }
     }
   };
 
@@ -385,6 +386,16 @@ const GroupsInterfaceV4 = (function() {
     const btnOpenSwap = container.querySelector('#btn-open-swap');
     if (btnOpenSwap) {
       btnOpenSwap.addEventListener('click', openSwapInterface);
+    }
+
+    // Bouton fermer l'interface
+    const btnClose = container.querySelector('#close-groups-interface');
+    if (btnClose) {
+      btnClose.addEventListener('click', () => {
+        if (confirm('Fermer le module Groupes ? Les modifications non sauvegardées seront perdues.')) {
+          container.remove();
+        }
+      });
     }
   }
 
@@ -2156,28 +2167,38 @@ const GroupsInterfaceV4 = (function() {
   /**
    * Trie les élèves d'un groupe selon un critère
    */
-  function sortGroupStudents(groupIndex, sortBy) {
+  function sortGroupStudents(groupIndex, sortBy, direction = null) {
     const currentRegroupement = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
     const group = currentRegroupement.groups[groupIndex];
 
     if (!group || !group.students) return;
 
+    // Déterminer la direction (si null, on utilise celle du state)
+    const sortDir = direction || state.swapDashboard.sortState[sortBy] || 'desc';
+    const multiplier = sortDir === 'asc' ? 1 : -1;
+
     group.students.sort((a, b) => {
+      let result = 0;
       switch (sortBy) {
         case 'parity':
-          // F avant M
-          if (a.sexe === 'F' && b.sexe === 'M') return -1;
-          if (a.sexe === 'M' && b.sexe === 'F') return 1;
-          return 0;
+          // F avant M en asc, M avant F en desc
+          if (a.sexe === 'F' && b.sexe === 'M') result = -1;
+          else if (a.sexe === 'M' && b.sexe === 'F') result = 1;
+          else result = 0;
+          break;
         case 'scoreF':
-          return (b.scoreF || 0) - (a.scoreF || 0);
+          result = (a.scoreF || 0) - (b.scoreF || 0);
+          break;
         case 'scoreM':
-          return (b.scoreM || 0) - (a.scoreM || 0);
+          result = (a.scoreM || 0) - (b.scoreM || 0);
+          break;
         case 'com':
-          return (b.scores?.COM || 0) - (a.scores?.COM || 0);
+          result = (a.scores?.COM || 0) - (b.scores?.COM || 0);
+          break;
         default:
-          return 0;
+          result = 0;
       }
+      return result * multiplier;
     });
 
     // Re-render le regroupement
@@ -2185,15 +2206,64 @@ const GroupsInterfaceV4 = (function() {
   }
 
   /**
-   * Trie tous les groupes selon un critère
+   * Trie tous les groupes selon un critère (avec toggle asc/desc)
    */
   function sortAllGroups(sortBy) {
     const currentRegroupement = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
 
     if (!currentRegroupement || !currentRegroupement.groups) return;
 
+    // Toggle la direction : si le critère est déjà trié en desc, passer en asc, sinon desc
+    const currentDir = state.swapDashboard.sortState[sortBy] || 'desc';
+    const newDir = currentDir === 'desc' ? 'asc' : 'desc';
+    state.swapDashboard.sortState[sortBy] = newDir;
+
+    // Trier tous les groupes avec la nouvelle direction
     currentRegroupement.groups.forEach((group, index) => {
-      sortGroupStudents(index, sortBy);
+      sortGroupStudents(index, sortBy, newDir);
+    });
+
+    // Mettre à jour visuellement les boutons de tri
+    updateSortButtons(sortBy, newDir);
+  }
+
+  /**
+   * Met à jour l'apparence des boutons de tri
+   */
+  function updateSortButtons(activeSortBy, direction) {
+    const buttons = {
+      'parity': document.getElementById('btn-sort-parity'),
+      'scoreF': document.getElementById('btn-sort-scoreF'),
+      'scoreM': document.getElementById('btn-sort-scoreM'),
+      'com': document.getElementById('btn-sort-com')
+    };
+
+    // Réinitialiser tous les boutons
+    Object.entries(buttons).forEach(([sortBy, btn]) => {
+      if (!btn) return;
+
+      if (sortBy === activeSortBy) {
+        // Bouton actif : fond blanc + icône de direction
+        btn.style.background = 'rgba(255, 255, 255, 0.95)';
+        btn.style.color = '#6366f1';
+        btn.style.fontWeight = '700';
+        btn.style.borderColor = 'rgba(255, 255, 255, 0.9)';
+
+        // Ajouter icône de direction
+        const icon = direction === 'asc' ? '↑' : '↓';
+        const text = btn.textContent.replace(/[↑↓]/g, '').trim();
+        btn.textContent = `${text} ${icon}`;
+      } else {
+        // Bouton inactif
+        btn.style.background = 'rgba(255, 255, 255, 0.15)';
+        btn.style.color = 'white';
+        btn.style.fontWeight = '500';
+        btn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+
+        // Retirer icône
+        const text = btn.textContent.replace(/[↑↓]/g, '').trim();
+        btn.textContent = text;
+      }
     });
   }
 
