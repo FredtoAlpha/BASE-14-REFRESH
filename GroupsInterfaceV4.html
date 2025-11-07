@@ -254,7 +254,7 @@ const GroupsInterfaceV4 = (function() {
                   border: none;
                   border-radius: 6px;
                   cursor: pointer;
-                  font-weight: 500;
+                  font-weight: 700;
                 ">
                   <i class="fas fa-magic"></i> Générer les groupes
                 </button>
@@ -726,7 +726,7 @@ const GroupsInterfaceV4 = (function() {
 
         <!-- Sélection des classes -->
         <div style="margin-bottom: 12px;">
-          <div style="font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 8px;">
+          <div style="font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
             Sélectionner les classes :
           </div>
           <div style="display: flex; flex-wrap: wrap; gap: 8px;">
@@ -764,7 +764,7 @@ const GroupsInterfaceV4 = (function() {
             </span>
           </div>
           <div style="margin-top: 8px;">
-            Nombre de groupes :
+            <strong>Nombre de groupes :</strong>
             <input
               type="number"
               value="${reg.numGroups}"
@@ -992,10 +992,10 @@ const GroupsInterfaceV4 = (function() {
       statsContent.innerHTML = `
         <div style="font-size: 13px;">
           <div style="margin-bottom: 4px;">
-            <strong>Groupes générés :</strong> ${results.stats.length}
+            <strong>Groupes générés :</strong> <strong style="font-weight: 700; color: #1f2937;">${results.stats.length}</strong>
           </div>
           <div style="margin-bottom: 4px;">
-            <strong>Total élèves :</strong> ${results.metadata.totalStudents}
+            <strong>Total élèves :</strong> <strong style="font-weight: 700; color: #1f2937;">${results.metadata.totalStudents}</strong>
           </div>
         </div>
       `;
@@ -1785,10 +1785,10 @@ const GroupsInterfaceV4 = (function() {
             <i class="fas fa-users"></i> Effectifs
           </div>
           <div style="font-size: 13px; color: #374151; line-height: 1.8;">
-            <div><strong>Total :</strong> ${totalStudents} élèves</div>
-            <div><strong>Filles :</strong> ${totalGirls} (${(totalStudents > 0 ? (totalGirls / totalStudents * 100) : 0).toFixed(1)}%)</div>
-            <div><strong>Garçons :</strong> ${totalBoys} (${(totalStudents > 0 ? (totalBoys / totalStudents * 100) : 0).toFixed(1)}%)</div>
-            <div><strong>Groupes :</strong> ${currentReg.groups.length}</div>
+            <div><strong>Total :</strong> <strong style="font-weight: 700; color: #1f2937;">${totalStudents} élèves</strong></div>
+            <div><strong>Filles :</strong> <strong style="font-weight: 700; color: #1f2937;">${totalGirls}</strong> (${(totalStudents > 0 ? (totalGirls / totalStudents * 100) : 0).toFixed(1)}%)</div>
+            <div><strong>Garçons :</strong> <strong style="font-weight: 700; color: #1f2937;">${totalBoys}</strong> (${(totalStudents > 0 ? (totalBoys / totalStudents * 100) : 0).toFixed(1)}%)</div>
+            <div><strong>Groupes :</strong> <strong style="font-weight: 700; color: #1f2937;">${currentReg.groups.length}</strong></div>
           </div>
         </div>
 
@@ -1803,8 +1803,8 @@ const GroupsInterfaceV4 = (function() {
             <i class="fas fa-chart-line"></i> Scores académiques
           </div>
           <div style="font-size: 13px; color: #374151; line-height: 1.8;">
-            <div><strong>Moy Français :</strong> ${avgScoreF} / 4</div>
-            <div><strong>Moy Maths :</strong> ${avgScoreM} / 4</div>
+            <div><strong>Moy Français :</strong> <strong style="font-weight: 700; color: #1f2937;">${avgScoreF}</strong> / 4</div>
+            <div><strong>Moy Maths :</strong> <strong style="font-weight: 700; color: #1f2937;">${avgScoreM}</strong> / 4</div>
           </div>
         </div>
 
@@ -1819,10 +1819,10 @@ const GroupsInterfaceV4 = (function() {
             <i class="fas fa-clipboard-check"></i> Critères comportementaux
           </div>
           <div style="font-size: 13px; color: #374151; line-height: 1.8;">
-            <div><strong>COM :</strong> ${avgCOM} / 4</div>
-            <div><strong>TRA :</strong> ${avgTRA} / 4</div>
-            <div><strong>PART :</strong> ${avgPART} / 4</div>
-            <div><strong>ABS :</strong> ${avgABS} / 4</div>
+            <div><strong>COM :</strong> <strong style="font-weight: 700; color: #1f2937;">${avgCOM}</strong> / 4</div>
+            <div><strong>TRA :</strong> <strong style="font-weight: 700; color: #1f2937;">${avgTRA}</strong> / 4</div>
+            <div><strong>PART :</strong> <strong style="font-weight: 700; color: #1f2937;">${avgPART}</strong> / 4</div>
+            <div><strong>ABS :</strong> <strong style="font-weight: 700; color: #1f2937;">${avgABS}</strong> / 4</div>
           </div>
         </div>
 
@@ -1883,7 +1883,7 @@ const GroupsInterfaceV4 = (function() {
             color: #92400e;
           ">
             ${totalGirls}F / ${totalBoys}M
-            <div style="font-size: 12px; font-weight: 400; margin-top: 4px;">
+            <div style="font-size: 12px; font-weight: 600; margin-top: 4px;">
               (${(totalStudents > 0 ? (totalGirls / totalStudents * 100) : 0).toFixed(1)}% / ${(totalStudents > 0 ? (totalBoys / totalStudents * 100) : 0).toFixed(1)}%)
             </div>
           </div>
@@ -2143,8 +2143,8 @@ const GroupsInterfaceV4 = (function() {
                 font-size: 11px;
                 color: #6b7280;
               ">
-                <div><strong>COM</strong> ${stats.avgCOM}</div>
-                <div><strong>TRA</strong> ${stats.avgTRA}</div>
+                <div><strong>COM</strong> <strong style="font-weight: 700; color: #374151;">${stats.avgCOM}</strong></div>
+                <div><strong>TRA</strong> <strong style="font-weight: 700; color: #374151;">${stats.avgTRA}</strong></div>
               </div>
             </div>
           `;
