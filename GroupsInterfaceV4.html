@@ -8,6 +8,19 @@
 const GroupsInterfaceV4 = (function() {
   'use strict';
 
+  // ════════════════════════════════════════════════════════════════
+  // HELPER TOAST - Remplacer alert() par Toast
+  // ════════════════════════════════════════════════════════════════
+
+  function showToast(message, type = 'info') {
+    if (window.UIComponents && window.UIComponents.Toast) {
+      window.UIComponents.Toast[type](message);
+    } else {
+      // Fallback sur alert si UIComponents pas disponible
+      alert(message);
+    }
+  }
+
   // État interne de l'interface
   const state = {
     scenario: null,        // 'besoins' | 'lv2' | 'options'
@@ -902,18 +915,18 @@ const GroupsInterfaceV4 = (function() {
    */
   function generateGroups() {
     if (!state.scenario || !state.mode) {
-      alert('Veuillez sélectionner un scénario et un mode');
+      showToast('⚠️ Veuillez sélectionner un scénario et un mode', 'warning');
       return;
     }
 
     // Pour LV2, vérifier qu'une langue est sélectionnée
     if (state.scenario === 'lv2' && !state.selectedLanguage) {
-      alert('Veuillez sélectionner une langue pour le scénario LV2');
+      showToast('⚠️ Veuillez sélectionner une langue pour le scénario LV2', 'warning');
       return;
     }
 
     if (state.regroupements.length === 0) {
-      alert('Veuillez ajouter au moins un regroupement');
+      showToast('⚠️ Veuillez ajouter au moins un regroupement', 'warning');
       return;
     }
 
@@ -1033,7 +1046,7 @@ const GroupsInterfaceV4 = (function() {
    */
   function openSwapInterface() {
     if (!state.currentResults || !state.currentResults.groups) {
-      alert('Aucun groupe à afficher. Veuillez d\'abord générer les groupes.');
+      showToast('⚠️ Aucun groupe à afficher. Veuillez d\'abord générer les groupes.', 'warning');
       return;
     }
 
@@ -1041,7 +1054,7 @@ const GroupsInterfaceV4 = (function() {
     organizeGroupsByRegroupement();
 
     if (state.swapDashboard.allRegroupements.length === 0) {
-      alert('Aucun regroupement disponible.');
+      showToast('⚠️ Aucun regroupement disponible.', 'warning');
       return;
     }
 
@@ -1704,7 +1717,7 @@ const GroupsInterfaceV4 = (function() {
    */
   async function saveGroups(isTemp = true) {
     if (!state.currentResults || !state.currentResults.groups) {
-      alert('❌ Aucun groupe à sauvegarder. Veuillez d\'abord générer des groupes.');
+      showToast('❌ Aucun groupe à sauvegarder. Veuillez d\'abord générer des groupes.', 'warning');
       return;
     }
 
@@ -1786,13 +1799,11 @@ const GroupsInterfaceV4 = (function() {
 
       // Afficher le résultat
       if (result.success) {
-        const message = `✅ Sauvegarde ${mode} réussie !\n\n` +
-          `${result.created} onglet(s) créé(s)\n` +
-          (result.updated ? `${result.updated} onglet(s) mis à jour\n` : '') +
-          (result.deleted && !isTemp ? `${result.deleted} onglet(s) TEMP supprimé(s)\n` : '') +
-          `\nOnglets : ${result.sheetNames.join(', ')}`;
+        const message = `✅ Sauvegarde ${mode} réussie ! ${result.created} onglet(s) créé(s)` +
+          (result.updated ? `, ${result.updated} mis à jour` : '') +
+          (result.deleted && !isTemp ? `, ${result.deleted} TEMP supprimé(s)` : '');
 
-        alert(message);
+        showToast(message, 'success');
         console.log('✅ Sauvegarde réussie:', result);
       } else {
         throw new Error(result.error || 'Erreur inconnue');
@@ -1801,7 +1812,7 @@ const GroupsInterfaceV4 = (function() {
     } catch (error) {
       loadingDiv.remove();
       console.error('❌ Erreur sauvegarde:', error);
-      alert(`❌ Erreur lors de la sauvegarde ${mode}:\n\n${error.message || error}`);
+      showToast(`❌ Erreur sauvegarde ${mode}: ${error.message || error}`, 'error');
     }
   }
 
@@ -1866,17 +1877,17 @@ const GroupsInterfaceV4 = (function() {
         // Afficher les résultats chargés
         displayResults(loadedResults);
 
-        alert(`✅ Chargement réussi !\n\n${result.groups.length} groupe(s) chargé(s)\n\nOnglets : ${result.sheetNames.join(', ')}`);
+        showToast(`✅ ${result.groups.length} groupe(s) chargé(s) depuis les onglets`, 'success');
         console.log('✅ Groupes chargés:', loadedResults);
 
       } else {
-        alert('ℹ️ Aucun groupe trouvé.\n\nRecherché : onglets commençant par "6°Grp" (B/LV/Op) avec ou sans TEMP');
+        showToast('ℹ️ Aucun groupe trouvé dans les onglets', 'info');
       }
 
     } catch (error) {
       loadingDiv.remove();
       console.error('❌ Erreur chargement:', error);
-      alert(`❌ Erreur lors du chargement:\n\n${error.message || error}`);
+      showToast(`❌ Erreur chargement: ${error.message || error}`, 'error');
     }
   }
 
@@ -2073,12 +2084,48 @@ const GroupsInterfaceV4 = (function() {
 
           // Normaliser pour affichage (valeur absolue pour les barres)
           const criteria = [
-            { key: 'scoreF', label: 'Score Français', value: weights.scoreF || 0, color: '#7c3aed' },
-            { key: 'scoreM', label: 'Score Maths', value: weights.scoreM || 0, color: '#4f46e5' },
-            { key: 'com', label: 'Comportement', value: weights.com || 0, color: '#06b6d4' },
-            { key: 'tra', label: 'Travail', value: weights.tra || 0, color: '#10b981' },
-            { key: 'part', label: 'Participation', value: weights.part || 0, color: '#f59e0b' },
-            { key: 'abs', label: 'Absences', value: weights.abs || 0, color: '#ef4444' }
+            {
+              key: 'scoreF',
+              label: 'Score Français',
+              value: weights.scoreF || 0,
+              color: '#7c3aed',
+              tooltip: 'Note en Français (1-4). Poids positif = favorise les bons élèves dans groupes hétérogènes.'
+            },
+            {
+              key: 'scoreM',
+              label: 'Score Maths',
+              value: weights.scoreM || 0,
+              color: '#4f46e5',
+              tooltip: 'Note en Mathématiques (1-4). Poids positif = favorise les bons élèves.'
+            },
+            {
+              key: 'com',
+              label: 'Comportement',
+              value: weights.com || 0,
+              color: '#06b6d4',
+              tooltip: 'Qualité du comportement en classe (0-4). Poids positif = valorise les élèves calmes et respectueux.'
+            },
+            {
+              key: 'tra',
+              label: 'Travail',
+              value: weights.tra || 0,
+              color: '#10b981',
+              tooltip: 'Sérieux et régularité du travail (0-4). Poids positif = valorise les élèves assidus.'
+            },
+            {
+              key: 'part',
+              label: 'Participation',
+              value: weights.part || 0,
+              color: '#f59e0b',
+              tooltip: 'Niveau de participation en cours (0-4). Poids positif = favorise les élèves actifs.'
+            },
+            {
+              key: 'abs',
+              label: 'Absences',
+              value: weights.abs || 0,
+              color: '#ef4444',
+              tooltip: 'Nombre d\'absences (0-4). Poids négatif = pénalise les élèves souvent absents.'
+            }
           ];
 
           const maxWeight = Math.max(...criteria.map(c => Math.abs(c.value)), 1);
@@ -2104,7 +2151,7 @@ const GroupsInterfaceV4 = (function() {
             return `
             <div style="margin-bottom: 10px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-size: 11px; font-weight: 600; color: #374151;">${crit.label}</span>
+                <span style="font-size: 11px; font-weight: 600; color: #374151; cursor: help;" data-tooltip="${crit.tooltip}">${crit.label}</span>
                 <span style="
                   font-size: 11px;
                   font-weight: 800;
