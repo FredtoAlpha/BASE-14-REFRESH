@@ -393,7 +393,13 @@ const GroupsInterfaceV4 = (function() {
     if (btnClose) {
       btnClose.addEventListener('click', () => {
         if (confirm('Fermer le module Groupes ? Les modifications non sauvegardées seront perdues.')) {
-          container.remove();
+          // ✅ Appeler la fonction de fermeture globale pour réinitialiser moduleContainer
+          if (window.closeModuleGroupsV4) {
+            window.closeModuleGroupsV4();
+          } else {
+            // Fallback si la fonction n'existe pas
+            container.remove();
+          }
         }
       });
     }
