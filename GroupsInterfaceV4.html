@@ -1779,12 +1779,7 @@ const GroupsInterfaceV4 = (function() {
       }));
 
       // Appeler la fonction Apps Script pour créer les onglets
-      const result = await new Promise((resolve, reject) => {
-        google.script.run
-          .withSuccessHandler(resolve)
-          .withFailureHandler(reject)
-          .saveGroupsToSheets(groupsData, isTemp);
-      });
+      const result = await gsRun('saveGroupsToSheetsV4', groupsData, isTemp);
 
       // Supprimer le loader
       loadingDiv.remove();
@@ -1844,12 +1839,7 @@ const GroupsInterfaceV4 = (function() {
 
     try {
       // Appeler la fonction Apps Script pour charger les onglets
-      const result = await new Promise((resolve, reject) => {
-        google.script.run
-          .withSuccessHandler(resolve)
-          .withFailureHandler(reject)
-          .loadGroupsFromSheets();
-      });
+      const result = await gsRun('loadGroupsFromSheetsV4');
 
       loadingDiv.remove();
 
