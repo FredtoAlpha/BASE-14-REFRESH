@@ -59,6 +59,82 @@ const GroupsAlgorithmV4 = (function() {
   const PARITY_TOLERANCE = 0.15; // Tolérance d'écart F/M : 15%
 
   // ══════════════════════════════════════════════════════════
+  // VALIDATION DES COEFFICIENTS DE PONDÉRATION
+  // ══════════════════════════════════════════════════════════
+
+  /**
+   * Valide et sécurise les coefficients de pondération
+   * CONTRÔLE MÉTIER : Les coefficients doivent rester dans [-5, +5]
+   * pour éviter des indices pondérés instables
+   *
+   * @param {Object} weights - Objet contenant les coefficients
+   * @param {string} context - Contexte pour le logging (ex: 'besoins')
+   * @returns {Object} Coefficients validés et clampés
+   */
+  function validateWeights(weights, context = 'unknown') {
+    const MIN_WEIGHT = -5;
+    const MAX_WEIGHT = 5;
+    const validatedWeights = {};
+    let hasWarning = false;
+
+    // Critères obligatoires
+    const requiredFields = ['scoreF', 'scoreM', 'com', 'tra', 'part', 'abs'];
+
+    requiredFields.forEach(field => {
+      const value = parseFloat(weights[field]);
+
+      // Validation 1 : Valeur numérique valide
+      if (isNaN(value) || !isFinite(value)) {
+        console.error(`❌ [validateWeights:${context}] Coefficient "${field}" invalide (${weights[field]}) → fallback 0`);
+        validatedWeights[field] = 0;
+        hasWarning = true;
+        return;
+      }
+
+      // Validation 2 : Bornes métiers [-5, +5]
+      const originalValue = value;
+      const clampedValue = Math.max(MIN_WEIGHT, Math.min(MAX_WEIGHT, value));
+
+      if (originalValue !== clampedValue) {
+        console.warn(`⚠️ [validateWeights:${context}] Coefficient "${field}" hors bornes [${MIN_WEIGHT}, ${MAX_WEIGHT}] → ${originalValue.toFixed(2)} clampé à ${clampedValue.toFixed(2)}`);
+        hasWarning = true;
+      }
+
+      // Validation 3 : Valeurs extrêmes (avertissement si > 80% du max)
+      if (Math.abs(clampedValue) > MAX_WEIGHT * 0.8) {
+        console.warn(`⚠️ [validateWeights:${context}] Coefficient "${field}" très élevé (${clampedValue.toFixed(2)}) → risque de domination sur l'indice pondéré`);
+      }
+
+      validatedWeights[field] = clampedValue;
+    });
+
+    // Validation 4 : Somme des coefficients (avertissement si déséquilibre massif)
+    const sumPositive = Object.values(validatedWeights).filter(v => v > 0).reduce((sum, v) => sum + v, 0);
+    const sumNegative = Math.abs(Object.values(validatedWeights).filter(v => v < 0).reduce((sum, v) => sum + v, 0));
+
+    if (sumPositive === 0) {
+      console.error(`❌ [validateWeights:${context}] Tous les coefficients positifs sont nuls → algorithme ne peut pas fonctionner correctement`);
+    }
+
+    if (sumPositive > 0 && sumNegative / sumPositive > 1.5) {
+      console.warn(`⚠️ [validateWeights:${context}] Déséquilibre coefficients : pénalités (${sumNegative.toFixed(1)}) > 150% des bonus (${sumPositive.toFixed(1)})`);
+    }
+
+    if (hasWarning) {
+      console.warn(`⚠️ [validateWeights:${context}] Coefficients validés avec avertissements:`, validatedWeights);
+    } else {
+      console.log(`✅ [validateWeights:${context}] Coefficients validés:`, validatedWeights);
+    }
+
+    return validatedWeights;
+  }
+
+  // Valider les coefficients au chargement
+  Object.keys(SCENARIO_WEIGHTS).forEach(scenario => {
+    SCENARIO_WEIGHTS[scenario] = validateWeights(SCENARIO_WEIGHTS[scenario], scenario);
+  });
+
+  // ══════════════════════════════════════════════════════════
   // ÉTAPE 1 : CONSOLIDATION DES DONNÉES
   // ══════════════════════════════════════════════════════════
 
