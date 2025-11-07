@@ -996,14 +996,23 @@
         throw new Error('Aucun élève trouvé après filtrage. Vérifiez la langue sélectionnée et les classes.');
       }
 
-      // Combiner les résultats en préservant l'information du regroupement
+      // Combiner les résultats avec NUMÉROTATION GLOBALE continue
+      let globalGroupCounter = 1; // Compteur global pour tous les regroupements
+
       const combinedResults = {
         groups: validResults.flatMap(r =>
-          r.result.groups.map(group => ({
-            ...group,
-            regroupementName: r.regroupement, // Ajouter le nom du regroupement
-            regroupementId: r.regroupement.replace(/\s+/g, '-').toLowerCase()
-          }))
+          r.result.groups.map(group => {
+            const globalId = globalGroupCounter++;
+            return {
+              ...group,
+              id: globalId, // ID global numérique
+              name: `Groupe ${globalId}`, // Nom global
+              originalId: group.id, // Conserver l'ID original du regroupement
+              originalName: group.name, // Conserver le nom original
+              regroupementName: r.regroupement, // Ajouter le nom du regroupement
+              regroupementId: r.regroupement.replace(/\s+/g, '-').toLowerCase()
+            };
+          })
         ),
         stats: validResults.flatMap(r => r.result.stats),
         metadata: {
@@ -1012,6 +1021,7 @@
           selectedLanguage,
           totalRegroupements: validResults.length,
           totalStudents: validResults.reduce((sum, r) => sum + r.result.metadata.totalStudents, 0),
+          totalGroups: globalGroupCounter - 1, // Nombre total de groupes créés
           timestamp: new Date().toISOString()
         }
       };

@@ -1666,6 +1666,230 @@ const GroupsInterfaceV4 = (function() {
     });
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // SYSTÈME DE SAUVEGARDE ET CHARGEMENT DES GROUPES
+  // ════════════════════════════════════════════════════════════════
+
+  /**
+   * Génère le préfixe de scénario pour les noms d'onglets
+   * @param {string} scenario - 'besoins' | 'lv2' | 'options'
+   * @returns {string} Préfixe ('B', 'LV', 'Op')
+   */
+  function getScenarioPrefix(scenario) {
+    const prefixes = {
+      'besoins': 'B',
+      'lv2': 'LV',
+      'options': 'Op'
+    };
+    return prefixes[scenario] || 'Grp';
+  }
+
+  /**
+   * Génère le nom d'un onglet de groupe
+   * @param {number} groupId - ID global du groupe
+   * @param {string} scenario - Scénario actif
+   * @param {boolean} isTemp - Si true, ajoute suffixe TEMP
+   * @returns {string} Nom de l'onglet (ex: "6°GrpB1TEMP" ou "6°GrpLV3")
+   */
+  function generateSheetName(groupId, scenario, isTemp = false) {
+    const prefix = getScenarioPrefix(scenario);
+    const suffix = isTemp ? 'TEMP' : '';
+    // Format: 6°GrpB1TEMP ou 6°GrpLV3
+    return `6°Grp${prefix}${groupId}${suffix}`;
+  }
+
+  /**
+   * Sauvegarde les groupes dans des onglets Google Sheets
+   * @param {boolean} isTemp - Si true, créer onglets TEMP, sinon définitifs
+   */
+  async function saveGroups(isTemp = true) {
+    if (!state.currentResults || !state.currentResults.groups) {
+      alert('❌ Aucun groupe à sauvegarder. Veuillez d\'abord générer des groupes.');
+      return;
+    }
+
+    const groups = state.currentResults.groups;
+    const scenario = state.currentResults.metadata.scenario;
+    const mode = isTemp ? 'TEMP' : 'DÉFINITIF';
+
+    console.log(`💾 Sauvegarde ${mode} de ${groups.length} groupe(s)...`);
+
+    // Afficher un loader
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'save-loading';
+    loadingDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10002;
+      background: white;
+      padding: 32px 48px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    `;
+    loadingDiv.innerHTML = `
+      <div style="font-size: 48px; margin-bottom: 16px;">💾</div>
+      <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 8px;">
+        Sauvegarde ${mode}...
+      </div>
+      <div style="font-size: 14px; color: #6b7280;">
+        Création de ${groups.length} onglet(s)
+      </div>
+      <div style="margin-top: 16px; width: 200px; height: 4px; background: #e5e7eb; border-radius: 2px; overflow: hidden;">
+        <div style="width: 0%; height: 100%; background: #3b82f6; animation: progress 2s ease-in-out infinite;"></div>
+      </div>
+      <style>
+        @keyframes progress {
+          0%, 100% { width: 0%; }
+          50% { width: 100%; }
+        }
+      </style>
+    `;
+    document.body.appendChild(loadingDiv);
+
+    try {
+      // Préparer les données pour chaque groupe
+      const groupsData = groups.map(group => ({
+        sheetName: generateSheetName(group.id, scenario, isTemp),
+        students: group.students.map(student => ({
+          id: student.id,
+          nom: student.lastName,
+          prenom: student.firstName,
+          sexe: student.sexe,
+          classe: student.class,
+          scoreF: student.scoreF,
+          scoreM: student.scoreM,
+          com: student.com,
+          tra: student.tra,
+          part: student.part,
+          abs: student.abs,
+          lv2: student.lv2
+        })),
+        metadata: {
+          groupId: group.id,
+          groupName: group.name,
+          regroupementName: group.regroupementName,
+          scenario: scenario,
+          mode: state.currentResults.metadata.mode,
+          isTemp: isTemp,
+          timestamp: new Date().toISOString()
+        }
+      }));
+
+      // Appeler la fonction Apps Script pour créer les onglets
+      const result = await new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .saveGroupsToSheets(groupsData, isTemp);
+      });
+
+      // Supprimer le loader
+      loadingDiv.remove();
+
+      // Afficher le résultat
+      if (result.success) {
+        const message = `✅ Sauvegarde ${mode} réussie !\n\n` +
+          `${result.created} onglet(s) créé(s)\n` +
+          (result.updated ? `${result.updated} onglet(s) mis à jour\n` : '') +
+          (result.deleted && !isTemp ? `${result.deleted} onglet(s) TEMP supprimé(s)\n` : '') +
+          `\nOnglets : ${result.sheetNames.join(', ')}`;
+
+        alert(message);
+        console.log('✅ Sauvegarde réussie:', result);
+      } else {
+        throw new Error(result.error || 'Erreur inconnue');
+      }
+
+    } catch (error) {
+      loadingDiv.remove();
+      console.error('❌ Erreur sauvegarde:', error);
+      alert(`❌ Erreur lors de la sauvegarde ${mode}:\n\n${error.message || error}`);
+    }
+  }
+
+  /**
+   * Charge des groupes depuis des onglets Google Sheets
+   */
+  async function loadGroups() {
+    console.log('📂 Chargement des groupes...');
+
+    // Afficher un loader
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'load-loading';
+    loadingDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10002;
+      background: white;
+      padding: 32px 48px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    `;
+    loadingDiv.innerHTML = `
+      <div style="font-size: 48px; margin-bottom: 16px;">📂</div>
+      <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 8px;">
+        Chargement...
+      </div>
+      <div style="font-size: 14px; color: #6b7280;">
+        Recherche des onglets de groupes
+      </div>
+    `;
+    document.body.appendChild(loadingDiv);
+
+    try {
+      // Appeler la fonction Apps Script pour charger les onglets
+      const result = await new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .loadGroupsFromSheets();
+      });
+
+      loadingDiv.remove();
+
+      if (result.success && result.groups.length > 0) {
+        // Reconstruire la structure de résultats
+        const loadedResults = {
+          groups: result.groups.map(g => ({
+            id: g.metadata.groupId,
+            name: g.metadata.groupName,
+            students: g.students,
+            regroupementName: g.metadata.regroupementName,
+            regroupementId: (g.metadata.regroupementName || '').replace(/\s+/g, '-').toLowerCase()
+          })),
+          metadata: {
+            scenario: result.groups[0].metadata.scenario,
+            mode: result.groups[0].metadata.mode,
+            totalGroups: result.groups.length,
+            totalStudents: result.groups.reduce((sum, g) => sum + g.students.length, 0),
+            timestamp: new Date().toISOString(),
+            loadedFrom: result.sheetNames
+          }
+        };
+
+        // Afficher les résultats chargés
+        displayResults(loadedResults);
+
+        alert(`✅ Chargement réussi !\n\n${result.groups.length} groupe(s) chargé(s)\n\nOnglets : ${result.sheetNames.join(', ')}`);
+        console.log('✅ Groupes chargés:', loadedResults);
+
+      } else {
+        alert('ℹ️ Aucun groupe trouvé.\n\nRecherché : onglets commençant par "6°Grp" (B/LV/Op) avec ou sans TEMP');
+      }
+
+    } catch (error) {
+      loadingDiv.remove();
+      console.error('❌ Erreur chargement:', error);
+      alert(`❌ Erreur lors du chargement:\n\n${error.message || error}`);
+    }
+  }
+
   /**
    * Rendu du regroupement courant
    */
@@ -1861,7 +2085,7 @@ const GroupsInterfaceV4 = (function() {
           const criteria = [
             { key: 'scoreF', label: 'Score Français', value: weights.scoreF || 0, color: '#7c3aed' },
             { key: 'scoreM', label: 'Score Maths', value: weights.scoreM || 0, color: '#4f46e5' },
-            { key: 'com', label: 'Communication', value: weights.com || 0, color: '#06b6d4' },
+            { key: 'com', label: 'Comportement', value: weights.com || 0, color: '#06b6d4' },
             { key: 'tra', label: 'Travail', value: weights.tra || 0, color: '#10b981' },
             { key: 'part', label: 'Participation', value: weights.part || 0, color: '#f59e0b' },
             { key: 'abs', label: 'Absences', value: weights.abs || 0, color: '#ef4444' }
@@ -2801,18 +3025,12 @@ const GroupsInterfaceV4 = (function() {
       comparisonBtn.addEventListener('click', toggleComparisonBanner);
     }
 
-    // Boutons sauvegardes (placeholder)
-    document.getElementById('btn-load')?.addEventListener('click', () => {
-      alert('Fonctionnalité "Charger" à venir');
-    });
-
-    document.getElementById('btn-save-temp')?.addEventListener('click', () => {
-      alert('Sauvegarde temporaire effectuée (fonctionnalité à venir)');
-    });
-
+    // Boutons sauvegardes
+    document.getElementById('btn-load')?.addEventListener('click', loadGroups);
+    document.getElementById('btn-save-temp')?.addEventListener('click', () => saveGroups(true));
     document.getElementById('btn-finalize')?.addEventListener('click', () => {
-      if (confirm('Finaliser ce regroupement ? Les données seront sauvegardées de manière permanente.')) {
-        alert('Regroupement finalisé (fonctionnalité à venir)');
+      if (confirm('Finaliser ces groupes ?\n\nLes onglets définitifs seront créés (ex: 6°GrpB1, 6°GrpLV2...).\nLes onglets temporaires (TEMP) seront supprimés.')) {
+        saveGroups(false);
       }
     });
 
