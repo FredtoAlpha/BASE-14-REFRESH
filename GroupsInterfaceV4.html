@@ -121,7 +121,7 @@ const GroupsInterfaceV4 = (function() {
                   transition: all 0.2s;
                 ">
                   <i class="fas fa-random"></i> Hétérogène
-                  <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
+                  <div style="font-size: 12px; color: #1f2937; margin-top: 4px;">
                     Mélange les niveaux pour équilibrer
                   </div>
                 </button>
@@ -135,7 +135,7 @@ const GroupsInterfaceV4 = (function() {
                   transition: all 0.2s;
                 ">
                   <i class="fas fa-equals"></i> Homogène
-                  <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
+                  <div style="font-size: 12px; color: #1f2937; margin-top: 4px;">
                     Groupes de niveaux similaires
                   </div>
                 </button>
@@ -150,7 +150,7 @@ const GroupsInterfaceV4 = (function() {
               <div id="language-buttons" style="display: flex; flex-direction: column; gap: 8px;">
                 <!-- Les langues seront insérées ici dynamiquement -->
               </div>
-              <div style="margin-top: 8px; font-size: 12px; color: #6b7280;">
+              <div style="margin-top: 8px; font-size: 12px; color: #374151;">
                 <i class="fas fa-info-circle"></i> <span id="language-info">Sélectionnez une langue</span>
               </div>
             </div>
@@ -171,7 +171,7 @@ const GroupsInterfaceV4 = (function() {
                   <!-- Les classes détectées s'afficheront ici -->
                 </div>
               </div>
-              <div style="margin-top: 8px; font-size: 12px; color: #6b7280;">
+              <div style="margin-top: 8px; font-size: 12px; color: #374151;">
                 <i class="fas fa-info-circle"></i> Ces classes sont disponibles pour créer des regroupements
               </div>
             </div>
@@ -217,7 +217,7 @@ const GroupsInterfaceV4 = (function() {
               <div id="regroupements-placeholder" style="
                 padding: 48px 24px;
                 text-align: center;
-                color: #9ca3af;
+                color: #1f2937;
                 border: 2px dashed #e5e7eb;
                 border-radius: 8px;
               ">
@@ -305,7 +305,7 @@ const GroupsInterfaceV4 = (function() {
               </h3>
               <div id="timeline-content" style="
                 font-size: 13px;
-                color: #6b7280;
+                color: #374151;
               ">
                 Aucune action pour le moment
               </div>
@@ -336,7 +336,7 @@ const GroupsInterfaceV4 = (function() {
               " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(139, 92, 246, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(139, 92, 246, 0.3)'">
                 <i class="fas fa-exchange-alt"></i> Ouvrir l'interface de swap
               </button>
-              <div style="margin-top: 8px; font-size: 12px; color: #6b7280; text-align: center;">
+              <div style="margin-top: 8px; font-size: 12px; color: #374151; text-align: center;">
                 <i class="fas fa-info-circle"></i> Échangez les élèves entre les groupes
               </div>
             </div>
@@ -501,8 +501,8 @@ const GroupsInterfaceV4 = (function() {
           border: 1px solid #10b981;
           border-radius: 6px;
           font-size: 12px;
-          font-weight: 500;
-          color: #059669;
+          font-weight: 700;
+          color: #047857;
         ">
           <i class="fas fa-graduation-cap" style="margin-right: 4px;"></i>${className}
         </span>
@@ -705,7 +705,7 @@ const GroupsInterfaceV4 = (function() {
             data-id="${reg.id}"
             class="regroupement-name"
             style="
-              font-weight: 500;
+              font-weight: 700;
               border: none;
               background: transparent;
               outline: none;
@@ -767,7 +767,7 @@ const GroupsInterfaceV4 = (function() {
           </div>
         </div>
 
-        <div style="font-size: 13px; color: #6b7280;">
+        <div style="font-size: 13px; color: #374151;">
           <div style="margin-bottom: 8px;">
             <strong>Classes sélectionnées :</strong>
             <span id="classes-${reg.id}">
@@ -978,7 +978,7 @@ const GroupsInterfaceV4 = (function() {
       const entry = document.createElement('div');
       entry.style.marginBottom = '8px';
       entry.innerHTML = `
-        <span style="color: #9ca3af;">[${timestamp}]</span>
+        <span style="color: #1f2937;">[${timestamp}]</span>
         ${message}
       `;
       timelineContent.appendChild(entry);
@@ -1128,8 +1128,8 @@ const GroupsInterfaceV4 = (function() {
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 border-radius: 6px;
                 cursor: pointer;
-                font-size: 12px;
-                font-weight: 500;
+                font-size: 13px;
+                font-weight: 600;
                 transition: all 0.2s;
               ">
                 F/M
@@ -1141,8 +1141,8 @@ const GroupsInterfaceV4 = (function() {
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 border-radius: 6px;
                 cursor: pointer;
-                font-size: 12px;
-                font-weight: 500;
+                font-size: 13px;
+                font-weight: 600;
                 transition: all 0.2s;
               ">
                 Score F
@@ -1154,8 +1154,8 @@ const GroupsInterfaceV4 = (function() {
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 border-radius: 6px;
                 cursor: pointer;
-                font-size: 12px;
-                font-weight: 500;
+                font-size: 13px;
+                font-weight: 600;
                 transition: all 0.2s;
               ">
                 Score M
@@ -1167,8 +1167,8 @@ const GroupsInterfaceV4 = (function() {
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 border-radius: 6px;
                 cursor: pointer;
-                font-size: 12px;
-                font-weight: 500;
+                font-size: 13px;
+                font-weight: 600;
                 transition: all 0.2s;
               ">
                 COM
@@ -1204,7 +1204,7 @@ const GroupsInterfaceV4 = (function() {
                 text-align: center;
               ">
                 <span id="regroupement-name">Regroupement 1</span>
-                <span style="font-size: 13px; font-weight: 400; color: #9ca3af; margin-left: 8px;">
+                <span style="font-size: 13px; font-weight: 400; color: #1f2937; margin-left: 8px;">
                   (<span id="regroupement-counter">1</span> / ${state.swapDashboard.allRegroupements.length})
                 </span>
               </div>
@@ -1232,8 +1232,8 @@ const GroupsInterfaceV4 = (function() {
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 border-radius: 6px;
                 cursor: pointer;
-                font-size: 13px;
-                font-weight: 500;
+                font-size: 14px;
+                font-weight: 700;
                 transition: all 0.2s;
               ">
                 <i class="fas fa-folder-open"></i> Charger
@@ -1364,7 +1364,7 @@ const GroupsInterfaceV4 = (function() {
                 border-radius: 6px;
                 cursor: pointer;
                 font-size: 13px;
-                color: #6b7280;
+                color: #374151;
               ">
                 <i class="fas fa-chevron-up"></i> Réduire
               </button>
@@ -1378,6 +1378,8 @@ const GroupsInterfaceV4 = (function() {
             gap: 16px;
             flex: 1;
             min-height: 0;
+            flex-wrap: nowrap;
+            overflow-x: auto;
           "></div>
         </div>
 
@@ -1408,7 +1410,7 @@ const GroupsInterfaceV4 = (function() {
               border-radius: 6px;
               cursor: pointer;
               font-size: 14px;
-              color: #6b7280;
+              color: #374151;
             ">
               <i class="fas fa-chevron-${state.swapDashboard.sidebarCollapsed ? 'left' : 'right'}"></i>
             </button>
@@ -1502,7 +1504,7 @@ const GroupsInterfaceV4 = (function() {
               <div style="
                 padding: 24px;
                 text-align: center;
-                color: #9ca3af;
+                color: #1f2937;
                 font-size: 13px;
                 border: 2px dashed #e5e7eb;
                 border-radius: 8px;
@@ -1650,7 +1652,7 @@ const GroupsInterfaceV4 = (function() {
 
     const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
     if (!currentReg) {
-      container.innerHTML = '<p style="color: #9ca3af;">Aucun regroupement disponible</p>';
+      container.innerHTML = '<p style="color: #1f2937;">Aucun regroupement disponible</p>';
       return;
     }
 
@@ -1743,7 +1745,7 @@ const GroupsInterfaceV4 = (function() {
 
     const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
     if (!currentReg) {
-      content.innerHTML = '<p style="color: #9ca3af;">Aucune donnée</p>';
+      content.innerHTML = '<p style="color: #1f2937;">Aucune donnée</p>';
       return;
     }
 
@@ -1850,7 +1852,7 @@ const GroupsInterfaceV4 = (function() {
 
     const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
     if (!currentReg) {
-      content.innerHTML = '<p style="color: #9ca3af; font-size: 13px;">Aucune donnée</p>';
+      content.innerHTML = '<p style="color: #1f2937; font-size: 13px;">Aucune donnée</p>';
       return;
     }
 
@@ -2007,7 +2009,7 @@ const GroupsInterfaceV4 = (function() {
                   <div style="font-weight: 600; color: #6366f1; margin-bottom: 4px;">
                     ${group.name}
                   </div>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; color: #6b7280;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; color: #374151;">
                     <div>COM: ${avgCOM}</div>
                     <div>TRA: ${avgTRA}</div>
                     <div>PART: ${avgPART}</div>
@@ -2032,7 +2034,7 @@ const GroupsInterfaceV4 = (function() {
 
     const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
     if (!currentReg || currentReg.groups.length === 0) {
-      content.innerHTML = '<p style="color: #9ca3af; font-size: 13px;">Aucune donnée</p>';
+      content.innerHTML = '<p style="color: #1f2937; font-size: 13px;">Aucune donnée</p>';
       return;
     }
 
@@ -2152,7 +2154,7 @@ const GroupsInterfaceV4 = (function() {
                 background: #f9fafb;
                 border-radius: 4px;
                 font-size: 11px;
-                color: #6b7280;
+                color: #374151;
               ">
                 <div><strong>COM</strong> <strong style="font-weight: 700; color: #374151;">${stats.avgCOM}</strong></div>
                 <div><strong>TRA</strong> <strong style="font-weight: 700; color: #374151;">${stats.avgTRA}</strong></div>
@@ -2257,7 +2259,7 @@ const GroupsInterfaceV4 = (function() {
         // Bouton inactif
         btn.style.background = 'rgba(255, 255, 255, 0.15)';
         btn.style.color = 'white';
-        btn.style.fontWeight = '500';
+        btn.style.fontWeight = '600';
         btn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
 
         // Retirer icône
