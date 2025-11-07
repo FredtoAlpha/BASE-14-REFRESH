@@ -528,6 +528,12 @@
    * CHARGE AUTOMATIQUEMENT LES ONGLETS FIN AVEC SCORES (colonnes U et V)
    */
   async function openModuleGroupsV4(mode) {
+    // 🔒 GARDE : Empêcher ouvertures multiples simultanées
+    if (moduleContainer && moduleContainer.style.display !== 'none') {
+      console.warn('⚠️ Module Groupes déjà ouvert, abandon');
+      return;
+    }
+
     console.log('🚀 Ouverture du module Groupes V4, mode:', mode);
 
     // Vérifier les dépendances
@@ -543,7 +549,13 @@
       return;
     }
 
-    // Créer le container plein écran IMMÉDIATEMENT
+    // 🧹 NETTOYAGE : Supprimer l'ancien container s'il existe
+    if (moduleContainer) {
+      moduleContainer.remove();
+      moduleContainer = null;
+    }
+
+    // Créer le container plein écran
     if (!moduleContainer) {
       moduleContainer = document.createElement('div');
       moduleContainer.id = 'groups-v4-container';
@@ -675,8 +687,9 @@
    */
   function closeModuleGroupsV4() {
     if (moduleContainer) {
-      moduleContainer.style.display = 'none';
-      console.log('✅ Module Groupes V4 fermé');
+      moduleContainer.remove();  // ← Supprimer du DOM
+      moduleContainer = null;    // ← Réinitialiser la variable
+      console.log('✅ Module Groupes V4 fermé et nettoyé');
     }
   }
 
