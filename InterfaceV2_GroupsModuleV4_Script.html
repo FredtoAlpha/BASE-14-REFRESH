@@ -903,6 +903,19 @@
 
       // Rendre l'interface triptyque une fois les données chargées
       window.GroupsInterfaceV4.renderInitialStructure(moduleContainer);
+
+      // Initialiser les tooltips sur les critères
+      if (window.UIComponents && window.UIComponents.Tooltip) {
+        window.UIComponents.Tooltip.init();
+        console.log('✅ Tooltips initialisés');
+      }
+
+      // Initialiser les contrôles de lisibilité (pastilles, taille police, zoom)
+      if (window.GroupsInterfaceV4.initLisibilityControls) {
+        window.GroupsInterfaceV4.initLisibilityControls();
+        console.log('✅ Contrôles de lisibilité initialisés');
+      }
+
       console.log('✅ Module Groupes V4 prêt');
 
     }).catch(error => {

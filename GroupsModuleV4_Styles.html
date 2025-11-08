@@ -1,0 +1,88 @@
+<style>
+  /* ========================================
+     GROUPS MODULE V4 - STYLES
+     Styles spécifiques pour le module Groupes V4
+     ======================================== */
+
+  /* Pastilles de score COM/TRA/PART/ABS (système InterfaceV2) */
+  .score-pill {
+    width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    margin-left: 2px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+  }
+
+  .score-pill:hover {
+    transform: scale(1.1);
+  }
+
+  /* Couleurs selon la valeur du score */
+  .score-pill.score-4 {
+    background: #006400; /* Vert foncé */
+  }
+
+  .score-pill.score-3 {
+    background: #22c55e; /* Vert clair */
+  }
+
+  .score-pill.score-2 {
+    background: #fbbf24; /* Jaune */
+    color: #78350f; /* Texte marron foncé pour contraste */
+  }
+
+  .score-pill.score-1 {
+    background: #dc2626; /* Rouge */
+  }
+
+  /* Mode zoom pour augmenter taille des pastilles */
+  body.zoom-cards-v4 .score-pill {
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+  }
+
+  /* Classes de taille pour noms d'élèves dans V4 */
+  .student-name-v4 {
+    transition: font-size 0.2s ease, font-weight 0.2s ease;
+  }
+
+  .student-name-v4.size-small {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .student-name-v4.size-medium {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .student-name-v4.size-large {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .student-name-v4.size-xlarge {
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  /* Container de scores - peut être caché via lisibilité */
+  .scores {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Animation de transition pour affichage/masquage */
+  .scores {
+    transition: opacity 0.2s ease;
+  }
+</style>

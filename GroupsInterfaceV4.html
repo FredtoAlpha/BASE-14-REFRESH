@@ -203,6 +203,80 @@ const GroupsInterfaceV4 = (function() {
               <i class="fas fa-info-circle"></i>
               <span id="help-text"></span>
             </div>
+
+            <!-- Options de lisibilité -->
+            <div style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #e5e7eb;">
+              <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #374151;">
+                <i class="fas fa-eye"></i> Options de lisibilité
+              </h3>
+
+              <!-- Checkbox Afficher pastilles -->
+              <div style="margin-bottom: 12px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+                  <input type="checkbox" id="toggle-scores-v4" checked style="cursor: pointer;">
+                  <span>Afficher les pastilles COM/TRA/PART/ABS</span>
+                </label>
+              </div>
+
+              <!-- Taille de police -->
+              <div style="margin-bottom: 12px;">
+                <div style="font-size: 12px; color: #6b7280; margin-bottom: 6px; font-weight: 600;">Taille des noms</div>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button class="btn-font-size" data-size="small" style="
+                    padding: 6px 12px;
+                    font-size: 11px;
+                    border: 1px solid #e5e7eb;
+                    background: white;
+                    border-radius: 4px;
+                    cursor: pointer;
+                  ">Petit</button>
+                  <button class="btn-font-size active" data-size="medium" style="
+                    padding: 6px 12px;
+                    font-size: 11px;
+                    border: 1px solid #6366f1;
+                    background: #eef2ff;
+                    border-radius: 4px;
+                    cursor: pointer;
+                  ">Moyen</button>
+                  <button class="btn-font-size" data-size="large" style="
+                    padding: 6px 12px;
+                    font-size: 11px;
+                    border: 1px solid #e5e7eb;
+                    background: white;
+                    border-radius: 4px;
+                    cursor: pointer;
+                  ">Grand</button>
+                  <button class="btn-font-size" data-size="xlarge" style="
+                    padding: 6px 12px;
+                    font-size: 11px;
+                    border: 1px solid #e5e7eb;
+                    background: white;
+                    border-radius: 4px;
+                    cursor: pointer;
+                  ">Très grand</button>
+                </div>
+              </div>
+
+              <!-- Mode zoom global -->
+              <div>
+                <button id="btn-zoom-v4" style="
+                  padding: 8px 16px;
+                  background: #f3f4f6;
+                  border: 1px solid #d1d5db;
+                  border-radius: 6px;
+                  cursor: pointer;
+                  font-size: 13px;
+                  width: 100%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 8px;
+                " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+                  <i class="fas fa-search-plus"></i>
+                  <span>Mode zoom</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1021,13 +1095,93 @@ const GroupsInterfaceV4 = (function() {
     if (statsSection && statsContent) {
       statsSection.style.display = 'block';
       statsContent.innerHTML = `
-        <div style="font-size: 13px;">
-          <div style="margin-bottom: 4px;">
-            <strong>Groupes générés :</strong> <strong style="font-weight: 700; color: #1f2937;">${results.stats.length}</strong>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Badge Groupes générés -->
+          <div style="
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+          ">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">📊</span>
+              <span style="font-size: 13px; font-weight: 600; color: white; opacity: 0.95;">
+                Groupes générés
+              </span>
+            </div>
+            <div style="
+              font-size: 24px;
+              font-weight: 800;
+              color: white;
+              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            ">
+              ${results.stats.length}
+            </div>
           </div>
-          <div style="margin-bottom: 4px;">
-            <strong>Total élèves :</strong> <strong style="font-weight: 700; color: #1f2937;">${results.metadata.totalStudents}</strong>
+
+          <!-- Badge Total élèves -->
+          <div style="
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+          ">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">👥</span>
+              <span style="font-size: 13px; font-weight: 600; color: white; opacity: 0.95;">
+                Total élèves
+              </span>
+            </div>
+            <div style="
+              font-size: 24px;
+              font-weight: 800;
+              color: white;
+              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            ">
+              ${results.metadata.totalStudents}
+            </div>
           </div>
+
+          <!-- Badge Scenario -->
+          ${results.metadata.scenario ? `
+            <div style="
+              padding: 8px 12px;
+              background: #f3f4f6;
+              border-radius: 6px;
+              border-left: 3px solid #6366f1;
+              font-size: 12px;
+            ">
+              <span style="color: #6b7280; font-weight: 600;">Scénario :</span>
+              <span style="color: #1f2937; font-weight: 700; margin-left: 6px;">
+                ${results.metadata.scenario === 'besoins' ? '🎯 Besoins' :
+                  results.metadata.scenario === 'lv2' ? '🌐 LV2' :
+                  results.metadata.scenario === 'options' ? '⚙️ Options' :
+                  results.metadata.scenario}
+              </span>
+            </div>
+          ` : ''}
+
+          <!-- Badge Mode -->
+          ${results.metadata.mode ? `
+            <div style="
+              padding: 8px 12px;
+              background: #f3f4f6;
+              border-radius: 6px;
+              border-left: 3px solid #8b5cf6;
+              font-size: 12px;
+            ">
+              <span style="color: #6b7280; font-weight: 600;">Mode :</span>
+              <span style="color: #1f2937; font-weight: 700; margin-left: 6px;">
+                ${results.metadata.mode === 'heterogeneous' ? '🔀 Hétérogène' : '⚖️ Homogène'}
+              </span>
+            </div>
+          ` : ''}
         </div>
       `;
     }
@@ -1582,7 +1736,7 @@ const GroupsInterfaceV4 = (function() {
                 >
                   <!-- ✅ TOUT SUR UNE LIGNE -->
                   ${genderIcon}
-                  <span style="
+                  <span class="student-name-v4 size-medium" style="
                     font-weight: 700;
                     color: ${isCOM1 ? '#ef4444' : '#1f2937'};
                     ${isCOM1 ? 'text-decoration: underline;' : ''}
@@ -1626,6 +1780,13 @@ const GroupsInterfaceV4 = (function() {
                   ">
                     M:${scoreM.toFixed(1)}
                   </span>
+                  <!-- Pastilles COM/TRA/PART/ABS (système InterfaceV2) -->
+                  <span class="scores" style="display: flex; align-items: center; gap: 4px;">
+                    ${(student.com && student.com > 0) ? `<div class="score-pill score-${Math.round(student.com)}" title="Comportement: ${student.com}/4">C</div>` : ''}
+                    ${(student.tra && student.tra > 0) ? `<div class="score-pill score-${Math.round(student.tra)}" title="Travail: ${student.tra}/4">T</div>` : ''}
+                    ${(student.part && student.part > 0) ? `<div class="score-pill score-${Math.round(student.part)}" title="Participation: ${student.part}/4">P</div>` : ''}
+                    ${(student.abs && student.abs > 0) ? `<div class="score-pill score-${Math.round(student.abs)}" title="Absences: ${student.abs}/4">A</div>` : ''}
+                  </span>
                   <i class="fas fa-grip-vertical" style="color: #d1d5db;"></i>
                 </div>
               `;
@@ -1647,6 +1808,7 @@ const GroupsInterfaceV4 = (function() {
 
     // Grouper par regroupement en utilisant la propriété regroupementName
     const regroupementMap = {};
+    let globalGroupCounter = 1; // ✅ COMPTEUR GLOBAL pour numérotation continue
 
     state.currentResults.groups.forEach((group, index) => {
       const regroupementName = group.regroupementName || 'Regroupement 1';
@@ -1654,20 +1816,20 @@ const GroupsInterfaceV4 = (function() {
       if (!regroupementMap[regroupementName]) {
         regroupementMap[regroupementName] = {
           name: regroupementName,
-          groups: [],
-          groupCounter: 1
+          groups: []
         };
       }
 
-      // Renommer le groupe avec hiérarchie claire
+      // ✅ Renommer le groupe avec numérotation GLOBALE
       const renamedGroup = {
         ...group,
         originalName: group.name,
-        name: `Groupe ${regroupementMap[regroupementName].groupCounter}`
+        name: `Groupe ${globalGroupCounter}`,
+        globalId: globalGroupCounter // Ajouter l'ID global pour référence
       };
 
       regroupementMap[regroupementName].groups.push(renamedGroup);
-      regroupementMap[regroupementName].groupCounter++;
+      globalGroupCounter++; // Incrémenter le compteur global
     });
 
     state.swapDashboard.allRegroupements = Object.values(regroupementMap);
@@ -2841,6 +3003,35 @@ const GroupsInterfaceV4 = (function() {
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-labelledby', 'comparison-title');
 
+    // Helper pour rendre un badge coloré de critère
+    const renderCriteriaBadge = (label, value, color, icon) => {
+      // Déterminer l'intensité de la couleur selon la valeur (0-4)
+      const opacity = Math.max(0.3, Math.min(1, value / 4));
+      const bgColor = `${color}${Math.round(opacity * 20).toString(16).padStart(2, '0')}`;
+
+      return `
+        <div style="
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 10px;
+          background: ${bgColor};
+          border-radius: 6px;
+          border: 1px solid ${color}40;
+        ">
+          <span style="font-size: 14px;">${icon}</span>
+          <div style="flex: 1;">
+            <div style="font-size: 9px; font-weight: 600; color: ${color}; text-transform: uppercase; opacity: 0.8;">
+              ${label}
+            </div>
+            <div style="font-size: 16px; font-weight: 800; color: ${color};">
+              ${value.toFixed(1)}
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
     const renderStudentCard = (student, index) => {
       return `
         <div style="
@@ -2907,11 +3098,11 @@ const GroupsInterfaceV4 = (function() {
               <div style="font-size: 12px; font-weight: 700; color: #1e40af; margin-bottom: 8px;">
                 🎯 Comportement
               </div>
-              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 11px;">
-                <div><strong>COM:</strong> ${(student.com || 0).toFixed(1)}</div>
-                <div><strong>TRA:</strong> ${(student.tra || 0).toFixed(1)}</div>
-                <div><strong>PART:</strong> ${(student.part || 0).toFixed(1)}</div>
-                <div><strong>ABS:</strong> ${(student.abs || 0).toFixed(1)}</div>
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                ${renderCriteriaBadge('COM', student.com || 0, '#10b981', '💬')}
+                ${renderCriteriaBadge('TRA', student.tra || 0, '#f59e0b', '📝')}
+                ${renderCriteriaBadge('PART', student.part || 0, '#8b5cf6', '🙋')}
+                ${renderCriteriaBadge('ABS', student.abs || 0, '#ef4444', '⏰')}
               </div>
             </div>
           </div>
@@ -3200,11 +3391,88 @@ const GroupsInterfaceV4 = (function() {
     addToTimeline(`Erreur : ${error.message}`);
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // CONTRÔLES DE LISIBILITÉ
+  // ════════════════════════════════════════════════════════════════
+
+  /**
+   * Initialiser les contrôles de lisibilité (appelé après rendu)
+   */
+  function initLisibilityControls() {
+    // Checkbox afficher/masquer pastilles
+    const toggleScoresCheckbox = document.getElementById('toggle-scores-v4');
+    if (toggleScoresCheckbox) {
+      toggleScoresCheckbox.addEventListener('change', (e) => {
+        const scoreElements = document.querySelectorAll('.scores');
+        scoreElements.forEach(el => {
+          el.style.display = e.target.checked ? 'flex' : 'none';
+        });
+        console.log('🎨 Pastilles scores:', e.target.checked ? 'affichées' : 'masquées');
+      });
+    }
+
+    // Boutons taille de police
+    const fontSizeButtons = document.querySelectorAll('.btn-font-size');
+    fontSizeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Retirer active de tous les boutons
+        fontSizeButtons.forEach(b => {
+          b.style.border = '1px solid #e5e7eb';
+          b.style.background = 'white';
+          b.classList.remove('active');
+        });
+
+        // Activer le bouton cliqué
+        btn.style.border = '1px solid #6366f1';
+        btn.style.background = '#eef2ff';
+        btn.classList.add('active');
+
+        // Appliquer la taille
+        const size = btn.dataset.size;
+        const studentNames = document.querySelectorAll('.student-name-v4');
+        studentNames.forEach(name => {
+          name.classList.remove('size-small', 'size-medium', 'size-large', 'size-xlarge');
+          name.classList.add(`size-${size}`);
+        });
+
+        console.log('🎨 Taille police noms:', size);
+      });
+    });
+
+    // Bouton zoom global
+    const btnZoom = document.getElementById('btn-zoom-v4');
+    if (btnZoom) {
+      let zoomActive = false;
+      btnZoom.addEventListener('click', () => {
+        zoomActive = !zoomActive;
+        document.body.classList.toggle('zoom-cards-v4');
+
+        // Mettre à jour le bouton
+        const icon = btnZoom.querySelector('i');
+        const text = btnZoom.querySelector('span');
+        if (zoomActive) {
+          icon.className = 'fas fa-search-minus';
+          text.textContent = 'Désactiver zoom';
+          btnZoom.style.background = '#eef2ff';
+          btnZoom.style.borderColor = '#6366f1';
+        } else {
+          icon.className = 'fas fa-search-plus';
+          text.textContent = 'Mode zoom';
+          btnZoom.style.background = '#f3f4f6';
+          btnZoom.style.borderColor = '#d1d5db';
+        }
+
+        console.log('🎨 Mode zoom:', zoomActive ? 'activé' : 'désactivé');
+      });
+    }
+  }
+
   // API publique
   return {
     renderInitialStructure,
     displayResults,
     displayError,
+    initLisibilityControls,
     state
   };
 })();
