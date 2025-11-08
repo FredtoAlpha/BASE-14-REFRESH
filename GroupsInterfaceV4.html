@@ -528,7 +528,7 @@ const GroupsInterfaceV4 = (function() {
     updateRecap();
 
     // Ajouter à la timeline
-    addToTimeline(`Scénario "${scenario}" sélectionné`);
+    addToTimeline(`Scénario "${scenario}" sélectionné`, 'info', 'fa-list-check');
 
     console.log('✅ Scénario sélectionné:', scenario);
   }
@@ -560,7 +560,7 @@ const GroupsInterfaceV4 = (function() {
     updateRecap();
 
     // Ajouter à la timeline
-    addToTimeline(`Mode "${mode}" sélectionné`);
+    addToTimeline(`Mode "${mode}" sélectionné`, 'info', 'fa-sliders-h');
 
     console.log('✅ Mode sélectionné:', mode);
   }
@@ -731,7 +731,7 @@ const GroupsInterfaceV4 = (function() {
     updateRecap();
 
     // Ajouter à la timeline
-    addToTimeline(`Langue "${language}" sélectionnée`);
+    addToTimeline(`Langue "${language}" sélectionnée`, 'info', 'fa-globe');
 
     console.log('✅ Langue sélectionnée:', language);
   }
@@ -762,7 +762,7 @@ const GroupsInterfaceV4 = (function() {
 
     state.regroupements.push(regroupement);
     renderRegroupements();
-    addToTimeline(`Regroupement "${regroupement.name}" ajouté`);
+    addToTimeline(`Regroupement "${regroupement.name}" ajouté`, 'info', 'fa-layer-group');
   }
 
   /**
@@ -922,7 +922,7 @@ const GroupsInterfaceV4 = (function() {
             display.textContent = reg.classes.length > 0 ? reg.classes.join(', ') : 'Aucune';
           }
 
-          addToTimeline(`"${reg.name}" : ${reg.classes.length} classe(s) sélectionnée(s)`);
+          addToTimeline(`"${reg.name}" : ${reg.classes.length} classe(s) sélectionnée(s)`, 'info', 'fa-check');
         }
       });
     });
@@ -934,7 +934,7 @@ const GroupsInterfaceV4 = (function() {
         const reg = state.regroupements.find(r => r.id === id);
         if (reg) {
           reg.name = e.target.value;
-          addToTimeline(`"${reg.name}" renommé`);
+          addToTimeline(`"${reg.name}" renommé`, 'info', 'fa-edit');
         }
       });
     });
@@ -946,7 +946,7 @@ const GroupsInterfaceV4 = (function() {
         const reg = state.regroupements.find(r => r.id === id);
         if (reg) {
           reg.numGroups = parseInt(e.target.value);
-          addToTimeline(`"${reg.name}" : ${reg.numGroups} groupes`);
+          addToTimeline(`"${reg.name}" : ${reg.numGroups} groupes`, 'info', 'fa-users');
         }
       });
     });
@@ -965,7 +965,7 @@ const GroupsInterfaceV4 = (function() {
           };
           state.regroupements.push(duplicate);
           renderRegroupements();
-          addToTimeline(`"${duplicate.name}" créé par duplication`);
+          addToTimeline(`"${duplicate.name}" créé par duplication`, 'success', 'fa-copy');
         }
       });
     });
@@ -978,7 +978,7 @@ const GroupsInterfaceV4 = (function() {
         if (reg && confirm(`Supprimer "${reg.name}" ?`)) {
           state.regroupements = state.regroupements.filter(r => r.id !== id);
           renderRegroupements();
-          addToTimeline(`"${reg.name}" supprimé`);
+          addToTimeline(`"${reg.name}" supprimé`, 'warning', 'fa-trash');
         }
       });
     });
@@ -1017,7 +1017,7 @@ const GroupsInterfaceV4 = (function() {
     document.dispatchEvent(event);
     console.log('🚀 Événement groups:generate émis', event.detail);
 
-    addToTimeline('Génération des groupes lancée...');
+    addToTimeline('Génération des groupes lancée...', 'warning', 'fa-magic');
   }
 
   /**
@@ -1029,7 +1029,7 @@ const GroupsInterfaceV4 = (function() {
     state.regroupements = [];
     state.currentResults = null;
     renderRegroupements();
-    addToTimeline('Interface réinitialisée');
+    addToTimeline('Interface réinitialisée', 'warning', 'fa-redo');
   }
 
   /**
@@ -1061,23 +1061,48 @@ const GroupsInterfaceV4 = (function() {
   }
 
   /**
-   * Ajoute une entrée à la timeline
+   * Ajoute une entrée à la timeline avec type, icône et couleur
+   * @param {string} message - Message de l'événement
+   * @param {string} type - Type: 'success', 'error', 'warning', 'info' (défaut)
+   * @param {string} icon - Classe FontAwesome (ex: 'fa-check', 'fa-times')
    */
-  function addToTimeline(message) {
+  function addToTimeline(message, type = 'info', icon = null) {
     const timestamp = new Date().toLocaleTimeString('fr-FR');
-    state.timeline.push({ timestamp, message });
+    state.timeline.push({ timestamp, message, type });
 
     const timelineContent = document.getElementById('timeline-content');
     if (timelineContent) {
+      // Supprimer le message "Aucune action" si c'est la première entrée
+      if (timelineContent.textContent.trim() === 'Aucune action pour le moment') {
+        timelineContent.innerHTML = '';
+      }
+
+      // Icônes par défaut selon le type
+      const defaultIcons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+      };
+
+      const iconClass = icon || defaultIcons[type] || defaultIcons.info;
+
+      // Créer l'élément de timeline
       const entry = document.createElement('div');
-      entry.style.marginBottom = '8px';
+      entry.className = `timeline-event ${type}`;
       entry.innerHTML = `
-        <span style="color: #1f2937;">[${timestamp}]</span>
-        ${message}
+        <div class="timeline-event-icon">
+          <i class="fas ${iconClass}"></i>
+        </div>
+        <div class="timeline-event-content">
+          <div class="timeline-event-time">${timestamp}</div>
+          <div class="timeline-event-message">${message}</div>
+        </div>
       `;
+
       timelineContent.appendChild(entry);
 
-      // Scroll vers le bas
+      // Scroll vers le bas avec smooth behavior
       timelineContent.scrollTop = timelineContent.scrollHeight;
     }
   }
@@ -1192,7 +1217,7 @@ const GroupsInterfaceV4 = (function() {
       swapSection.style.display = 'block';
     }
 
-    addToTimeline(`${results.stats.length} groupes générés avec succès`);
+    addToTimeline(`${results.stats.length} groupes générés avec succès`, 'success', 'fa-check-circle');
   }
 
   /**
@@ -3388,7 +3413,7 @@ const GroupsInterfaceV4 = (function() {
    */
   function displayError(error) {
     alert('Erreur : ' + error.message);
-    addToTimeline(`Erreur : ${error.message}`);
+    addToTimeline(`Erreur : ${error.message}`, 'error', 'fa-exclamation-circle');
   }
 
   // ════════════════════════════════════════════════════════════════
