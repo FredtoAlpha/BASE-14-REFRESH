@@ -1472,9 +1472,41 @@ const GroupsInterfaceV4 = (function() {
     `;
 
     dashboard.innerHTML = `
-      <!-- Boutons de contrôle principaux (coin supérieur droit) -->
-      <div style="position: absolute; top: 16px; right: 16px; z-index: 10001; display: flex; gap: 8px;">
-        <!-- Bouton Paramètres -->
+      <!-- BOUTON TOGGLE HEADER (FLOTTANT, TOUJOURS VISIBLE) -->
+      <button id="btn-toggle-header" style="
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        z-index: 10002;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.3)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.2)'">
+        <i class="fas fa-chevron-up"></i>
+      </button>
+
+      <!-- HEADER UNIFIÉ SUR UNE SEULE LIGNE -->
+      <div id="swap-dashboard-header" style="
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
+        padding: 8px 16px 8px 60px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        display: ${state.swapDashboard.headerVisible ? 'flex' : 'none'};
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-shrink: 0;
+        flex-wrap: nowrap;
+        min-height: 44px;
+      ">
+        <!-- ZONE GAUCHE : MENUS PRINCIPAUX -->
+        <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
           <!-- Bouton Paramètres -->
           <button id="btn-open-settings" style="
             background: #8b5cf6;
@@ -1488,7 +1520,7 @@ const GroupsInterfaceV4 = (function() {
             transition: all 0.2s;
             white-space: nowrap;
           " onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'">
-            <i class="fas fa-cog"></i> Paramètres
+            <i class="fas fa-cog"></i> Param
           </button>
 
           <!-- Bouton Statistiques -->
@@ -1530,7 +1562,7 @@ const GroupsInterfaceV4 = (function() {
               background: white;
               border-radius: 6px;
               box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-              min-width: 140px;
+              min-width: 120px;
               display: none;
               overflow: hidden;
               z-index: 10002;
@@ -1592,69 +1624,69 @@ const GroupsInterfaceV4 = (function() {
           </button>
         </div>
 
-        <!-- ZONE CENTRE : TRI + NAVIGATION + SAUVEGARDES -->
-        <div style="display: flex; align-items: center; gap: 10px; flex: 1; justify-content: center; flex-wrap: nowrap; overflow: hidden;">
+        <!-- ZONE DROITE : TRI + NAVIGATION + SAUVEGARDES -->
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
           <!-- Options de tri -->
-          <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
-            <span style="font-size: 10px; font-weight: 600; opacity: 0.9; margin-right: 2px;">
+          <div style="display: flex; gap: 3px; align-items: center; flex-shrink: 0;">
+            <span style="font-size: 9px; font-weight: 600; opacity: 0.9; margin-right: 2px;">
               <i class="fas fa-sort"></i>
             </span>
             <button id="btn-sort-parity" data-sort="parity" class="sort-btn" style="
-              padding: 4px 8px;
+              padding: 4px 6px;
               background: rgba(255, 255, 255, 0.15);
               color: white;
               border: 1px solid rgba(255, 255, 255, 0.3);
               border-radius: 4px;
               cursor: pointer;
-              font-size: 10px;
+              font-size: 9px;
               font-weight: 600;
               transition: all 0.2s;
             ">F/M</button>
             <button id="btn-sort-scoreF" data-sort="scoreF" class="sort-btn" style="
-              padding: 4px 8px;
+              padding: 4px 6px;
               background: rgba(255, 255, 255, 0.15);
               color: white;
               border: 1px solid rgba(255, 255, 255, 0.3);
               border-radius: 4px;
               cursor: pointer;
-              font-size: 10px;
+              font-size: 9px;
               font-weight: 600;
               transition: all 0.2s;
             ">F</button>
             <button id="btn-sort-scoreM" data-sort="scoreM" class="sort-btn" style="
-              padding: 4px 8px;
+              padding: 4px 6px;
               background: rgba(255, 255, 255, 0.15);
               color: white;
               border: 1px solid rgba(255, 255, 255, 0.3);
               border-radius: 4px;
               cursor: pointer;
-              font-size: 10px;
+              font-size: 9px;
               font-weight: 600;
               transition: all 0.2s;
             ">M</button>
             <button id="btn-sort-com" data-sort="com" class="sort-btn" style="
-              padding: 4px 8px;
+              padding: 4px 6px;
               background: rgba(255, 255, 255, 0.15);
               color: white;
               border: 1px solid rgba(255, 255, 255, 0.3);
               border-radius: 4px;
               cursor: pointer;
-              font-size: 10px;
+              font-size: 9px;
               font-weight: 600;
               transition: all 0.2s;
             ">COM</button>
           </div>
 
           <!-- Navigation -->
-          <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+          <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
             <button id="btn-prev-regroupement" style="
               background: rgba(255, 255, 255, 0.2);
               border: 1px solid rgba(255, 255, 255, 0.3);
               color: white;
-              padding: 4px 8px;
+              padding: 4px 6px;
               border-radius: 4px;
               cursor: pointer;
-              font-size: 12px;
+              font-size: 11px;
               transition: all 0.2s;
             " ${state.swapDashboard.currentRegroupementIndex === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
               <i class="fas fa-chevron-left"></i>
@@ -1663,14 +1695,14 @@ const GroupsInterfaceV4 = (function() {
             <div style="
               background: rgba(255, 255, 255, 0.95);
               color: #6366f1;
-              padding: 4px 12px;
+              padding: 3px 10px;
               border-radius: 4px;
-              font-size: 11px;
+              font-size: 10px;
               font-weight: 700;
               white-space: nowrap;
             ">
               <span id="regroupement-name">Reg 1</span>
-              <span style="font-size: 10px; font-weight: 400; color: #1f2937; margin-left: 4px;">
+              <span style="font-size: 9px; font-weight: 400; color: #1f2937; margin-left: 3px;">
                 (<span id="regroupement-counter">1</span>/${state.swapDashboard.allRegroupements.length})
               </span>
             </div>
@@ -1679,10 +1711,10 @@ const GroupsInterfaceV4 = (function() {
               background: rgba(255, 255, 255, 0.2);
               border: 1px solid rgba(255, 255, 255, 0.3);
               color: white;
-              padding: 4px 8px;
+              padding: 4px 6px;
               border-radius: 4px;
               cursor: pointer;
-              font-size: 12px;
+              font-size: 11px;
               transition: all 0.2s;
             " ${state.swapDashboard.currentRegroupementIndex === state.swapDashboard.allRegroupements.length - 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
               <i class="fas fa-chevron-right"></i>
@@ -1690,15 +1722,15 @@ const GroupsInterfaceV4 = (function() {
           </div>
 
           <!-- Sauvegardes -->
-          <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
+          <div style="display: flex; gap: 3px; align-items: center; flex-shrink: 0;">
             <button id="btn-load" style="
-              padding: 4px 10px;
+              padding: 4px 8px;
               background: rgba(255, 255, 255, 0.2);
               color: white;
               border: 1px solid rgba(255, 255, 255, 0.3);
               border-radius: 4px;
               cursor: pointer;
-              font-size: 10px;
+              font-size: 9px;
               font-weight: 600;
               transition: all 0.2s;
               white-space: nowrap;
@@ -1706,13 +1738,13 @@ const GroupsInterfaceV4 = (function() {
               <i class="fas fa-folder-open"></i> Load
             </button>
             <button id="btn-save-temp" style="
-              padding: 4px 10px;
+              padding: 4px 8px;
               background: #f97316;
               color: white;
               border: none;
               border-radius: 4px;
               cursor: pointer;
-              font-size: 10px;
+              font-size: 9px;
               font-weight: 600;
               transition: all 0.2s;
               white-space: nowrap;
@@ -1720,13 +1752,13 @@ const GroupsInterfaceV4 = (function() {
               <i class="fas fa-save"></i> TEMP
             </button>
             <button id="btn-finalize" style="
-              padding: 4px 10px;
+              padding: 4px 8px;
               background: #10b981;
               color: white;
               border: none;
               border-radius: 4px;
               cursor: pointer;
-              font-size: 10px;
+              font-size: 9px;
               font-weight: 600;
               transition: all 0.2s;
               white-space: nowrap;
@@ -1735,7 +1767,6 @@ const GroupsInterfaceV4 = (function() {
             </button>
           </div>
         </div>
-
       </div>
 
       <!-- CONTENU PRINCIPAL -->
@@ -3749,9 +3780,16 @@ const GroupsInterfaceV4 = (function() {
     if (toggleHeaderCheckbox) {
       toggleHeaderCheckbox.addEventListener('change', (e) => {
         state.swapDashboard.headerVisible = e.target.checked;
-        const header = document.getElementById('dashboard-header');
+        const header = document.getElementById('swap-dashboard-header');
         if (header) {
-          header.style.display = e.target.checked ? 'block' : 'none';
+          header.style.display = e.target.checked ? 'flex' : 'none';
+        }
+        // Mettre à jour l'icône du bouton toggle
+        const toggleBtn = document.getElementById('btn-toggle-header');
+        if (toggleBtn) {
+          toggleBtn.innerHTML = e.target.checked
+            ? '<i class="fas fa-chevron-up"></i>'
+            : '<i class="fas fa-chevron-down"></i>';
         }
       });
     }
@@ -3872,6 +3910,12 @@ const GroupsInterfaceV4 = (function() {
       closeBtn.addEventListener('click', () => {
         document.getElementById('swap-dashboard').remove();
       });
+    }
+
+    // Toggle header
+    const toggleHeaderBtn = document.getElementById('btn-toggle-header');
+    if (toggleHeaderBtn) {
+      toggleHeaderBtn.addEventListener('click', toggleHeader);
     }
 
     // Bouton Paramètres
@@ -4059,6 +4103,26 @@ const GroupsInterfaceV4 = (function() {
       // Réduire
       content.style.display = 'none';
       btn.innerHTML = '<i class="fas fa-chevron-down"></i> Afficher';
+    }
+  }
+
+  /**
+   * Toggle du header SWAP dashboard
+   */
+  function toggleHeader() {
+    state.swapDashboard.headerVisible = !state.swapDashboard.headerVisible;
+
+    const header = document.getElementById('swap-dashboard-header');
+    const btn = document.getElementById('btn-toggle-header');
+
+    if (header) {
+      header.style.display = state.swapDashboard.headerVisible ? 'flex' : 'none';
+    }
+
+    if (btn) {
+      btn.innerHTML = state.swapDashboard.headerVisible
+        ? '<i class="fas fa-chevron-up"></i>'
+        : '<i class="fas fa-chevron-down"></i>';
     }
   }
 
