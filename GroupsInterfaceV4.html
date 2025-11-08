@@ -3635,138 +3635,219 @@ const GroupsInterfaceV4 = (function() {
    * Exporte les groupes en PDF (via impression navigateur)
    */
   function exportToPDF() {
+    console.log('📄 Export PDF demandé...');
+    console.log('État swapDashboard:', state.swapDashboard);
+
     const currentRegroupement = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
 
     if (!currentRegroupement) {
-      GroupsNotifications.warning('Export impossible', 'Aucun regroupement à exporter');
+      console.error('❌ Aucun regroupement disponible pour export PDF');
+      GroupsNotifications.warning('Export impossible', 'Aucun regroupement à exporter. Générez d\'abord des groupes.');
       return;
     }
 
-    // Créer une fenêtre d'impression avec le contenu formaté
-    const printWindow = window.open('', '_blank');
-    const content = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Groupes - ${currentRegroupement.name}</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          h1 { color: #333; }
-          .group { margin-bottom: 30px; page-break-inside: avoid; }
-          .group-header { background: #4A90E2; color: white; padding: 10px; font-weight: bold; }
-          .student { padding: 8px; border-bottom: 1px solid #ddd; }
-          .student:nth-child(even) { background: #f9f9f9; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { text-align: left; padding: 8px; }
-        </style>
-      </head>
-      <body>
-        <h1>${currentRegroupement.name}</h1>
-        <p><strong>Classes:</strong> ${currentRegroupement.classes.join(', ')}</p>
-        <p><strong>Mode:</strong> ${state.groupsGeneration.mode === 'heterogeneous' ? 'Hétérogène' : 'Homogène'}</p>
-        <p><strong>Scénario:</strong> ${state.groupsGeneration.scenario}</p>
-        <hr>
-        ${currentRegroupement.groups.map((group, idx) => `
-          <div class="group">
-            <div class="group-header">Groupe ${idx + 1} (${group.students.length} élèves)</div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Nom</th>
-                  <th>Prénom</th>
-                  <th>Classe</th>
-                  <th>Source</th>
-                  <th>Sexe</th>
-                  <th>Score F</th>
-                  <th>Score M</th>
-                  <th>COM</th>
-                  <th>TRA</th>
-                  <th>PART</th>
-                  <th>ABS</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${group.students.map(s => `
-                  <tr>
-                    <td>${s.lastName || s.nom || ''}</td>
-                    <td>${s.firstName || s.prenom || ''}</td>
-                    <td>${s.class || s.classe || ''}</td>
-                    <td>${s.SOURCE || s.source || s.class || ''}</td>
-                    <td>${s.sexe || ''}</td>
-                    <td>${s.scoreF?.toFixed(1) || '-'}</td>
-                    <td>${s.scoreM?.toFixed(1) || '-'}</td>
-                    <td>${s.com?.toFixed(1) || s.scores?.COM?.toFixed(1) || '-'}</td>
-                    <td>${s.tra?.toFixed(1) || s.scores?.TRA?.toFixed(1) || '-'}</td>
-                    <td>${s.part?.toFixed(1) || s.scores?.PART?.toFixed(1) || '-'}</td>
-                    <td>${s.abs?.toFixed(1) || s.scores?.ABS?.toFixed(1) || '-'}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `).join('')}
-      </body>
-      </html>
+    console.log('📊 Regroupement à exporter:', currentRegroupement.name, `(${currentRegroupement.groups.length} groupes)`);
+
+    // Vérifier que les groupes ont des étudiants
+    if (!currentRegroupement.groups || currentRegroupement.groups.length === 0) {
+      console.error('❌ Aucun groupe dans le regroupement');
+      GroupsNotifications.warning('Export impossible', 'Le regroupement ne contient aucun groupe.');
+      return;
+    }
+
+    try {
+      // Créer une fenêtre d'impression avec le contenu formaté
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+
+      if (!printWindow) {
+        console.error('❌ Impossible d\'ouvrir la fenêtre d\'impression (popup bloqué?)');
+        GroupsNotifications.error('Export bloqué', 'Impossible d\'ouvrir la fenêtre d\'impression. Vérifiez les popups bloqués.');
+        return;
+      }
+
+      const content = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Groupes - ${currentRegroupement.name}</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1 { color: #333; margin-bottom: 10px; }
+    .meta { color: #666; margin-bottom: 20px; }
+    .group { margin-bottom: 30px; page-break-inside: avoid; }
+    .group-header { background: #4A90E2; color: white; padding: 10px; font-weight: bold; margin-bottom: 10px; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    th { background: #f3f4f6; text-align: left; padding: 8px; border: 1px solid #ddd; font-weight: 600; }
+    td { text-align: left; padding: 8px; border: 1px solid #ddd; }
+    tr:nth-child(even) { background: #f9fafb; }
+    @media print {
+      .group { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <h1>📊 ${currentRegroupement.name}</h1>
+  <div class="meta">
+    <p><strong>Classes:</strong> ${(currentRegroupement.classes || []).join(', ') || 'N/A'}</p>
+    <p><strong>Mode:</strong> ${state.mode === 'heterogeneous' ? 'Hétérogène' : 'Homogène'}</p>
+    <p><strong>Scénario:</strong> ${state.scenario || 'N/A'}</p>
+    <p><strong>Nombre de groupes:</strong> ${currentRegroupement.groups.length}</p>
+  </div>
+  <hr>
+  ${currentRegroupement.groups.map((group, idx) => {
+    const students = group.students || [];
+    return `
+    <div class="group">
+      <div class="group-header">Groupe ${idx + 1} (${students.length} élèves)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+            <th>Classe</th>
+            <th>Source</th>
+            <th>Sexe</th>
+            <th>Score F</th>
+            <th>Score M</th>
+            <th>COM</th>
+            <th>TRA</th>
+            <th>PART</th>
+            <th>ABS</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${students.map(s => `
+            <tr>
+              <td>${s.lastName || s.nom || '-'}</td>
+              <td>${s.firstName || s.prenom || '-'}</td>
+              <td>${s.class || s.classe || '-'}</td>
+              <td>${s.SOURCE || s.source || s.class || '-'}</td>
+              <td>${s.sexe || '-'}</td>
+              <td>${s.scoreF != null ? s.scoreF.toFixed(1) : '-'}</td>
+              <td>${s.scoreM != null ? s.scoreM.toFixed(1) : '-'}</td>
+              <td>${s.com != null ? s.com.toFixed(1) : (s.scores?.COM != null ? s.scores.COM.toFixed(1) : '-')}</td>
+              <td>${s.tra != null ? s.tra.toFixed(1) : (s.scores?.TRA != null ? s.scores.TRA.toFixed(1) : '-')}</td>
+              <td>${s.part != null ? s.part.toFixed(1) : (s.scores?.PART != null ? s.scores.PART.toFixed(1) : '-')}</td>
+              <td>${s.abs != null ? s.abs.toFixed(1) : (s.scores?.ABS != null ? s.scores.ABS.toFixed(1) : '-')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
     `;
+  }).join('')}
+</body>
+</html>`;
 
-    printWindow.document.write(content);
-    printWindow.document.close();
-    printWindow.focus();
+      printWindow.document.write(content);
+      printWindow.document.close();
 
-    // Lancer l'impression après le chargement
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+      console.log('✅ Contenu PDF écrit dans la fenêtre');
+
+      // Lancer l'impression après le chargement
+      printWindow.addEventListener('load', () => {
+        setTimeout(() => {
+          console.log('🖨️ Lancement de l\'impression...');
+          printWindow.print();
+        }, 500);
+      });
+
+      GroupsNotifications.success('Export PDF', 'Fenêtre d\'impression ouverte');
+
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'export PDF:', error);
+      GroupsNotifications.error('Erreur export PDF', error.message);
+    }
   }
 
   /**
    * Exporte les groupes en CSV
    */
   function exportToCSV() {
+    console.log('📄 Export CSV demandé...');
+    console.log('État swapDashboard:', state.swapDashboard);
+
     const currentRegroupement = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
 
     if (!currentRegroupement) {
-      GroupsNotifications.warning('Export impossible', 'Aucun regroupement à exporter');
+      console.error('❌ Aucun regroupement disponible pour export CSV');
+      GroupsNotifications.warning('Export impossible', 'Aucun regroupement à exporter. Générez d\'abord des groupes.');
       return;
     }
 
-    // Créer le CSV
-    let csv = 'Groupe,Nom,Prénom,Classe,Source,Sexe,Score F,Score M,COM,TRA,PART,ABS,LV2,Options\n';
+    console.log('📊 Regroupement à exporter:', currentRegroupement.name, `(${currentRegroupement.groups.length} groupes)`);
 
-    currentRegroupement.groups.forEach((group, groupIdx) => {
-      group.students.forEach(student => {
-        const row = [
-          `Groupe ${groupIdx + 1}`,
-          student.lastName || student.nom || '',
-          student.firstName || student.prenom || '',
-          student.class || student.classe || '',
-          student.SOURCE || student.source || student.class || '',
-          student.sexe || '',
-          student.scoreF?.toFixed(2) || '0',
-          student.scoreM?.toFixed(2) || '0',
-          student.com?.toFixed(2) || student.scores?.COM?.toFixed(2) || '0',
-          student.tra?.toFixed(2) || student.scores?.TRA?.toFixed(2) || '0',
-          student.part?.toFixed(2) || student.scores?.PART?.toFixed(2) || '0',
-          student.abs?.toFixed(2) || student.scores?.ABS?.toFixed(2) || '0',
-          student.lv2 || '',
-          Array.isArray(student.options) ? student.options.join(';') : ''
-        ];
-        csv += row.map(field => `"${field}"`).join(',') + '\n';
+    // Vérifier que les groupes ont des étudiants
+    if (!currentRegroupement.groups || currentRegroupement.groups.length === 0) {
+      console.error('❌ Aucun groupe dans le regroupement');
+      GroupsNotifications.warning('Export impossible', 'Le regroupement ne contient aucun groupe.');
+      return;
+    }
+
+    try {
+      // Créer le CSV avec séparateur point-virgule (meilleur pour Excel français)
+      const separator = ';';
+
+      // En-tête
+      let csv = 'Groupe;Nom;Prénom;Classe;Source;Sexe;Score F;Score M;COM;TRA;PART;ABS;LV2;Options\n';
+
+      // Données
+      let totalStudents = 0;
+      currentRegroupement.groups.forEach((group, groupIdx) => {
+        const students = group.students || [];
+        students.forEach(student => {
+          totalStudents++;
+          const row = [
+            `Groupe ${groupIdx + 1}`,
+            student.lastName || student.nom || '',
+            student.firstName || student.prenom || '',
+            student.class || student.classe || '',
+            student.SOURCE || student.source || student.class || '',
+            student.sexe || '',
+            student.scoreF != null ? student.scoreF.toFixed(2) : '0.00',
+            student.scoreM != null ? student.scoreM.toFixed(2) : '0.00',
+            student.com != null ? student.com.toFixed(2) : (student.scores?.COM != null ? student.scores.COM.toFixed(2) : '0.00'),
+            student.tra != null ? student.tra.toFixed(2) : (student.scores?.TRA != null ? student.scores.TRA.toFixed(2) : '0.00'),
+            student.part != null ? student.part.toFixed(2) : (student.scores?.PART != null ? student.scores.PART.toFixed(2) : '0.00'),
+            student.abs != null ? student.abs.toFixed(2) : (student.scores?.ABS != null ? student.scores.ABS.toFixed(2) : '0.00'),
+            student.lv2 || '',
+            Array.isArray(student.options) ? student.options.join(';') : ''
+          ];
+          // Échapper les guillemets et encapsuler les champs
+          csv += row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(separator) + '\n';
+        });
       });
-    });
 
-    // Créer le fichier et déclencher le téléchargement
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
+      console.log(`✅ CSV généré : ${totalStudents} élèves dans ${currentRegroupement.groups.length} groupes`);
 
-    link.setAttribute('href', url);
-    link.setAttribute('download', `groupes_${currentRegroupement.name.replace(/\s+/g, '_')}_${Date.now()}.csv`);
-    link.style.visibility = 'hidden';
+      // Ajouter BOM UTF-8 pour Excel
+      const BOM = '\uFEFF';
+      const csvWithBOM = BOM + csv;
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // Créer le fichier et déclencher le téléchargement
+      const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+
+      const filename = `groupes_${currentRegroupement.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Libérer l'URL
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+
+      console.log(`✅ Fichier téléchargé : ${filename}`);
+      GroupsNotifications.success('Export CSV', `${totalStudents} élèves exportés dans ${filename}`);
+
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'export CSV:', error);
+      GroupsNotifications.error('Erreur export CSV', error.message);
+    }
   }
 
   /**
