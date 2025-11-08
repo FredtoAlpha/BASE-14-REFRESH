@@ -465,6 +465,11 @@ const GroupsInterfaceV4 = (function() {
     timeline: [],         // Historique des actions
     carouselIndex: 0,     // Index du carrousel de groupes
 
+    // État de génération
+    groupsGeneration: {
+      criteriaWeights: { com: 1, tra: 1, part: 1, abs: 1 } // Pondérations par défaut
+    },
+
     // État du dashboard de swap
     swapDashboard: {
       currentRegroupementIndex: 0,  // Index du regroupement affiché
@@ -478,6 +483,45 @@ const GroupsInterfaceV4 = (function() {
       sortState: {}                  // État des tris (parity, scoreF, scoreM, com) : { critère: 'asc'|'desc' }
     }
   };
+
+  /**
+   * Réinitialise complètement l'état de l'application
+   * @param {boolean} keepSwapDashboard - Si true, conserve l'état du dashboard de swap
+   */
+  function resetState(keepSwapDashboard = false) {
+    console.log('🔄 Réinitialisation complète de l\'état...');
+
+    // Réinitialiser les paramètres principaux
+    state.scenario = null;
+    state.mode = null;
+    state.selectedLanguage = null;
+    state.availableLanguages = [];
+    state.regroupements = [];
+    state.currentResults = null;
+    state.timeline = [];
+    state.carouselIndex = 0;
+
+    // Réinitialiser les pondérations
+    if (!state.groupsGeneration) {
+      state.groupsGeneration = {};
+    }
+    state.groupsGeneration.criteriaWeights = { com: 1, tra: 1, part: 1, abs: 1 };
+
+    // Réinitialiser le dashboard de swap si demandé
+    if (!keepSwapDashboard) {
+      state.swapDashboard.currentRegroupementIndex = 0;
+      state.swapDashboard.allRegroupements = [];
+      state.swapDashboard.statsVisible = false;
+      state.swapDashboard.sidebarCollapsed = false;
+      state.swapDashboard.comparisonVisible = true;
+      state.swapDashboard.headerVisible = true;
+      state.swapDashboard.radarVisible = false;
+      state.swapDashboard.groupHeaderCompact = false;
+      state.swapDashboard.sortState = {};
+    }
+
+    console.log('✅ État réinitialisé:', state);
+  }
 
   /**
    * Rendu de la structure HTML complète (triptyque 30/40/30)
@@ -959,6 +1003,15 @@ const GroupsInterfaceV4 = (function() {
     if (btnClose) {
       btnClose.addEventListener('click', () => {
         if (confirm('Fermer le module Groupes ? Les modifications non sauvegardées seront perdues.')) {
+          // Réinitialiser complètement l'état avant de fermer
+          resetState(false);
+
+          // Fermer le dashboard de swap s'il est ouvert
+          const swapDashboard = document.getElementById('swap-dashboard');
+          if (swapDashboard) {
+            swapDashboard.remove();
+          }
+
           // ✅ Appeler la fonction de fermeture globale pour réinitialiser moduleContainer
           if (window.closeModuleGroupsV4) {
             window.closeModuleGroupsV4();
@@ -975,6 +1028,12 @@ const GroupsInterfaceV4 = (function() {
    * Sélection du scénario
    */
   function selectScenario(scenario) {
+    // Si on change de scénario, invalider les résultats actuels
+    if (state.scenario && state.scenario !== scenario) {
+      invalidateCurrentResults();
+      GroupsNotifications.info('Scénario modifié', 'Les résultats de génération précédents ont été invalidés. Veuillez régénérer les groupes.');
+    }
+
     state.scenario = scenario;
 
     // Mettre à jour l'UI
@@ -1015,6 +1074,12 @@ const GroupsInterfaceV4 = (function() {
    * Sélection du mode
    */
   function selectMode(mode) {
+    // Si on change de mode, invalider les résultats actuels
+    if (state.mode && state.mode !== mode) {
+      invalidateCurrentResults();
+      GroupsNotifications.info('Mode modifié', 'Les résultats de génération précédents ont été invalidés. Veuillez régénérer les groupes.');
+    }
+
     state.mode = mode;
 
     // Mettre à jour l'UI
@@ -1499,14 +1564,25 @@ const GroupsInterfaceV4 = (function() {
   }
 
   /**
-   * Réinitialise l'interface
+   * Réinitialise l'interface (appelé par le bouton Réinitialiser)
    */
   function resetInterface() {
-    if (!confirm('Réinitialiser tous les regroupements ?')) return;
+    if (!confirm('Réinitialiser tous les regroupements ?\n\nCette action effacera tous les paramètres, regroupements et résultats actuels.')) return;
 
-    state.regroupements = [];
-    state.currentResults = null;
+    // Réinitialiser complètement l'état
+    resetState(false);
+
+    // Re-rendre l'interface
     renderRegroupements();
+
+    // Fermer le dashboard de swap s'il est ouvert
+    const swapDashboard = document.getElementById('swap-dashboard');
+    if (swapDashboard) {
+      swapDashboard.remove();
+    }
+
+    // Afficher une notification
+    GroupsNotifications.success('Réinitialisé', 'L\'interface a été réinitialisée avec succès.');
     addToTimeline('Interface réinitialisée', 'info');
   }
 
@@ -1704,11 +1780,28 @@ const GroupsInterfaceV4 = (function() {
   }
 
   /**
+   * Invalide les résultats de génération actuels
+   * À appeler après toute modification qui pourrait affecter les regroupements
+   */
+  function invalidateCurrentResults() {
+    console.log('⚠️ Invalidation des résultats de génération...');
+    state.currentResults = null;
+    state.swapDashboard.allRegroupements = [];
+    state.swapDashboard.currentRegroupementIndex = 0;
+  }
+
+  /**
    * Ouvre l'interface de swap - DASHBOARD MODERNE
    */
   function openSwapInterface() {
     if (!state.currentResults || !state.currentResults.groups) {
       GroupsNotifications.warning('Aucun groupe', 'Veuillez d\'abord générer les groupes');
+      return;
+    }
+
+    // Vérifier que les regroupements sont cohérents avec l'état actuel
+    if (state.regroupements.length === 0) {
+      GroupsNotifications.warning('Aucun regroupement configuré', 'Ajoutez au moins un regroupement dans le volet A');
       return;
     }
 
@@ -2607,6 +2700,7 @@ const GroupsInterfaceV4 = (function() {
           prenom: student.firstName,
           sexe: student.sexe,
           classe: student.class,
+          source: student.SOURCE || student.source || student.class || '', // Classe d'origine
           scoreF: student.scoreF,
           scoreM: student.scoreM,
           com: student.com,
@@ -3577,6 +3671,7 @@ const GroupsInterfaceV4 = (function() {
                   <th>Nom</th>
                   <th>Prénom</th>
                   <th>Classe</th>
+                  <th>Source</th>
                   <th>Sexe</th>
                   <th>Score F</th>
                   <th>Score M</th>
@@ -3592,6 +3687,7 @@ const GroupsInterfaceV4 = (function() {
                     <td>${s.lastName || s.nom || ''}</td>
                     <td>${s.firstName || s.prenom || ''}</td>
                     <td>${s.class || s.classe || ''}</td>
+                    <td>${s.SOURCE || s.source || s.class || ''}</td>
                     <td>${s.sexe || ''}</td>
                     <td>${s.scoreF?.toFixed(1) || '-'}</td>
                     <td>${s.scoreM?.toFixed(1) || '-'}</td>
@@ -3631,7 +3727,7 @@ const GroupsInterfaceV4 = (function() {
     }
 
     // Créer le CSV
-    let csv = 'Groupe,Nom,Prénom,Classe,Sexe,Score F,Score M,COM,TRA,PART,ABS,LV2,Options\n';
+    let csv = 'Groupe,Nom,Prénom,Classe,Source,Sexe,Score F,Score M,COM,TRA,PART,ABS,LV2,Options\n';
 
     currentRegroupement.groups.forEach((group, groupIdx) => {
       group.students.forEach(student => {
@@ -3640,6 +3736,7 @@ const GroupsInterfaceV4 = (function() {
           student.lastName || student.nom || '',
           student.firstName || student.prenom || '',
           student.class || student.classe || '',
+          student.SOURCE || student.source || student.class || '',
           student.sexe || '',
           student.scoreF?.toFixed(2) || '0',
           student.scoreM?.toFixed(2) || '0',

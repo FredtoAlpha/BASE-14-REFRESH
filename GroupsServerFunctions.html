@@ -52,7 +52,7 @@ function saveGroupsToSheetsV4(groupsData, isTemp) {
       }
 
       // Écrire les en-têtes
-      const headers = ['ID', 'NOM', 'PRENOM', 'SEXE', 'CLASSE', 'SCORE F', 'SCORE M', 'COM', 'TRA', 'PART', 'ABS', 'LV2'];
+      const headers = ['ID', 'NOM', 'PRENOM', 'SEXE', 'CLASSE', 'SOURCE', 'SCORE F', 'SCORE M', 'COM', 'TRA', 'PART', 'ABS', 'LV2'];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
       // Formater les en-têtes
@@ -70,6 +70,7 @@ function saveGroupsToSheetsV4(groupsData, isTemp) {
           student.prenom,
           student.sexe,
           student.classe,
+          student.source || student.classe || '', // Classe d'origine
           student.scoreF,
           student.scoreM,
           student.com,
@@ -165,13 +166,14 @@ function loadGroupsFromSheetsV4() {
             firstName: row[2],
             sexe: row[3],
             class: row[4],
-            scoreF: parseFloat(row[5]) || 0,
-            scoreM: parseFloat(row[6]) || 0,
-            com: parseFloat(row[7]) || 0,
-            tra: parseFloat(row[8]) || 0,
-            part: parseFloat(row[9]) || 0,
-            abs: parseFloat(row[10]) || 0,
-            lv2: row[11] || 'ESP'
+            SOURCE: row[5] || row[4] || '', // Classe d'origine
+            scoreF: parseFloat(row[6]) || 0,
+            scoreM: parseFloat(row[7]) || 0,
+            com: parseFloat(row[8]) || 0,
+            tra: parseFloat(row[9]) || 0,
+            part: parseFloat(row[10]) || 0,
+            abs: parseFloat(row[11]) || 0,
+            lv2: row[12] || 'ESP'
           });
         }
 
