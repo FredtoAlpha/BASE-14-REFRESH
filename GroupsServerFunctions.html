@@ -51,8 +51,8 @@ function saveGroupsToSheetsV4(groupsData, isTemp) {
         Logger.log('✅ Création onglet: ' + sheetName);
       }
 
-      // Écrire les en-têtes
-      const headers = ['ID', 'NOM', 'PRENOM', 'SEXE', 'CLASSE', 'SOURCE', 'SCORE F', 'SCORE M', 'COM', 'TRA', 'PART', 'ABS', 'LV2'];
+      // Écrire les en-têtes (SOURCE en colonne O = position 15)
+      const headers = ['ID', 'NOM', 'PRENOM', 'SEXE', 'CLASSE', 'SCORE F', 'SCORE M', 'COM', 'TRA', 'PART', 'ABS', 'LV2', 'OPTIONS', '', 'SOURCE'];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
       // Formater les en-têtes
@@ -62,22 +62,24 @@ function saveGroupsToSheetsV4(groupsData, isTemp) {
         .setFontWeight('bold')
         .setHorizontalAlignment('center');
 
-      // Écrire les données des élèves
+      // Écrire les données des élèves (SOURCE en colonne O = position 15)
       if (groupData.students.length > 0) {
         const rows = groupData.students.map(student => [
-          student.id,
-          student.nom,
-          student.prenom,
-          student.sexe,
-          student.classe,
-          student.source || student.classe || '', // Classe d'origine
-          student.scoreF,
-          student.scoreM,
-          student.com,
-          student.tra,
-          student.part,
-          student.abs,
-          student.lv2
+          student.id,                                    // A
+          student.nom,                                   // B
+          student.prenom,                                // C
+          student.sexe,                                  // D
+          student.classe,                                // E
+          student.scoreF,                                // F
+          student.scoreM,                                // G
+          student.com,                                   // H
+          student.tra,                                   // I
+          student.part,                                  // J
+          student.abs,                                   // K
+          student.lv2,                                   // L
+          Array.isArray(student.options) ? student.options.join(';') : (student.options || ''), // M
+          '',                                            // N (colonne vide)
+          student.source || student.classe || ''         // O - SOURCE (classe d'origine)
         ]);
 
         sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
@@ -161,19 +163,20 @@ function loadGroupsFromSheetsV4() {
           if (!row[0]) continue;
 
           students.push({
-            id: row[0],
-            lastName: row[1],
-            firstName: row[2],
-            sexe: row[3],
-            class: row[4],
-            SOURCE: row[5] || row[4] || '', // Classe d'origine
-            scoreF: parseFloat(row[6]) || 0,
-            scoreM: parseFloat(row[7]) || 0,
-            com: parseFloat(row[8]) || 0,
-            tra: parseFloat(row[9]) || 0,
-            part: parseFloat(row[10]) || 0,
-            abs: parseFloat(row[11]) || 0,
-            lv2: row[12] || 'ESP'
+            id: row[0],                        // A
+            lastName: row[1],                  // B
+            firstName: row[2],                 // C
+            sexe: row[3],                      // D
+            class: row[4],                     // E
+            scoreF: parseFloat(row[5]) || 0,   // F
+            scoreM: parseFloat(row[6]) || 0,   // G
+            com: parseFloat(row[7]) || 0,      // H
+            tra: parseFloat(row[8]) || 0,      // I
+            part: parseFloat(row[9]) || 0,     // J
+            abs: parseFloat(row[10]) || 0,     // K
+            lv2: row[11] || 'ESP',             // L
+            options: row[12] ? row[12].split(';') : [], // M
+            SOURCE: row[14] || row[4] || ''    // O - SOURCE (classe d'origine)
           });
         }
 

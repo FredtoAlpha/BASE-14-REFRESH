@@ -2703,14 +2703,15 @@ const GroupsInterfaceV4 = (function() {
           prenom: student.firstName,
           sexe: student.sexe,
           classe: student.class,
-          source: student.SOURCE || student.source || student.class || '', // Classe d'origine
           scoreF: student.scoreF,
           scoreM: student.scoreM,
           com: student.com,
           tra: student.tra,
           part: student.part,
           abs: student.abs,
-          lv2: student.lv2
+          lv2: student.lv2,
+          options: student.options || [],
+          source: student.SOURCE || student.source || student.class || '' // O - SOURCE (classe d'origine)
         })),
         metadata: {
           groupId: group.id,
