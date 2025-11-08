@@ -523,6 +523,9 @@ const GroupsInterfaceV4 = (function() {
     console.log('✅ État réinitialisé:', state);
   }
 
+  // Exposer resetState sur window pour que closeModuleGroupsV4 puisse l'appeler
+  window.resetGroupsV4State = resetState;
+
   /**
    * Rendu de la structure HTML complète (triptyque 30/40/30)
    */
