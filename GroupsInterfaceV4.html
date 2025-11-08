@@ -3674,7 +3674,7 @@ const GroupsInterfaceV4 = (function() {
       </head>
       <body>
         <h1>${currentRegroupement.name}</h1>
-        <p><strong>Classes:</strong> ${currentRegroupement.classes.join(', ')}</p>
+        <p><strong>Classes:</strong> ${currentRegroupement.classes && Array.isArray(currentRegroupement.classes) ? currentRegroupement.classes.join(', ') : 'Non spécifié'}</p>
         <p><strong>Mode:</strong> ${state.groupsGeneration.mode === 'heterogeneous' ? 'Hétérogène' : 'Homogène'}</p>
         <p><strong>Scénario:</strong> ${state.groupsGeneration.scenario}</p>
         <hr>
