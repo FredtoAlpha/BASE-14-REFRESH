@@ -86,6 +86,269 @@ const GroupsInterfaceV4 = (function() {
   };
 
   // ════════════════════════════════════════════════════════════════
+  // WRAPPER GOOGLE SCRIPT RUN
+  // ════════════════════════════════════════════════════════════════
+
+  /**
+   * Wrapper pour google.script.run avec promesses et gestion d'erreur
+   */
+  function gsRun(functionName, ...args) {
+    return new Promise((resolve, reject) => {
+      if (typeof google === 'undefined' || !google.script || !google.script.run) {
+        reject(new Error('Google Script API non disponible. Assurez-vous que ce code s\'exécute dans Google Apps Script.'));
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        [functionName](...args);
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // JOYSTICK CONTROLLER - Contrôle interactif des pondérations
+  // ════════════════════════════════════════════════════════════════
+
+  const JoystickController = {
+    /**
+     * Crée un joystick interactif (sliders) pour ajuster les pondérations des critères
+     * @param {Object} initialWeights - { com: 1, tra: 1, part: 1, abs: 1 }
+     * @param {Function} onChange - Callback appelé lors du changement (weights) => {...}
+     * @returns {HTMLElement} - Élément DOM du joystick
+     */
+    create(initialWeights = { com: 1, tra: 1, part: 1, abs: 1 }, onChange = null) {
+      const container = document.createElement('div');
+      container.className = 'joystick-controller';
+      container.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      `;
+
+      const weights = { ...initialWeights };
+
+      // Fonction de normalisation (somme = 4)
+      const normalize = () => {
+        const total = weights.com + weights.tra + weights.part + weights.abs;
+        if (total === 0) return;
+        const factor = 4 / total;
+        weights.com *= factor;
+        weights.tra *= factor;
+        weights.part *= factor;
+        weights.abs *= factor;
+      };
+
+      // Critères avec couleurs
+      const criteria = [
+        { key: 'com', label: 'Comportement', color: '#ef4444', icon: 'fa-user-shield' },
+        { key: 'tra', label: 'Travail', color: '#3b82f6', icon: 'fa-book' },
+        { key: 'part', label: 'Participation', color: '#10b981', icon: 'fa-hand-paper' },
+        { key: 'abs', label: 'Absences', color: '#f59e0b', icon: 'fa-calendar-times' }
+      ];
+
+      // Header
+      container.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: #1f2937;">
+            <i class="fas fa-sliders-h"></i> Pondérations des critères
+          </h3>
+          <p style="margin: 0; font-size: 12px; color: #6b7280;">
+            Ajustez l'importance de chaque critère (total = 4)
+          </p>
+        </div>
+      `;
+
+      // Créer les sliders
+      criteria.forEach(criterion => {
+        const sliderDiv = document.createElement('div');
+        sliderDiv.style.marginBottom = '16px';
+
+        sliderDiv.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label style="font-size: 13px; font-weight: 600; color: #374151; display: flex; align-items: center; gap: 8px;">
+              <i class="fas ${criterion.icon}" style="color: ${criterion.color}; width: 16px;"></i>
+              <span>${criterion.label}</span>
+            </label>
+            <span class="weight-value" data-key="${criterion.key}" style="
+              font-size: 14px;
+              font-weight: 700;
+              color: ${criterion.color};
+              min-width: 40px;
+              text-align: right;
+            ">${weights[criterion.key].toFixed(2)}</span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="4"
+            step="0.1"
+            value="${weights[criterion.key]}"
+            data-key="${criterion.key}"
+            class="joystick-slider"
+            style="
+              width: 100%;
+              height: 8px;
+              border-radius: 4px;
+              outline: none;
+              -webkit-appearance: none;
+              background: linear-gradient(to right,
+                ${criterion.color} 0%,
+                ${criterion.color} ${(weights[criterion.key] / 4 * 100)}%,
+                #e5e7eb ${(weights[criterion.key] / 4 * 100)}%,
+                #e5e7eb 100%
+              );
+            "
+          />
+        `;
+
+        container.appendChild(sliderDiv);
+
+        // Écouteur de changement
+        const slider = sliderDiv.querySelector('.joystick-slider');
+        const valueSpan = sliderDiv.querySelector('.weight-value');
+
+        slider.addEventListener('input', (e) => {
+          weights[criterion.key] = parseFloat(e.target.value);
+          valueSpan.textContent = weights[criterion.key].toFixed(2);
+
+          // Mettre à jour le gradient du slider
+          e.target.style.background = `linear-gradient(to right,
+            ${criterion.color} 0%,
+            ${criterion.color} ${(weights[criterion.key] / 4 * 100)}%,
+            #e5e7eb ${(weights[criterion.key] / 4 * 100)}%,
+            #e5e7eb 100%
+          )`;
+
+          // Callback
+          if (onChange) {
+            onChange({ ...weights });
+          }
+        });
+      });
+
+      // Bouton de normalisation
+      const normalizeBtn = document.createElement('button');
+      normalizeBtn.innerHTML = '<i class="fas fa-balance-scale"></i> Normaliser (total = 4)';
+      normalizeBtn.style.cssText = `
+        width: 100%;
+        padding: 10px;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 12px;
+        transition: all 0.2s;
+      `;
+      normalizeBtn.onmouseover = () => normalizeBtn.style.transform = 'translateY(-2px)';
+      normalizeBtn.onmouseout = () => normalizeBtn.style.transform = 'translateY(0)';
+
+      normalizeBtn.addEventListener('click', () => {
+        normalize();
+
+        // Mettre à jour tous les sliders
+        criteria.forEach(criterion => {
+          const slider = container.querySelector(`input[data-key="${criterion.key}"]`);
+          const valueSpan = container.querySelector(`.weight-value[data-key="${criterion.key}"]`);
+
+          slider.value = weights[criterion.key];
+          valueSpan.textContent = weights[criterion.key].toFixed(2);
+
+          slider.style.background = `linear-gradient(to right,
+            ${criterion.color} 0%,
+            ${criterion.color} ${(weights[criterion.key] / 4 * 100)}%,
+            #e5e7eb ${(weights[criterion.key] / 4 * 100)}%,
+            #e5e7eb 100%
+          )`;
+        });
+
+        if (onChange) {
+          onChange({ ...weights });
+        }
+      });
+
+      container.appendChild(normalizeBtn);
+
+      return container;
+    }
+  };
+
+  // ════════════════════════════════════════════════════════════════
+  // VISUALISATIONS - Graphiques à barres SVG
+  // ════════════════════════════════════════════════════════════════
+
+  /**
+   * Crée un graphique à barres horizontales SVG
+   * @param {Array} data - [{label: 'Group 1', value: 12.5, max: 20, color: '#3b82f6'}, ...]
+   * @param {number} width - Largeur du graphique
+   * @param {number} barHeight - Hauteur de chaque barre
+   * @returns {string} - SVG HTML string
+   */
+  function createBarChart(data, width = 300, barHeight = 24) {
+    const gap = 8;
+    const labelWidth = 80;
+    const valueWidth = 40;
+    const barWidth = width - labelWidth - valueWidth - 20;
+    const height = data.length * (barHeight + gap);
+
+    const bars = data.map((item, index) => {
+      const y = index * (barHeight + gap);
+      const percentage = (item.value / item.max) * 100;
+      const barW = (barWidth * percentage) / 100;
+
+      return `
+        <!-- Label -->
+        <text x="0" y="${y + barHeight / 2 + 4}" font-size="12" font-weight="600" fill="#374151">
+          ${item.label}
+        </text>
+
+        <!-- Barre de fond -->
+        <rect
+          x="${labelWidth}"
+          y="${y}"
+          width="${barWidth}"
+          height="${barHeight}"
+          fill="#e5e7eb"
+          rx="4"
+        />
+
+        <!-- Barre de valeur -->
+        <rect
+          x="${labelWidth}"
+          y="${y}"
+          width="${barW}"
+          height="${barHeight}"
+          fill="${item.color}"
+          rx="4"
+        >
+          <animate attributeName="width" from="0" to="${barW}" dur="0.6s" fill="freeze"/>
+        </rect>
+
+        <!-- Valeur -->
+        <text
+          x="${labelWidth + barWidth + 10}"
+          y="${y + barHeight / 2 + 4}"
+          font-size="13"
+          font-weight="700"
+          fill="${item.color}"
+        >
+          ${item.value.toFixed(1)}
+        </text>
+      `;
+    }).join('');
+
+    return `
+      <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+        ${bars}
+      </svg>
+    `;
+  }
+
+  // ════════════════════════════════════════════════════════════════
   // VISUALISATIONS - Mini Radar Chart SVG
   // ════════════════════════════════════════════════════════════════
 
@@ -202,6 +465,11 @@ const GroupsInterfaceV4 = (function() {
     timeline: [],         // Historique des actions
     carouselIndex: 0,     // Index du carrousel de groupes
 
+    // État de génération
+    groupsGeneration: {
+      criteriaWeights: { com: 1, tra: 1, part: 1, abs: 1 } // Pondérations par défaut
+    },
+
     // État du dashboard de swap
     swapDashboard: {
       currentRegroupementIndex: 0,  // Index du regroupement affiché
@@ -215,6 +483,48 @@ const GroupsInterfaceV4 = (function() {
       sortState: {}                  // État des tris (parity, scoreF, scoreM, com) : { critère: 'asc'|'desc' }
     }
   };
+
+  /**
+   * Réinitialise complètement l'état de l'application
+   * @param {boolean} keepSwapDashboard - Si true, conserve l'état du dashboard de swap
+   */
+  function resetState(keepSwapDashboard = false) {
+    console.log('🔄 Réinitialisation complète de l\'état...');
+
+    // Réinitialiser les paramètres principaux
+    state.scenario = null;
+    state.mode = null;
+    state.selectedLanguage = null;
+    state.availableLanguages = [];
+    state.regroupements = [];
+    state.currentResults = null;
+    state.timeline = [];
+    state.carouselIndex = 0;
+
+    // Réinitialiser les pondérations
+    if (!state.groupsGeneration) {
+      state.groupsGeneration = {};
+    }
+    state.groupsGeneration.criteriaWeights = { com: 1, tra: 1, part: 1, abs: 1 };
+
+    // Réinitialiser le dashboard de swap si demandé
+    if (!keepSwapDashboard) {
+      state.swapDashboard.currentRegroupementIndex = 0;
+      state.swapDashboard.allRegroupements = [];
+      state.swapDashboard.statsVisible = false;
+      state.swapDashboard.sidebarCollapsed = false;
+      state.swapDashboard.comparisonVisible = true;
+      state.swapDashboard.headerVisible = true;
+      state.swapDashboard.radarVisible = false;
+      state.swapDashboard.groupHeaderCompact = false;
+      state.swapDashboard.sortState = {};
+    }
+
+    console.log('✅ État réinitialisé:', state);
+  }
+
+  // Exposer resetState sur window pour que closeModuleGroupsV4 puisse l'appeler
+  window.resetGroupsV4State = resetState;
 
   /**
    * Rendu de la structure HTML complète (triptyque 30/40/30)
@@ -696,6 +1006,15 @@ const GroupsInterfaceV4 = (function() {
     if (btnClose) {
       btnClose.addEventListener('click', () => {
         if (confirm('Fermer le module Groupes ? Les modifications non sauvegardées seront perdues.')) {
+          // Réinitialiser complètement l'état avant de fermer
+          resetState(false);
+
+          // Fermer le dashboard de swap s'il est ouvert
+          const swapDashboard = document.getElementById('swap-dashboard');
+          if (swapDashboard) {
+            swapDashboard.remove();
+          }
+
           // ✅ Appeler la fonction de fermeture globale pour réinitialiser moduleContainer
           if (window.closeModuleGroupsV4) {
             window.closeModuleGroupsV4();
@@ -712,6 +1031,12 @@ const GroupsInterfaceV4 = (function() {
    * Sélection du scénario
    */
   function selectScenario(scenario) {
+    // Si on change de scénario, invalider les résultats actuels
+    if (state.scenario && state.scenario !== scenario) {
+      invalidateCurrentResults();
+      GroupsNotifications.info('Scénario modifié', 'Les résultats de génération précédents ont été invalidés. Veuillez régénérer les groupes.');
+    }
+
     state.scenario = scenario;
 
     // Mettre à jour l'UI
@@ -752,6 +1077,12 @@ const GroupsInterfaceV4 = (function() {
    * Sélection du mode
    */
   function selectMode(mode) {
+    // Si on change de mode, invalider les résultats actuels
+    if (state.mode && state.mode !== mode) {
+      invalidateCurrentResults();
+      GroupsNotifications.info('Mode modifié', 'Les résultats de génération précédents ont été invalidés. Veuillez régénérer les groupes.');
+    }
+
     state.mode = mode;
 
     // Mettre à jour l'UI
@@ -1236,14 +1567,25 @@ const GroupsInterfaceV4 = (function() {
   }
 
   /**
-   * Réinitialise l'interface
+   * Réinitialise l'interface (appelé par le bouton Réinitialiser)
    */
   function resetInterface() {
-    if (!confirm('Réinitialiser tous les regroupements ?')) return;
+    if (!confirm('Réinitialiser tous les regroupements ?\n\nCette action effacera tous les paramètres, regroupements et résultats actuels.')) return;
 
-    state.regroupements = [];
-    state.currentResults = null;
+    // Réinitialiser complètement l'état
+    resetState(false);
+
+    // Re-rendre l'interface
     renderRegroupements();
+
+    // Fermer le dashboard de swap s'il est ouvert
+    const swapDashboard = document.getElementById('swap-dashboard');
+    if (swapDashboard) {
+      swapDashboard.remove();
+    }
+
+    // Afficher une notification
+    GroupsNotifications.success('Réinitialisé', 'L\'interface a été réinitialisée avec succès.');
     addToTimeline('Interface réinitialisée', 'info');
   }
 
@@ -1441,11 +1783,28 @@ const GroupsInterfaceV4 = (function() {
   }
 
   /**
+   * Invalide les résultats de génération actuels
+   * À appeler après toute modification qui pourrait affecter les regroupements
+   */
+  function invalidateCurrentResults() {
+    console.log('⚠️ Invalidation des résultats de génération...');
+    state.currentResults = null;
+    state.swapDashboard.allRegroupements = [];
+    state.swapDashboard.currentRegroupementIndex = 0;
+  }
+
+  /**
    * Ouvre l'interface de swap - DASHBOARD MODERNE
    */
   function openSwapInterface() {
     if (!state.currentResults || !state.currentResults.groups) {
       GroupsNotifications.warning('Aucun groupe', 'Veuillez d\'abord générer les groupes');
+      return;
+    }
+
+    // Vérifier que les regroupements sont cohérents avec l'état actuel
+    if (state.regroupements.length === 0) {
+      GroupsNotifications.warning('Aucun regroupement configuré', 'Ajoutez au moins un regroupement dans le volet A');
       return;
     }
 
@@ -2344,6 +2703,7 @@ const GroupsInterfaceV4 = (function() {
           prenom: student.firstName,
           sexe: student.sexe,
           classe: student.class,
+          source: student.SOURCE || student.source || student.class || '', // Classe d'origine
           scoreF: student.scoreF,
           scoreM: student.scoreM,
           com: student.com,
@@ -3314,6 +3674,7 @@ const GroupsInterfaceV4 = (function() {
                   <th>Nom</th>
                   <th>Prénom</th>
                   <th>Classe</th>
+                  <th>Source</th>
                   <th>Sexe</th>
                   <th>Score F</th>
                   <th>Score M</th>
@@ -3329,6 +3690,7 @@ const GroupsInterfaceV4 = (function() {
                     <td>${s.lastName || s.nom || ''}</td>
                     <td>${s.firstName || s.prenom || ''}</td>
                     <td>${s.class || s.classe || ''}</td>
+                    <td>${s.SOURCE || s.source || s.class || ''}</td>
                     <td>${s.sexe || ''}</td>
                     <td>${s.scoreF?.toFixed(1) || '-'}</td>
                     <td>${s.scoreM?.toFixed(1) || '-'}</td>
@@ -3368,7 +3730,7 @@ const GroupsInterfaceV4 = (function() {
     }
 
     // Créer le CSV
-    let csv = 'Groupe,Nom,Prénom,Classe,Sexe,Score F,Score M,COM,TRA,PART,ABS,LV2,Options\n';
+    let csv = 'Groupe,Nom,Prénom,Classe,Source,Sexe,Score F,Score M,COM,TRA,PART,ABS,LV2,Options\n';
 
     currentRegroupement.groups.forEach((group, groupIdx) => {
       group.students.forEach(student => {
@@ -3377,6 +3739,7 @@ const GroupsInterfaceV4 = (function() {
           student.lastName || student.nom || '',
           student.firstName || student.prenom || '',
           student.class || student.classe || '',
+          student.SOURCE || student.source || student.class || '',
           student.sexe || '',
           student.scoreF?.toFixed(2) || '0',
           student.scoreM?.toFixed(2) || '0',
@@ -3858,6 +4221,17 @@ const GroupsInterfaceV4 = (function() {
         </div>
         </div>
 
+        <!-- SECTION : Pondérations des critères (JOYSTICK) -->
+        <div id="joystick-section" style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
+          <h3 style="font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">
+            <i class="fas fa-sliders-h"></i> Pondérations des critères
+          </h3>
+          <p style="font-size: 12px; color: #6b7280; margin-bottom: 16px;">
+            Ajustez l'importance de chaque critère pour la génération des groupes. Ces pondérations seront utilisées lors de la prochaine génération.
+          </p>
+          <div id="joystick-container"></div>
+        </div>
+
         <!-- SECTION : Actions -->
         <div style="margin-bottom: 24px;">
           <h3 style="font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">
@@ -3953,6 +4327,27 @@ const GroupsInterfaceV4 = (function() {
         // Re-render les groupes pour appliquer le mode compact
         renderCurrentRegroupement();
       });
+    }
+
+    // === JOYSTICK (PONDÉRATIONS) ===
+    const joystickContainer = modal.querySelector('#joystick-container');
+    if (joystickContainer) {
+      // Récupérer les pondérations actuelles ou utiliser les valeurs par défaut
+      const currentWeights = state.groupsGeneration.criteriaWeights || { com: 1, tra: 1, part: 1, abs: 1 };
+
+      // Créer le joystick
+      const joystick = JoystickController.create(currentWeights, (newWeights) => {
+        // Sauvegarder les nouvelles pondérations dans le state
+        if (!state.groupsGeneration.criteriaWeights) {
+          state.groupsGeneration.criteriaWeights = {};
+        }
+        state.groupsGeneration.criteriaWeights = { ...newWeights };
+
+        console.log('✅ Pondérations mises à jour:', newWeights);
+        GroupsNotifications.info('Pondérations modifiées', 'Les nouvelles pondérations seront utilisées lors de la prochaine génération.');
+      });
+
+      joystickContainer.appendChild(joystick);
     }
 
     // === LISIBILITÉ ===

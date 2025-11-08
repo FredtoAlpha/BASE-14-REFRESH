@@ -937,6 +937,12 @@
    */
   function closeModuleGroupsV4() {
     if (moduleContainer) {
+      // Réinitialiser l'état global avant de fermer (évite les regroupements fantômes)
+      if (typeof window.resetGroupsV4State === 'function') {
+        window.resetGroupsV4State(false); // Ne pas conserver le swapDashboard
+        console.log('🔄 État du module réinitialisé avant fermeture');
+      }
+
       moduleContainer.remove();  // ← Supprimer du DOM
       moduleContainer = null;    // ← Réinitialiser la variable
       console.log('✅ Module Groupes V4 fermé et nettoyé');
