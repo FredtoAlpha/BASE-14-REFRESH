@@ -1312,10 +1312,10 @@ const GroupsInterfaceV4 = (function() {
     `;
 
     dashboard.innerHTML = `
-      <!-- Bouton fermeture (coin supérieur droit) -->
-      <!-- Boutons de contrôle (fixés en haut) -->
+      <!-- Boutons de contrôle principaux (coin supérieur droit) -->
       <div style="position: absolute; top: 16px; right: 16px; z-index: 10001; display: flex; gap: 8px;">
-        <button id="btn-open-readability-settings" style="
+        <!-- Bouton Paramètres -->
+        <button id="btn-open-settings" style="
           background: #8b5cf6;
           color: white;
           border: none;
@@ -1327,9 +1327,11 @@ const GroupsInterfaceV4 = (function() {
           box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
           transition: all 0.2s;
         " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#7c3aed'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#8b5cf6'">
-          <i class="fas fa-eye"></i> Paramètres
+          <i class="fas fa-cog"></i> Paramètres
         </button>
-        <button id="btn-toggle-header" style="
+
+        <!-- Bouton Statistiques -->
+        <button id="btn-open-stats" style="
           background: #3b82f6;
           color: white;
           border: none;
@@ -1340,9 +1342,79 @@ const GroupsInterfaceV4 = (function() {
           font-weight: 600;
           box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
           transition: all 0.2s;
-        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-          <i class="fas fa-eye${state.swapDashboard.headerVisible ? '-slash' : ''}"></i> ${state.swapDashboard.headerVisible ? 'Masquer' : 'Afficher'} Header
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#2563eb'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#3b82f6'">
+          <i class="fas fa-chart-bar"></i> Statistiques
         </button>
+
+        <!-- Bouton Export (avec dropdown) -->
+        <div style="position: relative;">
+          <button id="btn-export-menu" style="
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: all 0.2s;
+          " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#059669'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#10b981'">
+            <i class="fas fa-download"></i> Export <i class="fas fa-chevron-down" style="margin-left: 4px; font-size: 10px;"></i>
+          </button>
+          <div id="export-dropdown" style="
+            position: absolute;
+            top: 48px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 180px;
+            display: none;
+            overflow: hidden;
+            z-index: 10002;
+          ">
+            <button id="btn-export-pdf" style="
+              width: 100%;
+              padding: 12px 16px;
+              background: white;
+              border: none;
+              text-align: left;
+              cursor: pointer;
+              font-size: 13px;
+              font-weight: 500;
+              color: #1f2937;
+              transition: background 0.2s;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">
+              <i class="fas fa-file-pdf" style="color: #ef4444; width: 16px;"></i>
+              <span>Export PDF</span>
+            </button>
+            <button id="btn-export-csv" style="
+              width: 100%;
+              padding: 12px 16px;
+              background: white;
+              border: none;
+              text-align: left;
+              cursor: pointer;
+              font-size: 13px;
+              font-weight: 500;
+              color: #1f2937;
+              transition: background 0.2s;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              border-top: 1px solid #e5e7eb;
+            " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">
+              <i class="fas fa-file-csv" style="color: #10b981; width: 16px;"></i>
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Bouton Fermer -->
         <button id="close-dashboard" style="
           background: #ef4444;
           color: white;
@@ -1354,7 +1426,7 @@ const GroupsInterfaceV4 = (function() {
           font-weight: 600;
           box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
           transition: all 0.2s;
-        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#dc2626'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#ef4444'">
           <i class="fas fa-times"></i> Fermer
         </button>
       </div>
@@ -3300,10 +3372,10 @@ const GroupsInterfaceV4 = (function() {
   /**
    * Ouvre le modal des paramètres de lisibilité depuis l'interface SWAP
    */
-  function openReadabilitySettingsModal() {
+  function openSettingsModal() {
     // Créer le modal
     const modal = document.createElement('div');
-    modal.id = 'readability-settings-modal';
+    modal.id = 'settings-modal';
     modal.style.cssText = `
       position: fixed;
       top: 0;
@@ -3325,15 +3397,15 @@ const GroupsInterfaceV4 = (function() {
         padding: 32px;
         max-width: 500px;
         width: 90%;
-        max-height: 80vh;
+        max-height: 85vh;
         overflow-y: auto;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
       ">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
           <h2 style="font-size: 20px; font-weight: 700; color: #1f2937; margin: 0;">
-            <i class="fas fa-eye"></i> Options de lisibilité
+            <i class="fas fa-cog"></i> Paramètres
           </h2>
-          <button id="close-readability-modal" style="
+          <button id="close-settings-modal" style="
             background: #f3f4f6;
             border: none;
             width: 32px;
@@ -3347,6 +3419,23 @@ const GroupsInterfaceV4 = (function() {
             <i class="fas fa-times"></i>
           </button>
         </div>
+
+        <!-- SECTION : Affichage -->
+        <div style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
+          <h3 style="font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">
+            <i class="fas fa-desktop"></i> Affichage
+          </h3>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='transparent'">
+            <input type="checkbox" id="modal-toggle-header" ${state.swapDashboard.headerVisible ? 'checked' : ''} style="cursor: pointer; width: 18px; height: 18px;">
+            <span style="font-weight: 500;">Afficher le header (navigation, stats, etc.)</span>
+          </label>
+        </div>
+
+        <!-- SECTION : Lisibilité -->
+        <div style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
+          <h3 style="font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">
+            <i class="fas fa-eye"></i> Lisibilité
+          </h3>
 
         <!-- Checkboxes d'affichage -->
         <div style="margin-bottom: 24px;">
@@ -3477,6 +3566,37 @@ const GroupsInterfaceV4 = (function() {
             </label>
           </div>
         </div>
+        </div>
+
+        <!-- SECTION : Actions -->
+        <div style="margin-bottom: 24px;">
+          <h3 style="font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">
+            <i class="fas fa-bolt"></i> Actions
+          </h3>
+          <button id="btn-regenerate-modal" style="
+            width: 100%;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+            transition: all 0.2s;
+          " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(249, 115, 22, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(249, 115, 22, 0.3)'">
+            <i class="fas fa-sync-alt"></i>
+            <span>Régénérer ce regroupement</span>
+          </button>
+          <p style="font-size: 11px; color: #9ca3af; margin: 8px 0 0 0; text-align: center;">
+            Les modifications manuelles seront perdues
+          </p>
+        </div>
 
         <div style="text-align: center; padding-top: 16px; border-top: 1px solid #e5e7eb;">
           <p style="font-size: 12px; color: #6b7280; margin: 0;">
@@ -3489,7 +3609,7 @@ const GroupsInterfaceV4 = (function() {
     document.body.appendChild(modal);
 
     // Initialiser les contrôles du modal
-    initModalReadabilityControls(modal);
+    initModalSettingsControls(modal);
 
     // Fermer le modal en cliquant sur le fond
     modal.addEventListener('click', (e) => {
@@ -3499,15 +3619,28 @@ const GroupsInterfaceV4 = (function() {
     });
 
     // Fermer avec le bouton X
-    modal.querySelector('#close-readability-modal').addEventListener('click', () => {
+    modal.querySelector('#close-settings-modal').addEventListener('click', () => {
       modal.remove();
     });
   }
 
   /**
-   * Initialise les contrôles de lisibilité dans le modal
+   * Initialise tous les contrôles du modal de paramètres
    */
-  function initModalReadabilityControls(modal) {
+  function initModalSettingsControls(modal) {
+    // === AFFICHAGE ===
+    const toggleHeaderCheckbox = modal.querySelector('#modal-toggle-header');
+    if (toggleHeaderCheckbox) {
+      toggleHeaderCheckbox.addEventListener('change', (e) => {
+        state.swapDashboard.headerVisible = e.target.checked;
+        const header = document.getElementById('dashboard-header');
+        if (header) {
+          header.style.display = e.target.checked ? 'block' : 'none';
+        }
+      });
+    }
+
+    // === LISIBILITÉ ===
     // Charger les préférences sauvegardées
     const savedPrefs = JSON.parse(localStorage.getItem('groups-readability-prefs') || '{}');
     const prefs = {
@@ -3599,6 +3732,18 @@ const GroupsInterfaceV4 = (function() {
         localStorage.setItem('groups-readability-prefs', JSON.stringify(prefs));
       });
     });
+
+    // === ACTIONS ===
+    const btnRegenerate = modal.querySelector('#btn-regenerate-modal');
+    if (btnRegenerate) {
+      btnRegenerate.addEventListener('click', () => {
+        if (confirm('Régénérer ce regroupement ?\n\nToutes les modifications manuelles (swaps, tris, etc.) seront perdues.')) {
+          modal.remove();
+          alert('🚧 Fonctionnalité de régénération à implémenter');
+          // TODO: Appeler la fonction de régénération ici
+        }
+      });
+    }
   }
 
   /**
@@ -3613,23 +3758,33 @@ const GroupsInterfaceV4 = (function() {
       });
     }
 
-    // Bouton Paramètres de lisibilité
-    const openReadabilitySettingsBtn = document.getElementById('btn-open-readability-settings');
-    if (openReadabilitySettingsBtn) {
-      openReadabilitySettingsBtn.addEventListener('click', openReadabilitySettingsModal);
+    // Bouton Paramètres
+    const openSettingsBtn = document.getElementById('btn-open-settings');
+    if (openSettingsBtn) {
+      openSettingsBtn.addEventListener('click', openSettingsModal);
     }
 
-    // Toggle header
-    const toggleHeaderBtn = document.getElementById('btn-toggle-header');
-    if (toggleHeaderBtn) {
-      toggleHeaderBtn.addEventListener('click', () => {
-        state.swapDashboard.headerVisible = !state.swapDashboard.headerVisible;
-        const header = document.getElementById('dashboard-header');
-        if (header) {
-          header.style.display = state.swapDashboard.headerVisible ? 'block' : 'none';
+    // Bouton Statistiques
+    const openStatsBtn = document.getElementById('btn-open-stats');
+    if (openStatsBtn) {
+      openStatsBtn.addEventListener('click', toggleStatsPanel);
+    }
+
+    // Menu Export (dropdown)
+    const exportMenuBtn = document.getElementById('btn-export-menu');
+    const exportDropdown = document.getElementById('export-dropdown');
+    if (exportMenuBtn && exportDropdown) {
+      exportMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isVisible = exportDropdown.style.display === 'block';
+        exportDropdown.style.display = isVisible ? 'none' : 'block';
+      });
+
+      // Fermer le dropdown en cliquant ailleurs
+      document.addEventListener('click', (e) => {
+        if (!exportMenuBtn.contains(e.target) && !exportDropdown.contains(e.target)) {
+          exportDropdown.style.display = 'none';
         }
-        // Mettre à jour le bouton
-        toggleHeaderBtn.innerHTML = `<i class="fas fa-eye${state.swapDashboard.headerVisible ? '-slash' : ''}"></i> ${state.swapDashboard.headerVisible ? 'Masquer' : 'Afficher'} Header`;
       });
     }
 
@@ -3671,22 +3826,21 @@ const GroupsInterfaceV4 = (function() {
       }
     });
 
-    // Boutons exports
-    document.getElementById('btn-export-pdf')?.addEventListener('click', exportToPDF);
-    document.getElementById('btn-export-csv')?.addEventListener('click', exportToCSV);
+    // Boutons exports (dans le dropdown)
+    document.getElementById('btn-export-pdf')?.addEventListener('click', () => {
+      exportToPDF();
+      if (exportDropdown) exportDropdown.style.display = 'none';
+    });
+    document.getElementById('btn-export-csv')?.addEventListener('click', () => {
+      exportToCSV();
+      if (exportDropdown) exportDropdown.style.display = 'none';
+    });
 
     // Boutons de tri
     document.getElementById('btn-sort-parity')?.addEventListener('click', () => sortAllGroups('parity'));
     document.getElementById('btn-sort-scoreF')?.addEventListener('click', () => sortAllGroups('scoreF'));
     document.getElementById('btn-sort-scoreM')?.addEventListener('click', () => sortAllGroups('scoreM'));
     document.getElementById('btn-sort-com')?.addEventListener('click', () => sortAllGroups('com'));
-
-    // Régénérer (placeholder)
-    document.getElementById('btn-regenerate')?.addEventListener('click', () => {
-      if (confirm('Régénérer ce regroupement ? Les modifications manuelles seront perdues.')) {
-        alert('Régénération à venir');
-      }
-    });
   }
 
   /**
