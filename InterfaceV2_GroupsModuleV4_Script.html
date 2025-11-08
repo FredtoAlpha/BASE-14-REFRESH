@@ -910,6 +910,12 @@
         console.log('✅ Tooltips initialisés');
       }
 
+      // Initialiser les contrôles de lisibilité (pastilles, taille police, zoom)
+      if (window.GroupsInterfaceV4.initLisibilityControls) {
+        window.GroupsInterfaceV4.initLisibilityControls();
+        console.log('✅ Contrôles de lisibilité initialisés');
+      }
+
       console.log('✅ Module Groupes V4 prêt');
 
     }).catch(error => {
