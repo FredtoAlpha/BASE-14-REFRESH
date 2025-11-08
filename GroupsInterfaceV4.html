@@ -9,16 +9,185 @@ const GroupsInterfaceV4 = (function() {
   'use strict';
 
   // ════════════════════════════════════════════════════════════════
-  // HELPER TOAST - Remplacer alert() par Toast
+  // SYSTÈME DE NOTIFICATIONS TOAST
   // ════════════════════════════════════════════════════════════════
 
-  function showToast(message, type = 'info') {
-    if (window.UIComponents && window.UIComponents.Toast) {
-      window.UIComponents.Toast[type](message);
-    } else {
-      // Fallback sur alert si UIComponents pas disponible
-      alert(message);
+  const GroupsNotifications = {
+    container: null,
+
+    init() {
+      if (!this.container) {
+        this.container = document.createElement('div');
+        this.container.id = 'toast-container';
+        document.body.appendChild(this.container);
+      }
+    },
+
+    show(title, message, type = 'info', duration = 4000) {
+      this.init();
+
+      const toast = document.createElement('div');
+      toast.className = `groups-toast toast-${type}`;
+
+      const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+      };
+
+      toast.innerHTML = `
+        <div class="toast-icon">
+          <i class="fas ${icons[type] || icons.info}"></i>
+        </div>
+        <div class="toast-content">
+          <div class="toast-title">${title}</div>
+          ${message ? `<div class="toast-message">${message}</div>` : ''}
+        </div>
+        <button class="toast-close" aria-label="Fermer">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+
+      this.container.appendChild(toast);
+
+      // Fermer au clic
+      const closeBtn = toast.querySelector('.toast-close');
+      closeBtn.addEventListener('click', () => this.remove(toast));
+
+      // Auto-fermeture
+      if (duration > 0) {
+        setTimeout(() => this.remove(toast), duration);
+      }
+
+      return toast;
+    },
+
+    remove(toast) {
+      toast.style.animation = 'slideOutRight 0.3s ease-out';
+      setTimeout(() => toast.remove(), 300);
+    },
+
+    success(title, message, duration) {
+      return this.show(title, message, 'success', duration);
+    },
+
+    error(title, message, duration) {
+      return this.show(title, message, 'error', duration);
+    },
+
+    warning(title, message, duration) {
+      return this.show(title, message, 'warning', duration);
+    },
+
+    info(title, message, duration) {
+      return this.show(title, message, 'info', duration);
     }
+  };
+
+  // ════════════════════════════════════════════════════════════════
+  // VISUALISATIONS - Mini Radar Chart SVG
+  // ════════════════════════════════════════════════════════════════
+
+  function createMiniRadar(scores) {
+    /**
+     * Crée un mini radar chart SVG pour visualiser les scores COM/TRA/PART/ABS
+     * @param {Object} scores - { com: 2.5, tra: 3.0, part: 2.8, abs: 1.5 }
+     * @returns {string} - SVG HTML string
+     */
+    const size = 160;
+    const center = size / 2;
+    const maxRadius = 60;
+    const levels = 4; // Niveaux de 1 à 4
+
+    // Labels et couleurs
+    const criteria = [
+      { key: 'com', label: 'COM', color: 'var(--badge-com-bg)', angle: 0 },
+      { key: 'tra', label: 'TRA', color: 'var(--badge-tra-bg)', angle: 90 },
+      { key: 'part', label: 'PART', color: 'var(--badge-part-bg)', angle: 180 },
+      { key: 'abs', label: 'ABS', color: 'var(--badge-abs-bg)', angle: 270 }
+    ];
+
+    // Générer les points du polygone
+    const points = criteria.map(c => {
+      const value = scores[c.key] || 0;
+      const radius = (value / 4) * maxRadius; // Normaliser sur 4
+      const angleRad = (c.angle - 90) * (Math.PI / 180); // -90 pour commencer en haut
+      const x = center + radius * Math.cos(angleRad);
+      const y = center + radius * Math.sin(angleRad);
+      return `${x},${y}`;
+    }).join(' ');
+
+    // Grille de fond (cercles concentriques)
+    let gridCircles = '';
+    for (let i = 1; i <= levels; i++) {
+      const r = (i / levels) * maxRadius;
+      gridCircles += `<circle cx="${center}" cy="${center}" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="1"/>`;
+    }
+
+    // Axes
+    let axes = '';
+    criteria.forEach(c => {
+      const angleRad = (c.angle - 90) * (Math.PI / 180);
+      const x = center + maxRadius * Math.cos(angleRad);
+      const y = center + maxRadius * Math.sin(angleRad);
+      axes += `<line x1="${center}" y1="${center}" x2="${x}" y2="${y}" stroke="#d1d5db" stroke-width="1"/>`;
+    });
+
+    // Labels
+    let labels = '';
+    criteria.forEach(c => {
+      const angleRad = (c.angle - 90) * (Math.PI / 180);
+      const labelRadius = maxRadius + 20;
+      const x = center + labelRadius * Math.cos(angleRad);
+      const y = center + labelRadius * Math.sin(angleRad);
+      const value = scores[c.key] || 0;
+      labels += `
+        <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle"
+              font-size="11" font-weight="700" fill="${c.color}">
+          ${c.label}
+        </text>
+        <text x="${x}" y="${y + 12}" text-anchor="middle" dominant-baseline="middle"
+              font-size="10" font-weight="600" fill="#6b7280">
+          ${value.toFixed(1)}
+        </text>
+      `;
+    });
+
+    return `
+      <svg class="groups-radar-container" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+        ${gridCircles}
+        ${axes}
+        <polygon points="${points}" fill="rgba(99, 102, 241, 0.2)" stroke="rgba(99, 102, 241, 0.8)" stroke-width="2"/>
+        ${labels}
+      </svg>
+    `;
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // HELPERS - Badges critères
+  // ════════════════════════════════════════════════════════════════
+
+  function createCriteriaBadge(type, value) {
+    /**
+     * Crée un badge coloré pour un critère (COM/TRA/PART/ABS)
+     * @param {string} type - 'com' | 'tra' | 'part' | 'abs'
+     * @param {number} value - Valeur du score (0-4)
+     * @returns {string} - HTML string
+     */
+    const labels = {
+      com: 'COM',
+      tra: 'TRA',
+      part: 'PART',
+      abs: 'ABS'
+    };
+
+    return `
+      <span class="groups-badge groups-badge-${type}" title="${labels[type]}: ${value.toFixed(1)}/4">
+        <i class="fas fa-circle" style="font-size: 6px;"></i>
+        ${labels[type]} ${value.toFixed(1)}
+      </span>
+    `;
   }
 
   // État interne de l'interface
