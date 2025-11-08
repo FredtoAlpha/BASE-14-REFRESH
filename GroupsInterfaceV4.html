@@ -1591,49 +1591,19 @@ const GroupsInterfaceV4 = (function() {
         </button>
       </div>
 
-      <!-- EN-TÊTE 3 ZONES -->
+      <!-- EN-TÊTE COMPACT (1 LIGNE) -->
       <div id="dashboard-header" style="
-        display: ${state.swapDashboard.headerVisible ? 'block' : 'none'};
+        display: ${state.swapDashboard.headerVisible ? 'flex' : 'none'};
         background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
         color: white;
-        padding: 20px 24px;
+        padding: 12px 24px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
       ">
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; max-width: 100%; margin: 0 auto;">
 
-          <!-- ZONE GAUCHE : STATS, REGENER & TRI -->
-          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-            <!-- Ligne 1: Stats + Régénérer -->
-            <div style="display: flex; gap: 12px; align-items: center;">
-              <button id="btn-toggle-stats" style="
-                padding: 10px 18px;
-                background: ${state.swapDashboard.statsVisible ? '#3b82f6' : 'rgba(255, 255, 255, 0.2)'};
-                color: white;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 14px;
-                font-weight: 600;
-                transition: all 0.2s;
-              ">
-                <i class="fas fa-chart-bar"></i> Statistiques
-              </button>
-              <button id="btn-regenerate" style="
-                padding: 10px 18px;
-                background: rgba(255, 255, 255, 0.2);
-                color: white;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 14px;
-                font-weight: 600;
-                transition: all 0.2s;
-              ">
-                <i class="fas fa-sync-alt"></i> Régénérer
-              </button>
-            </div>
-
-            <!-- Ligne 2: Options de tri -->
+          <!-- ZONE GAUCHE : OPTIONS DE TRI (SUR UNE LIGNE) -->
             <div style="display: flex; gap: 8px; align-items: center;">
               <span style="font-size: 12px; font-weight: 600; opacity: 0.9;">
                 <i class="fas fa-sort"></i> Trier par:
@@ -1693,10 +1663,8 @@ const GroupsInterfaceV4 = (function() {
             </div>
           </div>
 
-          <!-- ZONE CENTRE : NAVIGATION REGROUPEMENTS + SAUVEGARDES -->
-          <div style="flex: 2; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-            <!-- Navigation regroupements -->
-            <div style="display: flex; align-items: center; gap: 16px;">
+          <!-- ZONE CENTRE : NAVIGATION + SAUVEGARDES (1 LIGNE) -->
+          <div style="flex: 2; display: flex; align-items: center; justify-content: center; gap: 12px;">
               <button id="btn-prev-regroupement" style="
                 background: rgba(255, 255, 255, 0.2);
                 border: 1px solid rgba(255, 255, 255, 0.3);
@@ -1738,10 +1706,10 @@ const GroupsInterfaceV4 = (function() {
               " ${state.swapDashboard.currentRegroupementIndex === state.swapDashboard.allRegroupements.length - 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
                 <i class="fas fa-chevron-right"></i>
               </button>
-            </div>
 
-            <!-- Boutons sauvegardes -->
-            <div style="display: flex; gap: 10px;">
+              <span style="border-left: 1px solid rgba(255, 255, 255, 0.3); height: 30px; margin: 0 4px;"></span>
+
+              <!-- Boutons sauvegardes (sur la même ligne) -->
               <button id="btn-load" style="
                 padding: 8px 16px;
                 background: rgba(255, 255, 255, 0.2);
@@ -1783,40 +1751,8 @@ const GroupsInterfaceV4 = (function() {
               ">
                 <i class="fas fa-check-circle"></i> Finaliser
               </button>
-            </div>
           </div>
 
-          <!-- ZONE DROITE : EXPORTS -->
-          <div style="flex: 1; display: flex; gap: 12px; justify-content: flex-end; align-items: center;">
-            <button id="btn-export-pdf" style="
-              padding: 10px 18px;
-              background: rgba(255, 255, 255, 0.2);
-              color: white;
-              border: 1px solid rgba(255, 255, 255, 0.3);
-              border-radius: 8px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: 600;
-              transition: all 0.2s;
-            ">
-              <i class="fas fa-file-pdf"></i> Export PDF
-            </button>
-            <button id="btn-export-csv" style="
-              padding: 10px 18px;
-              background: rgba(255, 255, 255, 0.2);
-              color: white;
-              border: 1px solid rgba(255, 255, 255, 0.3);
-              border-radius: 8px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: 600;
-              transition: all 0.2s;
-            ">
-              <i class="fas fa-file-csv"></i> Export CSV
-            </button>
-          </div>
-
-        </div>
       </div>
 
       <!-- CONTENU PRINCIPAL -->
