@@ -78,6 +78,98 @@
      CLASSES RÉUTILISABLES - LAYOUT
      ════════════════════════════════════════════════════════════════ */
 
+  /* Triptyque principal */
+  .groups-v4-triptyque {
+    display: flex;
+    height: 100vh;
+    background: var(--groups-gray-100);
+  }
+
+  .groups-volet-a {
+    flex: 0 0 30%;
+    background: linear-gradient(135deg, var(--groups-gray-50) 0%, white 100%);
+    border-right: 1px solid var(--groups-gray-200);
+    overflow-y: auto;
+  }
+
+  .groups-volet-b {
+    flex: 0 0 40%;
+    background: linear-gradient(135deg, var(--groups-gray-50) 0%, var(--groups-gray-100) 100%);
+    overflow-y: auto;
+  }
+
+  .groups-volet-c {
+    flex: 0 0 30%;
+    background: linear-gradient(135deg, var(--groups-gray-50) 0%, white 100%);
+    border-left: 1px solid var(--groups-gray-200);
+    overflow-y: auto;
+  }
+
+  .groups-volet-content {
+    padding: var(--space-xl);
+  }
+
+  .groups-volet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-xl);
+  }
+
+  .groups-volet-title {
+    font-size: var(--font-2xl);
+    font-weight: 700;
+    margin: 0;
+    color: var(--groups-gray-900);
+    background: linear-gradient(135deg, var(--groups-primary) 0%, var(--groups-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .groups-section {
+    margin-bottom: var(--space-2xl);
+  }
+
+  .groups-section-title {
+    font-size: var(--font-lg);
+    font-weight: 700;
+    margin-bottom: var(--space-md);
+    color: var(--groups-gray-700);
+  }
+
+  /* Boutons de sélection (scénarios, modes) */
+  .groups-select-btn {
+    padding: var(--space-md) var(--space-lg);
+    border: 2px solid var(--groups-gray-200);
+    border-radius: var(--radius-lg);
+    background: white;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    font-size: var(--font-md);
+    width: 100%;
+    display: block;
+  }
+
+  .groups-select-btn:hover {
+    border-color: var(--groups-primary);
+    background: var(--groups-gray-50);
+  }
+
+  .groups-select-btn.active {
+    border-color: var(--groups-primary);
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    color: var(--groups-primary-dark);
+    font-weight: 600;
+  }
+
+  .groups-select-btn-subtitle {
+    font-size: var(--font-sm);
+    color: var(--groups-gray-900);
+    margin-top: var(--space-xs);
+  }
+
   .groups-panel {
     background: white;
     border-radius: var(--radius-xl);
