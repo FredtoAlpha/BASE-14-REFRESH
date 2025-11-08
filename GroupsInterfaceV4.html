@@ -206,71 +206,154 @@ const GroupsInterfaceV4 = (function() {
 
             <!-- Options de lisibilité -->
             <div style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #e5e7eb;">
-              <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #374151;">
+              <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 16px; color: #374151;">
                 <i class="fas fa-eye"></i> Options de lisibilité
               </h3>
 
-              <!-- Checkbox Afficher pastilles -->
-              <div style="margin-bottom: 12px;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
-                  <input type="checkbox" id="toggle-scores-v4" checked style="cursor: pointer;">
+              <!-- Checkboxes d'affichage -->
+              <div style="margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; padding: 6px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                  <input type="checkbox" id="toggle-scores-v4" checked style="cursor: pointer; width: 16px; height: 16px;">
                   <span>Afficher les pastilles COM/TRA/PART/ABS</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; padding: 6px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                  <input type="checkbox" id="toggle-fmscores-v4" checked style="cursor: pointer; width: 16px; height: 16px;">
+                  <span>Afficher les scores F:/M:</span>
                 </label>
               </div>
 
-              <!-- Taille de police -->
-              <div style="margin-bottom: 12px;">
-                <div style="font-size: 12px; color: #6b7280; margin-bottom: 6px; font-weight: 600;">Taille des noms</div>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                  <button class="btn-font-size" data-size="small" style="
-                    padding: 6px 12px;
-                    font-size: 11px;
+              <!-- Taille des cartes avec aperçus visuels -->
+              <div style="margin-bottom: 16px;">
+                <label style="font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 0.5px;">Taille des cartes</label>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label class="size-option-label" data-size="small" style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 8px 12px;
                     border: 1px solid #e5e7eb;
-                    background: white;
-                    border-radius: 4px;
+                    border-radius: 6px;
                     cursor: pointer;
-                  ">Petit</button>
-                  <button class="btn-font-size active" data-size="medium" style="
-                    padding: 6px 12px;
-                    font-size: 11px;
-                    border: 1px solid #6366f1;
+                    transition: all 0.2s;
+                    background: white;
+                  " onmouseover="this.style.background='#f9fafb'" onmouseout="if(!this.classList.contains('active')) this.style.background='white'">
+                    <span style="font-size: 11px; font-weight: 600; color: #6b7280;">S</span>
+                    <span style="font-size: 10px; font-weight: 700; color: #1f2937;">DUPONT Léa</span>
+                    <input type="radio" name="cardSize" value="small" style="cursor: pointer; width: 16px; height: 16px;">
+                  </label>
+                  <label class="size-option-label active" data-size="medium" style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 8px 12px;
+                    border: 2px solid #6366f1;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s;
                     background: #eef2ff;
-                    border-radius: 4px;
-                    cursor: pointer;
-                  ">Moyen</button>
-                  <button class="btn-font-size" data-size="large" style="
-                    padding: 6px 12px;
-                    font-size: 11px;
+                  ">
+                    <span style="font-size: 12px; font-weight: 600; color: #6b7280;">M</span>
+                    <span style="font-size: 12px; font-weight: 700; color: #1f2937;">DUPONT Léa</span>
+                    <input type="radio" name="cardSize" value="medium" checked style="cursor: pointer; width: 16px; height: 16px;">
+                  </label>
+                  <label class="size-option-label" data-size="large" style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 8px 12px;
                     border: 1px solid #e5e7eb;
-                    background: white;
-                    border-radius: 4px;
+                    border-radius: 6px;
                     cursor: pointer;
-                  ">Grand</button>
-                  <button class="btn-font-size" data-size="xlarge" style="
-                    padding: 6px 12px;
-                    font-size: 11px;
+                    transition: all 0.2s;
+                    background: white;
+                  " onmouseover="this.style.background='#f9fafb'" onmouseout="if(!this.classList.contains('active')) this.style.background='white'">
+                    <span style="font-size: 13px; font-weight: 600; color: #6b7280;">L</span>
+                    <span style="font-size: 14px; font-weight: 700; color: #1f2937;">DUPONT Léa</span>
+                    <input type="radio" name="cardSize" value="large" style="cursor: pointer; width: 16px; height: 16px;">
+                  </label>
+                  <label class="size-option-label" data-size="xlarge" style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 8px 12px;
                     border: 1px solid #e5e7eb;
-                    background: white;
-                    border-radius: 4px;
+                    border-radius: 6px;
                     cursor: pointer;
-                  ">Très grand</button>
+                    transition: all 0.2s;
+                    background: white;
+                  " onmouseover="this.style.background='#f9fafb'" onmouseout="if(!this.classList.contains('active')) this.style.background='white'">
+                    <span style="font-size: 14px; font-weight: 600; color: #6b7280;">XL</span>
+                    <span style="font-size: 16px; font-weight: 800; color: #1f2937;">DUPONT Léa</span>
+                    <input type="radio" name="cardSize" value="xlarge" style="cursor: pointer; width: 16px; height: 16px;">
+                  </label>
+                </div>
+              </div>
+
+              <!-- Style de police -->
+              <div style="margin-bottom: 16px;">
+                <label style="font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 0.5px;">Style</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                  <label class="style-option-label active" data-style="normal" style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 8px 12px;
+                    border: 2px solid #6366f1;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    background: #eef2ff;
+                  ">
+                    <input type="radio" name="cardStyle" value="normal" checked style="display: none;">
+                    <span style="font-size: 12px; font-weight: 600; color: #4f46e5;">Normal</span>
+                  </label>
+                  <label class="style-option-label" data-style="bold" style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 8px 12px;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    background: white;
+                  " onmouseover="if(!this.classList.contains('active')) this.style.background='#f9fafb'" onmouseout="if(!this.classList.contains('active')) this.style.background='white'">
+                    <input type="radio" name="cardStyle" value="bold" style="display: none;">
+                    <span style="font-size: 12px; font-weight: 600;">Gras</span>
+                  </label>
+                  <label class="style-option-label" data-style="highlight" style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 8px 12px;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    background: white;
+                  " onmouseover="if(!this.classList.contains('active')) this.style.background='#f9fafb'" onmouseout="if(!this.classList.contains('active')) this.style.background='white'">
+                    <input type="radio" name="cardStyle" value="highlight" style="display: none;">
+                    <span style="font-size: 12px; font-weight: 600;">Surligné</span>
+                  </label>
                 </div>
               </div>
 
               <!-- Mode zoom global -->
               <div>
                 <button id="btn-zoom-v4" style="
-                  padding: 8px 16px;
+                  padding: 10px 16px;
                   background: #f3f4f6;
                   border: 1px solid #d1d5db;
                   border-radius: 6px;
                   cursor: pointer;
                   font-size: 13px;
+                  font-weight: 600;
                   width: 100%;
                   display: flex;
                   align-items: center;
                   justify-content: center;
                   gap: 8px;
+                  transition: all 0.2s;
                 " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
                   <i class="fas fa-search-plus"></i>
                   <span>Mode zoom</span>
@@ -1232,6 +1315,20 @@ const GroupsInterfaceV4 = (function() {
       <!-- Bouton fermeture (coin supérieur droit) -->
       <!-- Boutons de contrôle (fixés en haut) -->
       <div style="position: absolute; top: 16px; right: 16px; z-index: 10001; display: flex; gap: 8px;">
+        <button id="btn-open-readability-settings" style="
+          background: #8b5cf6;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          padding: 10px 16px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+          transition: all 0.2s;
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#7c3aed'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#8b5cf6'">
+          <i class="fas fa-eye"></i> Paramètres
+        </button>
         <button id="btn-toggle-header" style="
           background: #3b82f6;
           color: white;
@@ -1758,27 +1855,29 @@ const GroupsInterfaceV4 = (function() {
                       font-weight: 600;
                     ">${student.class}</span>
                   ` : ''}
-                  <span style="
-                    padding: 2px 7px;
-                    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-                    color: white;
-                    border-radius: 4px;
-                    font-size: 10px;
-                    font-weight: 800;
-                    letter-spacing: 0.3px;
-                  ">
-                    F:${scoreF.toFixed(1)}
-                  </span>
-                  <span style="
-                    padding: 2px 7px;
-                    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-                    color: white;
-                    border-radius: 4px;
-                    font-size: 10px;
-                    font-weight: 800;
-                    letter-spacing: 0.3px;
-                  ">
-                    M:${scoreM.toFixed(1)}
+                  <span class="fm-scores" style="display: inline-flex; gap: 4px;">
+                    <span style="
+                      padding: 2px 7px;
+                      background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+                      color: white;
+                      border-radius: 4px;
+                      font-size: 10px;
+                      font-weight: 800;
+                      letter-spacing: 0.3px;
+                    ">
+                      F:${scoreF.toFixed(1)}
+                    </span>
+                    <span style="
+                      padding: 2px 7px;
+                      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+                      color: white;
+                      border-radius: 4px;
+                      font-size: 10px;
+                      font-weight: 800;
+                      letter-spacing: 0.3px;
+                    ">
+                      M:${scoreM.toFixed(1)}
+                    </span>
                   </span>
                   <!-- Pastilles COM/TRA/PART/ABS (système InterfaceV2) -->
                   <span class="scores" style="display: flex; align-items: center; gap: 4px;">
@@ -3199,6 +3298,310 @@ const GroupsInterfaceV4 = (function() {
   }
 
   /**
+   * Ouvre le modal des paramètres de lisibilité depuis l'interface SWAP
+   */
+  function openReadabilitySettingsModal() {
+    // Créer le modal
+    const modal = document.createElement('div');
+    modal.id = 'readability-settings-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10002;
+      backdrop-filter: blur(4px);
+    `;
+
+    modal.innerHTML = `
+      <div style="
+        background: white;
+        border-radius: 16px;
+        padding: 32px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      ">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 700; color: #1f2937; margin: 0;">
+            <i class="fas fa-eye"></i> Options de lisibilité
+          </h2>
+          <button id="close-readability-modal" style="
+            background: #f3f4f6;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #6b7280;
+            transition: all 0.2s;
+          " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Checkboxes d'affichage -->
+        <div style="margin-bottom: 24px;">
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='transparent'">
+              <input type="checkbox" id="modal-toggle-scores-v4" checked style="cursor: pointer; width: 18px; height: 18px;">
+              <span style="font-weight: 500;">Afficher les pastilles COM/TRA/PART/ABS</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='transparent'">
+              <input type="checkbox" id="modal-toggle-fmscores-v4" checked style="cursor: pointer; width: 18px; height: 18px;">
+              <span style="font-weight: 500;">Afficher les scores F:/M:</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Taille des cartes -->
+        <div style="margin-bottom: 24px;">
+          <label style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 12px; display: block; letter-spacing: 0.5px;">Taille des cartes</label>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label class="modal-size-option-label" data-size="small" style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 10px 14px;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.2s;
+              background: white;
+            " onmouseover="this.style.background='#f9fafb'" onmouseout="if(!this.classList.contains('active')) this.style.background='white'">
+              <span style="font-size: 11px; font-weight: 600; color: #6b7280;">S</span>
+              <span style="font-size: 10px; font-weight: 700; color: #1f2937;">DUPONT Léa</span>
+              <input type="radio" name="modalCardSize" value="small" style="cursor: pointer; width: 18px; height: 18px;">
+            </label>
+            <label class="modal-size-option-label active" data-size="medium" style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 10px 14px;
+              border: 2px solid #6366f1;
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.2s;
+              background: #eef2ff;
+            ">
+              <span style="font-size: 12px; font-weight: 600; color: #6b7280;">M</span>
+              <span style="font-size: 12px; font-weight: 700; color: #1f2937;">DUPONT Léa</span>
+              <input type="radio" name="modalCardSize" value="medium" checked style="cursor: pointer; width: 18px; height: 18px;">
+            </label>
+            <label class="modal-size-option-label" data-size="large" style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 10px 14px;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.2s;
+              background: white;
+            " onmouseover="this.style.background='#f9fafb'" onmouseout="if(!this.classList.contains('active')) this.style.background='white'">
+              <span style="font-size: 13px; font-weight: 600; color: #6b7280;">L</span>
+              <span style="font-size: 14px; font-weight: 700; color: #1f2937;">DUPONT Léa</span>
+              <input type="radio" name="modalCardSize" value="large" style="cursor: pointer; width: 18px; height: 18px;">
+            </label>
+            <label class="modal-size-option-label" data-size="xlarge" style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 10px 14px;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.2s;
+              background: white;
+            " onmouseover="this.style.background='#f9fafb'" onmouseout="if(!this.classList.contains('active')) this.style.background='white'">
+              <span style="font-size: 14px; font-weight: 600; color: #6b7280;">XL</span>
+              <span style="font-size: 16px; font-weight: 800; color: #1f2937;">DUPONT Léa</span>
+              <input type="radio" name="modalCardSize" value="xlarge" style="cursor: pointer; width: 18px; height: 18px;">
+            </label>
+          </div>
+        </div>
+
+        <!-- Style -->
+        <div style="margin-bottom: 24px;">
+          <label style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 12px; display: block; letter-spacing: 0.5px;">Style</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <label class="modal-style-option-label active" data-style="normal" style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 10px 14px;
+              border: 2px solid #6366f1;
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.2s;
+              background: #eef2ff;
+            ">
+              <input type="radio" name="modalCardStyle" value="normal" checked style="display: none;">
+              <span style="font-size: 13px; font-weight: 600; color: #4f46e5;">Normal</span>
+            </label>
+            <label class="modal-style-option-label" data-style="bold" style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 10px 14px;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.2s;
+              background: white;
+            " onmouseover="if(!this.classList.contains('active')) this.style.background='#f9fafb'" onmouseout="if(!this.classList.contains('active')) this.style.background='white'">
+              <input type="radio" name="modalCardStyle" value="bold" style="display: none;">
+              <span style="font-size: 13px; font-weight: 600;">Gras</span>
+            </label>
+            <label class="modal-style-option-label" data-style="highlight" style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 10px 14px;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.2s;
+              background: white;
+            " onmouseover="if(!this.classList.contains('active')) this.style.background='#f9fafb'" onmouseout="if(!this.classList.contains('active')) this.style.background='white'">
+              <input type="radio" name="modalCardStyle" value="highlight" style="display: none;">
+              <span style="font-size: 13px; font-weight: 600;">Surligné</span>
+            </label>
+          </div>
+        </div>
+
+        <div style="text-align: center; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+          <p style="font-size: 12px; color: #6b7280; margin: 0;">
+            <i class="fas fa-info-circle"></i> Les préférences sont sauvegardées automatiquement
+          </p>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Initialiser les contrôles du modal
+    initModalReadabilityControls(modal);
+
+    // Fermer le modal en cliquant sur le fond
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+
+    // Fermer avec le bouton X
+    modal.querySelector('#close-readability-modal').addEventListener('click', () => {
+      modal.remove();
+    });
+  }
+
+  /**
+   * Initialise les contrôles de lisibilité dans le modal
+   */
+  function initModalReadabilityControls(modal) {
+    // Charger les préférences sauvegardées
+    const savedPrefs = JSON.parse(localStorage.getItem('groups-readability-prefs') || '{}');
+    const prefs = {
+      showPastilles: savedPrefs.showPastilles !== false,
+      showFMScores: savedPrefs.showFMScores !== false,
+      cardSize: savedPrefs.cardSize || 'medium',
+      cardStyle: savedPrefs.cardStyle || 'normal'
+    };
+
+    // Checkboxes
+    const togglePastilles = modal.querySelector('#modal-toggle-scores-v4');
+    const toggleFMScores = modal.querySelector('#modal-toggle-fmscores-v4');
+
+    togglePastilles.checked = prefs.showPastilles;
+    toggleFMScores.checked = prefs.showFMScores;
+
+    togglePastilles.addEventListener('change', (e) => {
+      prefs.showPastilles = e.target.checked;
+      applyPastillesVisibility(prefs.showPastilles);
+      localStorage.setItem('groups-readability-prefs', JSON.stringify(prefs));
+    });
+
+    toggleFMScores.addEventListener('change', (e) => {
+      prefs.showFMScores = e.target.checked;
+      applyFMScoresVisibility(prefs.showFMScores);
+      localStorage.setItem('groups-readability-prefs', JSON.stringify(prefs));
+    });
+
+    // Taille
+    const sizeLabels = modal.querySelectorAll('.modal-size-option-label');
+    sizeLabels.forEach(label => {
+      const size = label.dataset.size;
+      const radio = label.querySelector('input[type="radio"]');
+
+      if (size === prefs.cardSize) {
+        label.classList.add('active');
+        label.style.border = '2px solid #6366f1';
+        label.style.background = '#eef2ff';
+        radio.checked = true;
+      }
+
+      label.addEventListener('click', () => {
+        sizeLabels.forEach(l => {
+          l.classList.remove('active');
+          l.style.border = '1px solid #e5e7eb';
+          l.style.background = 'white';
+        });
+        label.classList.add('active');
+        label.style.border = '2px solid #6366f1';
+        label.style.background = '#eef2ff';
+        radio.checked = true;
+        prefs.cardSize = size;
+        applyCardSize(size);
+        localStorage.setItem('groups-readability-prefs', JSON.stringify(prefs));
+      });
+    });
+
+    // Style
+    const styleLabels = modal.querySelectorAll('.modal-style-option-label');
+    styleLabels.forEach(label => {
+      const style = label.dataset.style;
+      const radio = label.querySelector('input[type="radio"]');
+
+      if (style === prefs.cardStyle) {
+        label.classList.add('active');
+        label.style.border = '2px solid #6366f1';
+        label.style.background = '#eef2ff';
+        const span = label.querySelector('span');
+        if (span) span.style.color = '#4f46e5';
+        radio.checked = true;
+      }
+
+      label.addEventListener('click', () => {
+        styleLabels.forEach(l => {
+          l.classList.remove('active');
+          l.style.border = '1px solid #e5e7eb';
+          l.style.background = 'white';
+          const span = l.querySelector('span');
+          if (span) span.style.color = '';
+        });
+        label.classList.add('active');
+        label.style.border = '2px solid #6366f1';
+        label.style.background = '#eef2ff';
+        const span = label.querySelector('span');
+        if (span) span.style.color = '#4f46e5';
+        radio.checked = true;
+        prefs.cardStyle = style;
+        applyCardStyle(style);
+        localStorage.setItem('groups-readability-prefs', JSON.stringify(prefs));
+      });
+    });
+  }
+
+  /**
    * Attache les événements au dashboard
    */
   function attachDashboardEvents() {
@@ -3208,6 +3611,12 @@ const GroupsInterfaceV4 = (function() {
       closeBtn.addEventListener('click', () => {
         document.getElementById('swap-dashboard').remove();
       });
+    }
+
+    // Bouton Paramètres de lisibilité
+    const openReadabilitySettingsBtn = document.getElementById('btn-open-readability-settings');
+    if (openReadabilitySettingsBtn) {
+      openReadabilitySettingsBtn.addEventListener('click', openReadabilitySettingsModal);
     }
 
     // Toggle header
@@ -3399,43 +3808,123 @@ const GroupsInterfaceV4 = (function() {
    * Initialiser les contrôles de lisibilité (appelé après rendu)
    */
   function initLisibilityControls() {
-    // Checkbox afficher/masquer pastilles
+    // Charger les préférences sauvegardées
+    const savedPrefs = JSON.parse(localStorage.getItem('groups-readability-prefs') || '{}');
+    const prefs = {
+      showPastilles: savedPrefs.showPastilles !== false, // true par défaut
+      showFMScores: savedPrefs.showFMScores !== false,   // true par défaut
+      cardSize: savedPrefs.cardSize || 'medium',
+      cardStyle: savedPrefs.cardStyle || 'normal'
+    };
+
+    // Fonction pour sauvegarder les préférences
+    function savePreferences() {
+      localStorage.setItem('groups-readability-prefs', JSON.stringify(prefs));
+    }
+
+    // Fonction pour appliquer toutes les préférences
+    function applyAllPreferences() {
+      applyCardSize(prefs.cardSize);
+      applyCardStyle(prefs.cardStyle);
+      applyPastillesVisibility(prefs.showPastilles);
+      applyFMScoresVisibility(prefs.showFMScores);
+    }
+
+    // Checkbox afficher/masquer pastilles COM/TRA/PART/ABS
     const toggleScoresCheckbox = document.getElementById('toggle-scores-v4');
     if (toggleScoresCheckbox) {
+      toggleScoresCheckbox.checked = prefs.showPastilles;
       toggleScoresCheckbox.addEventListener('change', (e) => {
-        const scoreElements = document.querySelectorAll('.scores');
-        scoreElements.forEach(el => {
-          el.style.display = e.target.checked ? 'flex' : 'none';
-        });
-        console.log('🎨 Pastilles scores:', e.target.checked ? 'affichées' : 'masquées');
+        prefs.showPastilles = e.target.checked;
+        applyPastillesVisibility(prefs.showPastilles);
+        savePreferences();
       });
     }
 
-    // Boutons taille de police
-    const fontSizeButtons = document.querySelectorAll('.btn-font-size');
-    fontSizeButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        // Retirer active de tous les boutons
-        fontSizeButtons.forEach(b => {
-          b.style.border = '1px solid #e5e7eb';
-          b.style.background = 'white';
-          b.classList.remove('active');
+    // Checkbox afficher/masquer scores F:/M:
+    const toggleFMScoresCheckbox = document.getElementById('toggle-fmscores-v4');
+    if (toggleFMScoresCheckbox) {
+      toggleFMScoresCheckbox.checked = prefs.showFMScores;
+      toggleFMScoresCheckbox.addEventListener('change', (e) => {
+        prefs.showFMScores = e.target.checked;
+        applyFMScoresVisibility(prefs.showFMScores);
+        savePreferences();
+      });
+    }
+
+    // Radio buttons taille des cartes
+    const sizeLabels = document.querySelectorAll('.size-option-label');
+    sizeLabels.forEach(label => {
+      const radio = label.querySelector('input[type="radio"]');
+      const size = label.dataset.size;
+
+      // Appliquer l'état initial
+      if (size === prefs.cardSize) {
+        radio.checked = true;
+        label.classList.add('active');
+        label.style.border = '2px solid #6366f1';
+        label.style.background = '#eef2ff';
+      }
+
+      label.addEventListener('click', () => {
+        // Désactiver tous les labels
+        sizeLabels.forEach(l => {
+          l.classList.remove('active');
+          l.style.border = '1px solid #e5e7eb';
+          l.style.background = 'white';
         });
 
-        // Activer le bouton cliqué
-        btn.style.border = '1px solid #6366f1';
-        btn.style.background = '#eef2ff';
-        btn.classList.add('active');
+        // Activer le label cliqué
+        label.classList.add('active');
+        label.style.border = '2px solid #6366f1';
+        label.style.background = '#eef2ff';
+        radio.checked = true;
 
         // Appliquer la taille
-        const size = btn.dataset.size;
-        const studentNames = document.querySelectorAll('.student-name-v4');
-        studentNames.forEach(name => {
-          name.classList.remove('size-small', 'size-medium', 'size-large', 'size-xlarge');
-          name.classList.add(`size-${size}`);
+        prefs.cardSize = size;
+        applyCardSize(size);
+        savePreferences();
+      });
+    });
+
+    // Radio buttons style
+    const styleLabels = document.querySelectorAll('.style-option-label');
+    styleLabels.forEach(label => {
+      const radio = label.querySelector('input[type="radio"]');
+      const style = label.dataset.style;
+
+      // Appliquer l'état initial
+      if (style === prefs.cardStyle) {
+        radio.checked = true;
+        label.classList.add('active');
+        label.style.border = '2px solid #6366f1';
+        label.style.background = '#eef2ff';
+        const span = label.querySelector('span');
+        if (span) span.style.color = '#4f46e5';
+      }
+
+      label.addEventListener('click', () => {
+        // Désactiver tous les labels
+        styleLabels.forEach(l => {
+          l.classList.remove('active');
+          l.style.border = '1px solid #e5e7eb';
+          l.style.background = 'white';
+          const span = l.querySelector('span');
+          if (span) span.style.color = '';
         });
 
-        console.log('🎨 Taille police noms:', size);
+        // Activer le label cliqué
+        label.classList.add('active');
+        label.style.border = '2px solid #6366f1';
+        label.style.background = '#eef2ff';
+        const span = label.querySelector('span');
+        if (span) span.style.color = '#4f46e5';
+        radio.checked = true;
+
+        // Appliquer le style
+        prefs.cardStyle = style;
+        applyCardStyle(style);
+        savePreferences();
       });
     });
 
@@ -3461,10 +3950,53 @@ const GroupsInterfaceV4 = (function() {
           btnZoom.style.background = '#f3f4f6';
           btnZoom.style.borderColor = '#d1d5db';
         }
-
-        console.log('🎨 Mode zoom:', zoomActive ? 'activé' : 'désactivé');
       });
     }
+
+    // Appliquer les préférences au chargement
+    applyAllPreferences();
+  }
+
+  /**
+   * Applique la visibilité des pastilles COM/TRA/PART/ABS
+   */
+  function applyPastillesVisibility(show) {
+    const scoreElements = document.querySelectorAll('.scores');
+    scoreElements.forEach(el => {
+      el.style.display = show ? 'flex' : 'none';
+    });
+  }
+
+  /**
+   * Applique la visibilité des scores F:/M:
+   */
+  function applyFMScoresVisibility(show) {
+    const fmScoreElements = document.querySelectorAll('.fm-scores');
+    fmScoreElements.forEach(el => {
+      el.style.display = show ? 'inline' : 'none';
+    });
+  }
+
+  /**
+   * Applique la taille des cartes
+   */
+  function applyCardSize(size) {
+    const allCards = document.querySelectorAll('.swap-student-card');
+    allCards.forEach(card => {
+      card.classList.remove('card-size-small', 'card-size-medium', 'card-size-large', 'card-size-xlarge');
+      card.classList.add(`card-size-${size}`);
+    });
+  }
+
+  /**
+   * Applique le style des cartes
+   */
+  function applyCardStyle(style) {
+    const allCards = document.querySelectorAll('.swap-student-card');
+    allCards.forEach(card => {
+      card.classList.remove('card-style-normal', 'card-style-bold', 'card-style-highlight');
+      card.classList.add(`card-style-${style}`);
+    });
   }
 
   // API publique
