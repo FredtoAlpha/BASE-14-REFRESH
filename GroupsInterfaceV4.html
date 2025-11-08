@@ -1475,139 +1475,124 @@ const GroupsInterfaceV4 = (function() {
       <!-- Boutons de contrôle principaux (coin supérieur droit) -->
       <div style="position: absolute; top: 16px; right: 16px; z-index: 10001; display: flex; gap: 8px;">
         <!-- Bouton Paramètres -->
-        <button id="btn-open-settings" style="
-          background: #8b5cf6;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          padding: 10px 16px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 600;
-          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-          transition: all 0.2s;
-        " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#7c3aed'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#8b5cf6'">
-          <i class="fas fa-cog"></i> Paramètres
-        </button>
-
-        <!-- Bouton Statistiques -->
-        <button id="btn-open-stats" style="
-          background: #3b82f6;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          padding: 10px 16px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 600;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-          transition: all 0.2s;
-        " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#2563eb'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#3b82f6'">
-          <i class="fas fa-chart-bar"></i> Statistiques
-        </button>
-
-        <!-- Bouton Export (avec dropdown) -->
-        <div style="position: relative;">
-          <button id="btn-export-menu" style="
-            background: #10b981;
+          <button id="btn-open-settings" style="
+            background: #8b5cf6;
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 10px 16px;
+            border-radius: 6px;
+            padding: 8px 14px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
             transition: all 0.2s;
-          " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#059669'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#10b981'">
-            <i class="fas fa-download"></i> Export <i class="fas fa-chevron-down" style="margin-left: 4px; font-size: 10px;"></i>
+          " onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'">
+            <i class="fas fa-cog"></i> Paramètres
           </button>
-          <div id="export-dropdown" style="
-            position: absolute;
-            top: 48px;
-            right: 0;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            min-width: 180px;
-            display: none;
-            overflow: hidden;
-            z-index: 10002;
-          ">
-            <button id="btn-export-pdf" style="
-              width: 100%;
-              padding: 12px 16px;
-              background: white;
+
+          <!-- Bouton Statistiques -->
+          <button id="btn-open-stats" style="
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+          " onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+            <i class="fas fa-chart-bar"></i> Statistiques
+          </button>
+
+          <!-- Menu Export (dropdown) -->
+          <div style="position: relative;">
+            <button id="btn-export-menu" style="
+              background: #10b981;
+              color: white;
               border: none;
-              text-align: left;
+              border-radius: 6px;
+              padding: 8px 14px;
               cursor: pointer;
               font-size: 13px;
-              font-weight: 500;
-              color: #1f2937;
-              transition: background 0.2s;
-              display: flex;
-              align-items: center;
-              gap: 10px;
-            " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">
-              <i class="fas fa-file-pdf" style="color: #ef4444; width: 16px;"></i>
-              <span>Export PDF</span>
+              font-weight: 600;
+              transition: all 0.2s;
+            " onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+              <i class="fas fa-download"></i> Export <i class="fas fa-chevron-down" style="margin-left: 4px; font-size: 9px;"></i>
             </button>
-            <button id="btn-export-csv" style="
-              width: 100%;
-              padding: 12px 16px;
+            <div id="export-dropdown" style="
+              position: absolute;
+              top: 40px;
+              left: 0;
               background: white;
-              border: none;
-              text-align: left;
-              cursor: pointer;
-              font-size: 13px;
-              font-weight: 500;
-              color: #1f2937;
-              transition: background 0.2s;
-              display: flex;
-              align-items: center;
-              gap: 10px;
-              border-top: 1px solid #e5e7eb;
-            " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">
-              <i class="fas fa-file-csv" style="color: #10b981; width: 16px;"></i>
-              <span>Export CSV</span>
-            </button>
+              border-radius: 8px;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+              min-width: 160px;
+              display: none;
+              overflow: hidden;
+              z-index: 10002;
+            ">
+              <button id="btn-export-pdf" style="
+                width: 100%;
+                padding: 10px 14px;
+                background: white;
+                border: none;
+                text-align: left;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 500;
+                color: #1f2937;
+                transition: background 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">
+                <i class="fas fa-file-pdf" style="color: #ef4444; width: 14px;"></i>
+                <span>Export PDF</span>
+              </button>
+              <button id="btn-export-csv" style="
+                width: 100%;
+                padding: 10px 14px;
+                background: white;
+                border: none;
+                text-align: left;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 500;
+                color: #1f2937;
+                transition: background 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                border-top: 1px solid #e5e7eb;
+              " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">
+                <i class="fas fa-file-csv" style="color: #10b981; width: 14px;"></i>
+                <span>Export CSV</span>
+              </button>
+            </div>
           </div>
+
+          <!-- Bouton Fermer -->
+          <button id="close-dashboard" style="
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+          " onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+            <i class="fas fa-times"></i> Fermer
+          </button>
         </div>
 
-        <!-- Bouton Fermer -->
-        <button id="close-dashboard" style="
-          background: #ef4444;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          padding: 10px 16px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 600;
-          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-          transition: all 0.2s;
-        " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#dc2626'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#ef4444'">
-          <i class="fas fa-times"></i> Fermer
-        </button>
-      </div>
-
-      <!-- EN-TÊTE COMPACT (1 LIGNE) -->
-      <div id="dashboard-header" style="
-        display: ${state.swapDashboard.headerVisible ? 'flex' : 'none'};
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        color: white;
-        padding: 12px 24px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-      ">
-
-          <!-- ZONE GAUCHE : OPTIONS DE TRI (SUR UNE LIGNE) -->
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <span style="font-size: 12px; font-weight: 600; opacity: 0.9;">
-                <i class="fas fa-sort"></i> Trier par:
-              </span>
+        <!-- ZONE CENTRE : TRI + NAVIGATION + SAUVEGARDES -->
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px;">
+          <!-- Tri -->
+          <span style="font-size: 11px; font-weight: 600; opacity: 0.9;">
+            <i class="fas fa-sort"></i> Tri:
+          </span>
               <button id="btn-sort-parity" data-sort="parity" class="sort-btn" style="
                 padding: 6px 12px;
                 background: rgba(255, 255, 255, 0.15);
@@ -1647,111 +1632,110 @@ const GroupsInterfaceV4 = (function() {
               ">
                 Score M
               </button>
-              <button id="btn-sort-com" data-sort="com" class="sort-btn" style="
-                padding: 6px 12px;
-                background: rgba(255, 255, 255, 0.15);
-                color: white;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 13px;
-                font-weight: 600;
-                transition: all 0.2s;
-              ">
-                COM
-              </button>
-            </div>
+          <button id="btn-sort-com" data-sort="com" class="sort-btn" style="
+            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.2s;
+          ">
+            COM
+          </button>
+
+          <!-- Séparateur -->
+          <span style="border-left: 1px solid rgba(255, 255, 255, 0.3); height: 24px; margin: 0 4px;"></span>
+
+          <!-- Navigation regroupements -->
+          <button id="btn-prev-regroupement" style="
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+          " ${state.swapDashboard.currentRegroupementIndex === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+            <i class="fas fa-chevron-left"></i>
+          </button>
+
+          <div style="
+            background: rgba(255, 255, 255, 0.95);
+            color: #6366f1;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            min-width: 180px;
+            text-align: center;
+          ">
+            <span id="regroupement-name">Regroupement 1</span>
+            <span style="font-size: 11px; font-weight: 400; color: #1f2937; margin-left: 6px;">
+              (<span id="regroupement-counter">1</span>/${state.swapDashboard.allRegroupements.length})
+            </span>
           </div>
 
-          <!-- ZONE CENTRE : NAVIGATION + SAUVEGARDES (1 LIGNE) -->
-          <div style="flex: 2; display: flex; align-items: center; justify-content: center; gap: 12px;">
-              <button id="btn-prev-regroupement" style="
-                background: rgba(255, 255, 255, 0.2);
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                color: white;
-                padding: 8px 12px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 16px;
-                transition: all 0.2s;
-              " ${state.swapDashboard.currentRegroupementIndex === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
-                <i class="fas fa-chevron-left"></i>
-              </button>
+          <button id="btn-next-regroupement" style="
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+          " ${state.swapDashboard.currentRegroupementIndex === state.swapDashboard.allRegroupements.length - 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+            <i class="fas fa-chevron-right"></i>
+          </button>
 
-              <div style="
-                background: rgba(255, 255, 255, 0.95);
-                color: #6366f1;
-                padding: 10px 24px;
-                border-radius: 8px;
-                font-size: 16px;
-                font-weight: 700;
-                min-width: 220px;
-                text-align: center;
-              ">
-                <span id="regroupement-name">Regroupement 1</span>
-                <span style="font-size: 13px; font-weight: 400; color: #1f2937; margin-left: 8px;">
-                  (<span id="regroupement-counter">1</span> / ${state.swapDashboard.allRegroupements.length})
-                </span>
-              </div>
+          <!-- Séparateur -->
+          <span style="border-left: 1px solid rgba(255, 255, 255, 0.3); height: 24px; margin: 0 4px;"></span>
 
-              <button id="btn-next-regroupement" style="
-                background: rgba(255, 255, 255, 0.2);
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                color: white;
-                padding: 8px 12px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 16px;
-                transition: all 0.2s;
-              " ${state.swapDashboard.currentRegroupementIndex === state.swapDashboard.allRegroupements.length - 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
-                <i class="fas fa-chevron-right"></i>
-              </button>
-
-              <span style="border-left: 1px solid rgba(255, 255, 255, 0.3); height: 30px; margin: 0 4px;"></span>
-
-              <!-- Boutons sauvegardes (sur la même ligne) -->
-              <button id="btn-load" style="
-                padding: 8px 16px;
-                background: rgba(255, 255, 255, 0.2);
-                color: white;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 14px;
-                font-weight: 700;
-                transition: all 0.2s;
-              ">
-                <i class="fas fa-folder-open"></i> Charger
-              </button>
-              <button id="btn-save-temp" style="
-                padding: 8px 16px;
-                background: #f97316;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 13px;
-                font-weight: 600;
-                box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
-                transition: all 0.2s;
-              ">
-                <i class="fas fa-save"></i> Sauver TEMP
-              </button>
-              <button id="btn-finalize" style="
-                padding: 8px 16px;
-                background: #10b981;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 13px;
-                font-weight: 600;
-                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-                transition: all 0.2s;
-              ">
-                <i class="fas fa-check-circle"></i> Finaliser
-              </button>
-          </div>
+          <!-- Sauvegardes -->
+          <button id="btn-load" style="
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+          ">
+            <i class="fas fa-folder-open"></i> Charger
+          </button>
+          <button id="btn-save-temp" style="
+            padding: 6px 12px;
+            background: #f97316;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+          ">
+            <i class="fas fa-save"></i> TEMP
+          </button>
+          <button id="btn-finalize" style="
+            padding: 6px 12px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+          ">
+            <i class="fas fa-check-circle"></i> Finaliser
+          </button>
+        </div>
 
       </div>
 
