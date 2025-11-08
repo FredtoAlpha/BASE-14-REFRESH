@@ -9,16 +9,185 @@ const GroupsInterfaceV4 = (function() {
   'use strict';
 
   // ════════════════════════════════════════════════════════════════
-  // HELPER TOAST - Remplacer alert() par Toast
+  // SYSTÈME DE NOTIFICATIONS TOAST
   // ════════════════════════════════════════════════════════════════
 
-  function showToast(message, type = 'info') {
-    if (window.UIComponents && window.UIComponents.Toast) {
-      window.UIComponents.Toast[type](message);
-    } else {
-      // Fallback sur alert si UIComponents pas disponible
-      alert(message);
+  const GroupsNotifications = {
+    container: null,
+
+    init() {
+      if (!this.container) {
+        this.container = document.createElement('div');
+        this.container.id = 'toast-container';
+        document.body.appendChild(this.container);
+      }
+    },
+
+    show(title, message, type = 'info', duration = 4000) {
+      this.init();
+
+      const toast = document.createElement('div');
+      toast.className = `groups-toast toast-${type}`;
+
+      const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+      };
+
+      toast.innerHTML = `
+        <div class="toast-icon">
+          <i class="fas ${icons[type] || icons.info}"></i>
+        </div>
+        <div class="toast-content">
+          <div class="toast-title">${title}</div>
+          ${message ? `<div class="toast-message">${message}</div>` : ''}
+        </div>
+        <button class="toast-close" aria-label="Fermer">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+
+      this.container.appendChild(toast);
+
+      // Fermer au clic
+      const closeBtn = toast.querySelector('.toast-close');
+      closeBtn.addEventListener('click', () => this.remove(toast));
+
+      // Auto-fermeture
+      if (duration > 0) {
+        setTimeout(() => this.remove(toast), duration);
+      }
+
+      return toast;
+    },
+
+    remove(toast) {
+      toast.style.animation = 'slideOutRight 0.3s ease-out';
+      setTimeout(() => toast.remove(), 300);
+    },
+
+    success(title, message, duration) {
+      return this.show(title, message, 'success', duration);
+    },
+
+    error(title, message, duration) {
+      return this.show(title, message, 'error', duration);
+    },
+
+    warning(title, message, duration) {
+      return this.show(title, message, 'warning', duration);
+    },
+
+    info(title, message, duration) {
+      return this.show(title, message, 'info', duration);
     }
+  };
+
+  // ════════════════════════════════════════════════════════════════
+  // VISUALISATIONS - Mini Radar Chart SVG
+  // ════════════════════════════════════════════════════════════════
+
+  function createMiniRadar(scores) {
+    /**
+     * Crée un mini radar chart SVG pour visualiser les scores COM/TRA/PART/ABS
+     * @param {Object} scores - { com: 2.5, tra: 3.0, part: 2.8, abs: 1.5 }
+     * @returns {string} - SVG HTML string
+     */
+    const size = 160;
+    const center = size / 2;
+    const maxRadius = 60;
+    const levels = 4; // Niveaux de 1 à 4
+
+    // Labels et couleurs
+    const criteria = [
+      { key: 'com', label: 'COM', color: 'var(--badge-com-bg)', angle: 0 },
+      { key: 'tra', label: 'TRA', color: 'var(--badge-tra-bg)', angle: 90 },
+      { key: 'part', label: 'PART', color: 'var(--badge-part-bg)', angle: 180 },
+      { key: 'abs', label: 'ABS', color: 'var(--badge-abs-bg)', angle: 270 }
+    ];
+
+    // Générer les points du polygone
+    const points = criteria.map(c => {
+      const value = scores[c.key] || 0;
+      const radius = (value / 4) * maxRadius; // Normaliser sur 4
+      const angleRad = (c.angle - 90) * (Math.PI / 180); // -90 pour commencer en haut
+      const x = center + radius * Math.cos(angleRad);
+      const y = center + radius * Math.sin(angleRad);
+      return `${x},${y}`;
+    }).join(' ');
+
+    // Grille de fond (cercles concentriques)
+    let gridCircles = '';
+    for (let i = 1; i <= levels; i++) {
+      const r = (i / levels) * maxRadius;
+      gridCircles += `<circle cx="${center}" cy="${center}" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="1"/>`;
+    }
+
+    // Axes
+    let axes = '';
+    criteria.forEach(c => {
+      const angleRad = (c.angle - 90) * (Math.PI / 180);
+      const x = center + maxRadius * Math.cos(angleRad);
+      const y = center + maxRadius * Math.sin(angleRad);
+      axes += `<line x1="${center}" y1="${center}" x2="${x}" y2="${y}" stroke="#d1d5db" stroke-width="1"/>`;
+    });
+
+    // Labels
+    let labels = '';
+    criteria.forEach(c => {
+      const angleRad = (c.angle - 90) * (Math.PI / 180);
+      const labelRadius = maxRadius + 20;
+      const x = center + labelRadius * Math.cos(angleRad);
+      const y = center + labelRadius * Math.sin(angleRad);
+      const value = scores[c.key] || 0;
+      labels += `
+        <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle"
+              font-size="11" font-weight="700" fill="${c.color}">
+          ${c.label}
+        </text>
+        <text x="${x}" y="${y + 12}" text-anchor="middle" dominant-baseline="middle"
+              font-size="10" font-weight="600" fill="#6b7280">
+          ${value.toFixed(1)}
+        </text>
+      `;
+    });
+
+    return `
+      <svg class="groups-radar-container" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+        ${gridCircles}
+        ${axes}
+        <polygon points="${points}" fill="rgba(99, 102, 241, 0.2)" stroke="rgba(99, 102, 241, 0.8)" stroke-width="2"/>
+        ${labels}
+      </svg>
+    `;
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // HELPERS - Badges critères
+  // ════════════════════════════════════════════════════════════════
+
+  function createCriteriaBadge(type, value) {
+    /**
+     * Crée un badge coloré pour un critère (COM/TRA/PART/ABS)
+     * @param {string} type - 'com' | 'tra' | 'part' | 'abs'
+     * @param {number} value - Valeur du score (0-4)
+     * @returns {string} - HTML string
+     */
+    const labels = {
+      com: 'COM',
+      tra: 'TRA',
+      part: 'PART',
+      abs: 'ABS'
+    };
+
+    return `
+      <span class="groups-badge groups-badge-${type}" title="${labels[type]}: ${value.toFixed(1)}/4">
+        <i class="fas fa-circle" style="font-size: 6px;"></i>
+        ${labels[type]} ${value.toFixed(1)}
+      </span>
+    `;
   }
 
   // État interne de l'interface
@@ -611,7 +780,7 @@ const GroupsInterfaceV4 = (function() {
     updateRecap();
 
     // Ajouter à la timeline
-    addToTimeline(`Scénario "${scenario}" sélectionné`);
+    addToTimeline(`Scénario "${scenario}" sélectionné`, 'info');
 
     console.log('✅ Scénario sélectionné:', scenario);
   }
@@ -643,7 +812,7 @@ const GroupsInterfaceV4 = (function() {
     updateRecap();
 
     // Ajouter à la timeline
-    addToTimeline(`Mode "${mode}" sélectionné`);
+    addToTimeline(`Mode "${mode}" sélectionné`, 'info');
 
     console.log('✅ Mode sélectionné:', mode);
   }
@@ -814,7 +983,7 @@ const GroupsInterfaceV4 = (function() {
     updateRecap();
 
     // Ajouter à la timeline
-    addToTimeline(`Langue "${language}" sélectionnée`);
+    addToTimeline(`Langue "${language}" sélectionnée`, 'info');
 
     console.log('✅ Langue sélectionnée:', language);
   }
@@ -845,7 +1014,7 @@ const GroupsInterfaceV4 = (function() {
 
     state.regroupements.push(regroupement);
     renderRegroupements();
-    addToTimeline(`Regroupement "${regroupement.name}" ajouté`);
+    addToTimeline(`Regroupement "${regroupement.name}" ajouté`, 'success');
   }
 
   /**
@@ -1005,7 +1174,7 @@ const GroupsInterfaceV4 = (function() {
             display.textContent = reg.classes.length > 0 ? reg.classes.join(', ') : 'Aucune';
           }
 
-          addToTimeline(`"${reg.name}" : ${reg.classes.length} classe(s) sélectionnée(s)`);
+          addToTimeline(`"${reg.name}" : ${reg.classes.length} classe(s) sélectionnée(s)`, 'info');
         }
       });
     });
@@ -1017,7 +1186,7 @@ const GroupsInterfaceV4 = (function() {
         const reg = state.regroupements.find(r => r.id === id);
         if (reg) {
           reg.name = e.target.value;
-          addToTimeline(`"${reg.name}" renommé`);
+          addToTimeline(`"${reg.name}" renommé`, 'info');
         }
       });
     });
@@ -1029,7 +1198,7 @@ const GroupsInterfaceV4 = (function() {
         const reg = state.regroupements.find(r => r.id === id);
         if (reg) {
           reg.numGroups = parseInt(e.target.value);
-          addToTimeline(`"${reg.name}" : ${reg.numGroups} groupes`);
+          addToTimeline(`"${reg.name}" : ${reg.numGroups} groupes`, 'info');
         }
       });
     });
@@ -1048,7 +1217,7 @@ const GroupsInterfaceV4 = (function() {
           };
           state.regroupements.push(duplicate);
           renderRegroupements();
-          addToTimeline(`"${duplicate.name}" créé par duplication`);
+          addToTimeline(`"${duplicate.name}" créé par duplication`, 'success');
         }
       });
     });
@@ -1061,7 +1230,7 @@ const GroupsInterfaceV4 = (function() {
         if (reg && confirm(`Supprimer "${reg.name}" ?`)) {
           state.regroupements = state.regroupements.filter(r => r.id !== id);
           renderRegroupements();
-          addToTimeline(`"${reg.name}" supprimé`);
+          addToTimeline(`"${reg.name}" supprimé`, 'warning');
         }
       });
     });
@@ -1072,18 +1241,18 @@ const GroupsInterfaceV4 = (function() {
    */
   function generateGroups() {
     if (!state.scenario || !state.mode) {
-      showToast('⚠️ Veuillez sélectionner un scénario et un mode', 'warning');
+      GroupsNotifications.warning('Configuration incomplète', 'Veuillez sélectionner un scénario et un mode');
       return;
     }
 
     // Pour LV2, vérifier qu'une langue est sélectionnée
     if (state.scenario === 'lv2' && !state.selectedLanguage) {
-      showToast('⚠️ Veuillez sélectionner une langue pour le scénario LV2', 'warning');
+      GroupsNotifications.warning('Langue manquante', 'Veuillez sélectionner une langue pour le scénario LV2');
       return;
     }
 
     if (state.regroupements.length === 0) {
-      showToast('⚠️ Veuillez ajouter au moins un regroupement', 'warning');
+      GroupsNotifications.warning('Aucun regroupement', 'Veuillez ajouter au moins un regroupement');
       return;
     }
 
@@ -1100,7 +1269,7 @@ const GroupsInterfaceV4 = (function() {
     document.dispatchEvent(event);
     console.log('🚀 Événement groups:generate émis', event.detail);
 
-    addToTimeline('Génération des groupes lancée...');
+    addToTimeline('Génération des groupes lancée...', 'info');
   }
 
   /**
@@ -1112,7 +1281,7 @@ const GroupsInterfaceV4 = (function() {
     state.regroupements = [];
     state.currentResults = null;
     renderRegroupements();
-    addToTimeline('Interface réinitialisée');
+    addToTimeline('Interface réinitialisée', 'info');
   }
 
   /**
@@ -1144,19 +1313,31 @@ const GroupsInterfaceV4 = (function() {
   }
 
   /**
-   * Ajoute une entrée à la timeline
+   * Ajoute une entrée à la timeline avec type et icône
    */
-  function addToTimeline(message) {
+  function addToTimeline(message, type = 'info') {
     const timestamp = new Date().toLocaleTimeString('fr-FR');
-    state.timeline.push({ timestamp, message });
+    state.timeline.push({ timestamp, message, type });
 
     const timelineContent = document.getElementById('timeline-content');
     if (timelineContent) {
+      const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+      };
+
       const entry = document.createElement('div');
-      entry.style.marginBottom = '8px';
+      entry.style.cssText = 'margin-bottom: 8px; display: flex; align-items: center; gap: 8px;';
       entry.innerHTML = `
-        <span style="color: #1f2937;">[${timestamp}]</span>
-        ${message}
+        <div class="timeline-icon type-${type}">
+          <i class="fas ${icons[type] || icons.info}" style="font-size: 10px;"></i>
+        </div>
+        <div style="flex: 1;">
+          <span style="color: var(--groups-gray-600); font-size: var(--font-xs);">[${timestamp}]</span>
+          <span style="color: var(--groups-gray-900); margin-left: 8px;">${message}</span>
+        </div>
       `;
       timelineContent.appendChild(entry);
 
@@ -1171,6 +1352,9 @@ const GroupsInterfaceV4 = (function() {
   function displayResults(results) {
     state.currentResults = results;
 
+    // Calculer les moyennes globales COM/TRA/PART/ABS
+    const avgScores = calculateAverageScores(results.groups);
+
     // Afficher les statistiques
     const statsSection = document.getElementById('recap-stats');
     const statsContent = document.getElementById('stats-content');
@@ -1178,70 +1362,54 @@ const GroupsInterfaceV4 = (function() {
     if (statsSection && statsContent) {
       statsSection.style.display = 'block';
       statsContent.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-          <!-- Badge Groupes générés -->
-          <div style="
-            padding: 12px 16px;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-          ">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 20px;">📊</span>
-              <span style="font-size: 13px; font-weight: 600; color: white; opacity: 0.95;">
-                Groupes générés
-              </span>
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- Stats principales avec design system -->
+          <div class="groups-grid-2">
+            <div class="groups-stat-card">
+              <div class="groups-stat-label">
+                <i class="fas fa-layer-group"></i> Groupes
+              </div>
+              <div class="groups-stat-value">${results.stats.length}</div>
+              <div class="groups-stat-subtitle">Regroupements créés</div>
             </div>
-            <div style="
-              font-size: 24px;
-              font-weight: 800;
-              color: white;
-              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            ">
-              ${results.stats.length}
+
+            <div class="groups-stat-card">
+              <div class="groups-stat-label">
+                <i class="fas fa-users"></i> Élèves
+              </div>
+              <div class="groups-stat-value">${results.metadata.totalStudents}</div>
+              <div class="groups-stat-subtitle">Total répartis</div>
             </div>
           </div>
 
-          <!-- Badge Total élèves -->
-          <div style="
-            padding: 12px 16px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-          ">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 20px;">👥</span>
-              <span style="font-size: 13px; font-weight: 600; color: white; opacity: 0.95;">
-                Total élèves
-              </span>
+          <!-- Moyennes avec radar -->
+          <div class="groups-stat-card" style="text-align: center;">
+            <div class="groups-stat-label" style="text-align: center; margin-bottom: 12px;">
+              <i class="fas fa-chart-radar"></i> Profil moyen des groupes
             </div>
-            <div style="
-              font-size: 24px;
-              font-weight: 800;
-              color: white;
-              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            ">
-              ${results.metadata.totalStudents}
+            ${createMiniRadar(avgScores)}
+            <div class="groups-stat-badges" style="justify-content: center; margin-top: 16px;">
+              ${createCriteriaBadge('com', avgScores.com)}
+              ${createCriteriaBadge('tra', avgScores.tra)}
+              ${createCriteriaBadge('part', avgScores.part)}
+              ${createCriteriaBadge('abs', avgScores.abs)}
             </div>
           </div>
 
-          <!-- Badge Scenario -->
+          <!-- Métadonnées -->
           ${results.metadata.scenario ? `
             <div style="
-              padding: 8px 12px;
-              background: #f3f4f6;
-              border-radius: 6px;
-              border-left: 3px solid #6366f1;
-              font-size: 12px;
+              padding: 10px 14px;
+              background: var(--groups-gray-50);
+              border-radius: var(--radius-md);
+              border-left: 3px solid var(--groups-primary);
+              font-size: var(--font-sm);
+              display: flex;
+              align-items: center;
+              gap: 8px;
             ">
-              <span style="color: #6b7280; font-weight: 600;">Scénario :</span>
-              <span style="color: #1f2937; font-weight: 700; margin-left: 6px;">
+              <span class="groups-text-muted" style="font-weight: 600;">Scénario :</span>
+              <span class="groups-badge groups-badge-primary">
                 ${results.metadata.scenario === 'besoins' ? '🎯 Besoins' :
                   results.metadata.scenario === 'lv2' ? '🌐 LV2' :
                   results.metadata.scenario === 'options' ? '⚙️ Options' :
@@ -1250,17 +1418,19 @@ const GroupsInterfaceV4 = (function() {
             </div>
           ` : ''}
 
-          <!-- Badge Mode -->
           ${results.metadata.mode ? `
             <div style="
-              padding: 8px 12px;
-              background: #f3f4f6;
-              border-radius: 6px;
-              border-left: 3px solid #8b5cf6;
-              font-size: 12px;
+              padding: 10px 14px;
+              background: var(--groups-gray-50);
+              border-radius: var(--radius-md);
+              border-left: 3px solid var(--groups-secondary);
+              font-size: var(--font-sm);
+              display: flex;
+              align-items: center;
+              gap: 8px;
             ">
-              <span style="color: #6b7280; font-weight: 600;">Mode :</span>
-              <span style="color: #1f2937; font-weight: 700; margin-left: 6px;">
+              <span class="groups-text-muted" style="font-weight: 600;">Mode :</span>
+              <span class="groups-badge groups-badge-secondary">
                 ${results.metadata.mode === 'heterogeneous' ? '🔀 Hétérogène' : '⚖️ Homogène'}
               </span>
             </div>
@@ -1275,7 +1445,36 @@ const GroupsInterfaceV4 = (function() {
       swapSection.style.display = 'block';
     }
 
-    addToTimeline(`${results.stats.length} groupes générés avec succès`);
+    // Notification toast + timeline
+    GroupsNotifications.success(
+      'Génération réussie',
+      `${results.stats.length} groupes créés avec ${results.metadata.totalStudents} élèves`
+    );
+    addToTimeline(`${results.stats.length} groupes générés avec succès`, 'success');
+  }
+
+  /**
+   * Calcule les moyennes COM/TRA/PART/ABS de tous les élèves
+   */
+  function calculateAverageScores(groups) {
+    let totalCom = 0, totalTra = 0, totalPart = 0, totalAbs = 0, count = 0;
+
+    groups.forEach(group => {
+      group.students.forEach(student => {
+        totalCom += student.com || 0;
+        totalTra += student.tra || 0;
+        totalPart += student.part || 0;
+        totalAbs += student.abs || 0;
+        count++;
+      });
+    });
+
+    return {
+      com: count > 0 ? totalCom / count : 0,
+      tra: count > 0 ? totalTra / count : 0,
+      part: count > 0 ? totalPart / count : 0,
+      abs: count > 0 ? totalAbs / count : 0
+    };
   }
 
   /**
@@ -1283,7 +1482,7 @@ const GroupsInterfaceV4 = (function() {
    */
   function openSwapInterface() {
     if (!state.currentResults || !state.currentResults.groups) {
-      showToast('⚠️ Aucun groupe à afficher. Veuillez d\'abord générer les groupes.', 'warning');
+      GroupsNotifications.warning('Aucun groupe', 'Veuillez d\'abord générer les groupes');
       return;
     }
 
@@ -1291,7 +1490,7 @@ const GroupsInterfaceV4 = (function() {
     organizeGroupsByRegroupement();
 
     if (state.swapDashboard.allRegroupements.length === 0) {
-      showToast('⚠️ Aucun regroupement disponible.', 'warning');
+      GroupsNotifications.warning('Aucun regroupement', 'Aucun regroupement disponible');
       return;
     }
 
@@ -1312,10 +1511,10 @@ const GroupsInterfaceV4 = (function() {
     `;
 
     dashboard.innerHTML = `
-      <!-- Bouton fermeture (coin supérieur droit) -->
-      <!-- Boutons de contrôle (fixés en haut) -->
+      <!-- Boutons de contrôle principaux (coin supérieur droit) -->
       <div style="position: absolute; top: 16px; right: 16px; z-index: 10001; display: flex; gap: 8px;">
-        <button id="btn-open-readability-settings" style="
+        <!-- Bouton Paramètres -->
+        <button id="btn-open-settings" style="
           background: #8b5cf6;
           color: white;
           border: none;
@@ -1327,9 +1526,11 @@ const GroupsInterfaceV4 = (function() {
           box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
           transition: all 0.2s;
         " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#7c3aed'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#8b5cf6'">
-          <i class="fas fa-eye"></i> Paramètres
+          <i class="fas fa-cog"></i> Paramètres
         </button>
-        <button id="btn-toggle-header" style="
+
+        <!-- Bouton Statistiques -->
+        <button id="btn-open-stats" style="
           background: #3b82f6;
           color: white;
           border: none;
@@ -1340,9 +1541,79 @@ const GroupsInterfaceV4 = (function() {
           font-weight: 600;
           box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
           transition: all 0.2s;
-        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-          <i class="fas fa-eye${state.swapDashboard.headerVisible ? '-slash' : ''}"></i> ${state.swapDashboard.headerVisible ? 'Masquer' : 'Afficher'} Header
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#2563eb'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#3b82f6'">
+          <i class="fas fa-chart-bar"></i> Statistiques
         </button>
+
+        <!-- Bouton Export (avec dropdown) -->
+        <div style="position: relative;">
+          <button id="btn-export-menu" style="
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: all 0.2s;
+          " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#059669'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#10b981'">
+            <i class="fas fa-download"></i> Export <i class="fas fa-chevron-down" style="margin-left: 4px; font-size: 10px;"></i>
+          </button>
+          <div id="export-dropdown" style="
+            position: absolute;
+            top: 48px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 180px;
+            display: none;
+            overflow: hidden;
+            z-index: 10002;
+          ">
+            <button id="btn-export-pdf" style="
+              width: 100%;
+              padding: 12px 16px;
+              background: white;
+              border: none;
+              text-align: left;
+              cursor: pointer;
+              font-size: 13px;
+              font-weight: 500;
+              color: #1f2937;
+              transition: background 0.2s;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">
+              <i class="fas fa-file-pdf" style="color: #ef4444; width: 16px;"></i>
+              <span>Export PDF</span>
+            </button>
+            <button id="btn-export-csv" style="
+              width: 100%;
+              padding: 12px 16px;
+              background: white;
+              border: none;
+              text-align: left;
+              cursor: pointer;
+              font-size: 13px;
+              font-weight: 500;
+              color: #1f2937;
+              transition: background 0.2s;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              border-top: 1px solid #e5e7eb;
+            " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">
+              <i class="fas fa-file-csv" style="color: #10b981; width: 16px;"></i>
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Bouton Fermer -->
         <button id="close-dashboard" style="
           background: #ef4444;
           color: white;
@@ -1354,7 +1625,7 @@ const GroupsInterfaceV4 = (function() {
           font-weight: 600;
           box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
           transition: all 0.2s;
-        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#dc2626'" onmouseout="this.style.transform='translateY(0)'; this.style.background='#ef4444'">
           <i class="fas fa-times"></i> Fermer
         </button>
       </div>
@@ -1978,7 +2249,7 @@ const GroupsInterfaceV4 = (function() {
    */
   async function saveGroups(isTemp = true) {
     if (!state.currentResults || !state.currentResults.groups) {
-      showToast('❌ Aucun groupe à sauvegarder. Veuillez d\'abord générer des groupes.', 'warning');
+      GroupsNotifications.warning('Aucun groupe', 'Veuillez d\'abord générer des groupes');
       return;
     }
 
@@ -2060,11 +2331,11 @@ const GroupsInterfaceV4 = (function() {
 
       // Afficher le résultat
       if (result.success) {
-        const message = `✅ Sauvegarde ${mode} réussie ! ${result.created} onglet(s) créé(s)` +
+        const message = `Sauvegarde ${mode} réussie ! ${result.created} onglet(s) créé(s)` +
           (result.updated ? `, ${result.updated} mis à jour` : '') +
           (result.deleted && !isTemp ? `, ${result.deleted} TEMP supprimé(s)` : '');
 
-        showToast(message, 'success');
+        GroupsNotifications.success('Sauvegarde réussie', message);
         console.log('✅ Sauvegarde réussie:', result);
       } else {
         throw new Error(result.error || 'Erreur inconnue');
@@ -2073,7 +2344,7 @@ const GroupsInterfaceV4 = (function() {
     } catch (error) {
       loadingDiv.remove();
       console.error('❌ Erreur sauvegarde:', error);
-      showToast(`❌ Erreur sauvegarde ${mode}: ${error.message || error}`, 'error');
+      GroupsNotifications.error('Erreur de sauvegarde', `Erreur sauvegarde ${mode}: ${error.message || error}`);
     }
   }
 
@@ -2138,17 +2409,17 @@ const GroupsInterfaceV4 = (function() {
         // Afficher les résultats chargés
         displayResults(loadedResults);
 
-        showToast(`✅ ${result.groups.length} groupe(s) chargé(s) depuis les onglets`, 'success');
+        GroupsNotifications.success('Chargement réussi', `${result.groups.length} groupe(s) chargé(s) depuis les onglets`);
         console.log('✅ Groupes chargés:', loadedResults);
 
       } else {
-        showToast('ℹ️ Aucun groupe trouvé dans les onglets', 'info');
+        GroupsNotifications.info('Aucun groupe', 'Aucun groupe trouvé dans les onglets');
       }
 
     } catch (error) {
       loadingDiv.remove();
       console.error('❌ Erreur chargement:', error);
-      showToast(`❌ Erreur chargement: ${error.message || error}`, 'error');
+      GroupsNotifications.error('Erreur de chargement', `Erreur chargement: ${error.message || error}`);
     }
   }
 
@@ -2934,7 +3205,7 @@ const GroupsInterfaceV4 = (function() {
     const currentRegroupement = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
 
     if (!currentRegroupement) {
-      alert('Aucun regroupement à exporter');
+      GroupsNotifications.warning('Export impossible', 'Aucun regroupement à exporter');
       return;
     }
 
@@ -3012,7 +3283,7 @@ const GroupsInterfaceV4 = (function() {
     const currentRegroupement = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
 
     if (!currentRegroupement) {
-      alert('Aucun regroupement à exporter');
+      GroupsNotifications.warning('Export impossible', 'Aucun regroupement à exporter');
       return;
     }
 
@@ -3300,10 +3571,10 @@ const GroupsInterfaceV4 = (function() {
   /**
    * Ouvre le modal des paramètres de lisibilité depuis l'interface SWAP
    */
-  function openReadabilitySettingsModal() {
+  function openSettingsModal() {
     // Créer le modal
     const modal = document.createElement('div');
-    modal.id = 'readability-settings-modal';
+    modal.id = 'settings-modal';
     modal.style.cssText = `
       position: fixed;
       top: 0;
@@ -3325,15 +3596,15 @@ const GroupsInterfaceV4 = (function() {
         padding: 32px;
         max-width: 500px;
         width: 90%;
-        max-height: 80vh;
+        max-height: 85vh;
         overflow-y: auto;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
       ">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
           <h2 style="font-size: 20px; font-weight: 700; color: #1f2937; margin: 0;">
-            <i class="fas fa-eye"></i> Options de lisibilité
+            <i class="fas fa-cog"></i> Paramètres
           </h2>
-          <button id="close-readability-modal" style="
+          <button id="close-settings-modal" style="
             background: #f3f4f6;
             border: none;
             width: 32px;
@@ -3347,6 +3618,23 @@ const GroupsInterfaceV4 = (function() {
             <i class="fas fa-times"></i>
           </button>
         </div>
+
+        <!-- SECTION : Affichage -->
+        <div style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
+          <h3 style="font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">
+            <i class="fas fa-desktop"></i> Affichage
+          </h3>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='transparent'">
+            <input type="checkbox" id="modal-toggle-header" ${state.swapDashboard.headerVisible ? 'checked' : ''} style="cursor: pointer; width: 18px; height: 18px;">
+            <span style="font-weight: 500;">Afficher le header (navigation, stats, etc.)</span>
+          </label>
+        </div>
+
+        <!-- SECTION : Lisibilité -->
+        <div style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
+          <h3 style="font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">
+            <i class="fas fa-eye"></i> Lisibilité
+          </h3>
 
         <!-- Checkboxes d'affichage -->
         <div style="margin-bottom: 24px;">
@@ -3477,6 +3765,37 @@ const GroupsInterfaceV4 = (function() {
             </label>
           </div>
         </div>
+        </div>
+
+        <!-- SECTION : Actions -->
+        <div style="margin-bottom: 24px;">
+          <h3 style="font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">
+            <i class="fas fa-bolt"></i> Actions
+          </h3>
+          <button id="btn-regenerate-modal" style="
+            width: 100%;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+            transition: all 0.2s;
+          " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(249, 115, 22, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(249, 115, 22, 0.3)'">
+            <i class="fas fa-sync-alt"></i>
+            <span>Régénérer ce regroupement</span>
+          </button>
+          <p style="font-size: 11px; color: #9ca3af; margin: 8px 0 0 0; text-align: center;">
+            Les modifications manuelles seront perdues
+          </p>
+        </div>
 
         <div style="text-align: center; padding-top: 16px; border-top: 1px solid #e5e7eb;">
           <p style="font-size: 12px; color: #6b7280; margin: 0;">
@@ -3489,7 +3808,7 @@ const GroupsInterfaceV4 = (function() {
     document.body.appendChild(modal);
 
     // Initialiser les contrôles du modal
-    initModalReadabilityControls(modal);
+    initModalSettingsControls(modal);
 
     // Fermer le modal en cliquant sur le fond
     modal.addEventListener('click', (e) => {
@@ -3499,15 +3818,28 @@ const GroupsInterfaceV4 = (function() {
     });
 
     // Fermer avec le bouton X
-    modal.querySelector('#close-readability-modal').addEventListener('click', () => {
+    modal.querySelector('#close-settings-modal').addEventListener('click', () => {
       modal.remove();
     });
   }
 
   /**
-   * Initialise les contrôles de lisibilité dans le modal
+   * Initialise tous les contrôles du modal de paramètres
    */
-  function initModalReadabilityControls(modal) {
+  function initModalSettingsControls(modal) {
+    // === AFFICHAGE ===
+    const toggleHeaderCheckbox = modal.querySelector('#modal-toggle-header');
+    if (toggleHeaderCheckbox) {
+      toggleHeaderCheckbox.addEventListener('change', (e) => {
+        state.swapDashboard.headerVisible = e.target.checked;
+        const header = document.getElementById('dashboard-header');
+        if (header) {
+          header.style.display = e.target.checked ? 'block' : 'none';
+        }
+      });
+    }
+
+    // === LISIBILITÉ ===
     // Charger les préférences sauvegardées
     const savedPrefs = JSON.parse(localStorage.getItem('groups-readability-prefs') || '{}');
     const prefs = {
@@ -3599,6 +3931,18 @@ const GroupsInterfaceV4 = (function() {
         localStorage.setItem('groups-readability-prefs', JSON.stringify(prefs));
       });
     });
+
+    // === ACTIONS ===
+    const btnRegenerate = modal.querySelector('#btn-regenerate-modal');
+    if (btnRegenerate) {
+      btnRegenerate.addEventListener('click', () => {
+        if (confirm('Régénérer ce regroupement ?\n\nToutes les modifications manuelles (swaps, tris, etc.) seront perdues.')) {
+          modal.remove();
+          alert('🚧 Fonctionnalité de régénération à implémenter');
+          // TODO: Appeler la fonction de régénération ici
+        }
+      });
+    }
   }
 
   /**
@@ -3613,23 +3957,33 @@ const GroupsInterfaceV4 = (function() {
       });
     }
 
-    // Bouton Paramètres de lisibilité
-    const openReadabilitySettingsBtn = document.getElementById('btn-open-readability-settings');
-    if (openReadabilitySettingsBtn) {
-      openReadabilitySettingsBtn.addEventListener('click', openReadabilitySettingsModal);
+    // Bouton Paramètres
+    const openSettingsBtn = document.getElementById('btn-open-settings');
+    if (openSettingsBtn) {
+      openSettingsBtn.addEventListener('click', openSettingsModal);
     }
 
-    // Toggle header
-    const toggleHeaderBtn = document.getElementById('btn-toggle-header');
-    if (toggleHeaderBtn) {
-      toggleHeaderBtn.addEventListener('click', () => {
-        state.swapDashboard.headerVisible = !state.swapDashboard.headerVisible;
-        const header = document.getElementById('dashboard-header');
-        if (header) {
-          header.style.display = state.swapDashboard.headerVisible ? 'block' : 'none';
+    // Bouton Statistiques
+    const openStatsBtn = document.getElementById('btn-open-stats');
+    if (openStatsBtn) {
+      openStatsBtn.addEventListener('click', toggleStatsPanel);
+    }
+
+    // Menu Export (dropdown)
+    const exportMenuBtn = document.getElementById('btn-export-menu');
+    const exportDropdown = document.getElementById('export-dropdown');
+    if (exportMenuBtn && exportDropdown) {
+      exportMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isVisible = exportDropdown.style.display === 'block';
+        exportDropdown.style.display = isVisible ? 'none' : 'block';
+      });
+
+      // Fermer le dropdown en cliquant ailleurs
+      document.addEventListener('click', (e) => {
+        if (!exportMenuBtn.contains(e.target) && !exportDropdown.contains(e.target)) {
+          exportDropdown.style.display = 'none';
         }
-        // Mettre à jour le bouton
-        toggleHeaderBtn.innerHTML = `<i class="fas fa-eye${state.swapDashboard.headerVisible ? '-slash' : ''}"></i> ${state.swapDashboard.headerVisible ? 'Masquer' : 'Afficher'} Header`;
       });
     }
 
@@ -3671,22 +4025,21 @@ const GroupsInterfaceV4 = (function() {
       }
     });
 
-    // Boutons exports
-    document.getElementById('btn-export-pdf')?.addEventListener('click', exportToPDF);
-    document.getElementById('btn-export-csv')?.addEventListener('click', exportToCSV);
+    // Boutons exports (dans le dropdown)
+    document.getElementById('btn-export-pdf')?.addEventListener('click', () => {
+      exportToPDF();
+      if (exportDropdown) exportDropdown.style.display = 'none';
+    });
+    document.getElementById('btn-export-csv')?.addEventListener('click', () => {
+      exportToCSV();
+      if (exportDropdown) exportDropdown.style.display = 'none';
+    });
 
     // Boutons de tri
     document.getElementById('btn-sort-parity')?.addEventListener('click', () => sortAllGroups('parity'));
     document.getElementById('btn-sort-scoreF')?.addEventListener('click', () => sortAllGroups('scoreF'));
     document.getElementById('btn-sort-scoreM')?.addEventListener('click', () => sortAllGroups('scoreM'));
     document.getElementById('btn-sort-com')?.addEventListener('click', () => sortAllGroups('com'));
-
-    // Régénérer (placeholder)
-    document.getElementById('btn-regenerate')?.addEventListener('click', () => {
-      if (confirm('Régénérer ce regroupement ? Les modifications manuelles seront perdues.')) {
-        alert('Régénération à venir');
-      }
-    });
   }
 
   /**
@@ -3796,8 +4149,8 @@ const GroupsInterfaceV4 = (function() {
    * Affiche une erreur
    */
   function displayError(error) {
-    alert('Erreur : ' + error.message);
-    addToTimeline(`Erreur : ${error.message}`);
+    GroupsNotifications.error('Erreur', error.message);
+    addToTimeline(`Erreur : ${error.message}`, 'error');
   }
 
   // ════════════════════════════════════════════════════════════════
