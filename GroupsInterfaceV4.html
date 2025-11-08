@@ -359,9 +359,11 @@ const GroupsInterfaceV4 = (function() {
      * @param {number} customSize - Taille optionnelle du radar (défaut: 160)
      * @returns {string} - SVG HTML string
      */
-    const size = customSize || 160;
+    const baseSize = customSize || 160;
+    // ✅ Augmenter le viewBox pour inclure les labels (+ 30px de chaque côté)
+    const size = baseSize + 60;
     const center = size / 2;
-    const maxRadius = customSize ? (customSize / 2) - 20 : 60;
+    const maxRadius = customSize ? (customSize / 2) - 10 : 60;
     const levels = 4; // Niveaux de 1 à 4
 
     // Labels et couleurs
@@ -398,11 +400,11 @@ const GroupsInterfaceV4 = (function() {
       axes += `<line x1="${center}" y1="${center}" x2="${x}" y2="${y}" stroke="#d1d5db" stroke-width="1"/>`;
     });
 
-    // Labels
+    // Labels (avec plus d'espace)
     let labels = '';
     criteria.forEach(c => {
       const angleRad = (c.angle - 90) * (Math.PI / 180);
-      const labelRadius = maxRadius + 20;
+      const labelRadius = maxRadius + 25; // ✅ Plus d'espace pour les labels
       const x = center + labelRadius * Math.cos(angleRad);
       const y = center + labelRadius * Math.sin(angleRad);
       const value = scores[c.key] || 0;
@@ -419,7 +421,7 @@ const GroupsInterfaceV4 = (function() {
     });
 
     return `
-      <svg class="groups-radar-container" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+      <svg class="groups-radar-container" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width: ${baseSize}px; height: ${baseSize}px; overflow: visible;">
         ${gridCircles}
         ${axes}
         <polygon points="${points}" fill="rgba(99, 102, 241, 0.2)" stroke="rgba(99, 102, 241, 0.8)" stroke-width="2"/>
@@ -2471,6 +2473,16 @@ const GroupsInterfaceV4 = (function() {
                   ">
                     ${student.lastName} ${student.firstName}
                   </span>
+                  ${student.SOURCE || student.source ? `
+                    <span style="
+                      font-size: 10px;
+                      padding: 2px 5px;
+                      background: #fef3c7;
+                      color: #92400e;
+                      border-radius: 3px;
+                      font-weight: 600;
+                    " title="Classe source (origine)">${student.SOURCE || student.source}</span>
+                  ` : ''}
                   ${student.class ? `
                     <span style="
                       font-size: 10px;
@@ -3877,7 +3889,7 @@ const GroupsInterfaceV4 = (function() {
               padding: 4px 12px;
               border-radius: 4px;
               display: inline-block;
-            ">${student.groupName || 'Groupe'} • ${student.class || ''}</div>
+            ">${student.groupName || 'Groupe'} • ${student.class || ''}${(student.SOURCE || student.source) ? ' • Source: ' + (student.SOURCE || student.source) : ''}</div>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 12px;">
