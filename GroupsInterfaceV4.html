@@ -780,7 +780,7 @@ const GroupsInterfaceV4 = (function() {
     updateRecap();
 
     // Ajouter à la timeline
-    addToTimeline(`Scénario "${scenario}" sélectionné`);
+    addToTimeline(`Scénario "${scenario}" sélectionné`, 'info');
 
     console.log('✅ Scénario sélectionné:', scenario);
   }
@@ -812,7 +812,7 @@ const GroupsInterfaceV4 = (function() {
     updateRecap();
 
     // Ajouter à la timeline
-    addToTimeline(`Mode "${mode}" sélectionné`);
+    addToTimeline(`Mode "${mode}" sélectionné`, 'info');
 
     console.log('✅ Mode sélectionné:', mode);
   }
@@ -983,7 +983,7 @@ const GroupsInterfaceV4 = (function() {
     updateRecap();
 
     // Ajouter à la timeline
-    addToTimeline(`Langue "${language}" sélectionnée`);
+    addToTimeline(`Langue "${language}" sélectionnée`, 'info');
 
     console.log('✅ Langue sélectionnée:', language);
   }
@@ -1014,7 +1014,7 @@ const GroupsInterfaceV4 = (function() {
 
     state.regroupements.push(regroupement);
     renderRegroupements();
-    addToTimeline(`Regroupement "${regroupement.name}" ajouté`);
+    addToTimeline(`Regroupement "${regroupement.name}" ajouté`, 'success');
   }
 
   /**
@@ -1174,7 +1174,7 @@ const GroupsInterfaceV4 = (function() {
             display.textContent = reg.classes.length > 0 ? reg.classes.join(', ') : 'Aucune';
           }
 
-          addToTimeline(`"${reg.name}" : ${reg.classes.length} classe(s) sélectionnée(s)`);
+          addToTimeline(`"${reg.name}" : ${reg.classes.length} classe(s) sélectionnée(s)`, 'info');
         }
       });
     });
@@ -1186,7 +1186,7 @@ const GroupsInterfaceV4 = (function() {
         const reg = state.regroupements.find(r => r.id === id);
         if (reg) {
           reg.name = e.target.value;
-          addToTimeline(`"${reg.name}" renommé`);
+          addToTimeline(`"${reg.name}" renommé`, 'info');
         }
       });
     });
@@ -1198,7 +1198,7 @@ const GroupsInterfaceV4 = (function() {
         const reg = state.regroupements.find(r => r.id === id);
         if (reg) {
           reg.numGroups = parseInt(e.target.value);
-          addToTimeline(`"${reg.name}" : ${reg.numGroups} groupes`);
+          addToTimeline(`"${reg.name}" : ${reg.numGroups} groupes`, 'info');
         }
       });
     });
@@ -1217,7 +1217,7 @@ const GroupsInterfaceV4 = (function() {
           };
           state.regroupements.push(duplicate);
           renderRegroupements();
-          addToTimeline(`"${duplicate.name}" créé par duplication`);
+          addToTimeline(`"${duplicate.name}" créé par duplication`, 'success');
         }
       });
     });
@@ -1230,7 +1230,7 @@ const GroupsInterfaceV4 = (function() {
         if (reg && confirm(`Supprimer "${reg.name}" ?`)) {
           state.regroupements = state.regroupements.filter(r => r.id !== id);
           renderRegroupements();
-          addToTimeline(`"${reg.name}" supprimé`);
+          addToTimeline(`"${reg.name}" supprimé`, 'warning');
         }
       });
     });
@@ -1241,18 +1241,18 @@ const GroupsInterfaceV4 = (function() {
    */
   function generateGroups() {
     if (!state.scenario || !state.mode) {
-      showToast('⚠️ Veuillez sélectionner un scénario et un mode', 'warning');
+      GroupsNotifications.warning('Configuration incomplète', 'Veuillez sélectionner un scénario et un mode');
       return;
     }
 
     // Pour LV2, vérifier qu'une langue est sélectionnée
     if (state.scenario === 'lv2' && !state.selectedLanguage) {
-      showToast('⚠️ Veuillez sélectionner une langue pour le scénario LV2', 'warning');
+      GroupsNotifications.warning('Langue manquante', 'Veuillez sélectionner une langue pour le scénario LV2');
       return;
     }
 
     if (state.regroupements.length === 0) {
-      showToast('⚠️ Veuillez ajouter au moins un regroupement', 'warning');
+      GroupsNotifications.warning('Aucun regroupement', 'Veuillez ajouter au moins un regroupement');
       return;
     }
 
@@ -1269,7 +1269,7 @@ const GroupsInterfaceV4 = (function() {
     document.dispatchEvent(event);
     console.log('🚀 Événement groups:generate émis', event.detail);
 
-    addToTimeline('Génération des groupes lancée...');
+    addToTimeline('Génération des groupes lancée...', 'info');
   }
 
   /**
@@ -1281,7 +1281,7 @@ const GroupsInterfaceV4 = (function() {
     state.regroupements = [];
     state.currentResults = null;
     renderRegroupements();
-    addToTimeline('Interface réinitialisée');
+    addToTimeline('Interface réinitialisée', 'info');
   }
 
   /**
@@ -1313,19 +1313,31 @@ const GroupsInterfaceV4 = (function() {
   }
 
   /**
-   * Ajoute une entrée à la timeline
+   * Ajoute une entrée à la timeline avec type et icône
    */
-  function addToTimeline(message) {
+  function addToTimeline(message, type = 'info') {
     const timestamp = new Date().toLocaleTimeString('fr-FR');
-    state.timeline.push({ timestamp, message });
+    state.timeline.push({ timestamp, message, type });
 
     const timelineContent = document.getElementById('timeline-content');
     if (timelineContent) {
+      const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+      };
+
       const entry = document.createElement('div');
-      entry.style.marginBottom = '8px';
+      entry.style.cssText = 'margin-bottom: 8px; display: flex; align-items: center; gap: 8px;';
       entry.innerHTML = `
-        <span style="color: #1f2937;">[${timestamp}]</span>
-        ${message}
+        <div class="timeline-icon type-${type}">
+          <i class="fas ${icons[type] || icons.info}" style="font-size: 10px;"></i>
+        </div>
+        <div style="flex: 1;">
+          <span style="color: var(--groups-gray-600); font-size: var(--font-xs);">[${timestamp}]</span>
+          <span style="color: var(--groups-gray-900); margin-left: 8px;">${message}</span>
+        </div>
       `;
       timelineContent.appendChild(entry);
 
@@ -1340,6 +1352,9 @@ const GroupsInterfaceV4 = (function() {
   function displayResults(results) {
     state.currentResults = results;
 
+    // Calculer les moyennes globales COM/TRA/PART/ABS
+    const avgScores = calculateAverageScores(results.groups);
+
     // Afficher les statistiques
     const statsSection = document.getElementById('recap-stats');
     const statsContent = document.getElementById('stats-content');
@@ -1347,70 +1362,54 @@ const GroupsInterfaceV4 = (function() {
     if (statsSection && statsContent) {
       statsSection.style.display = 'block';
       statsContent.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-          <!-- Badge Groupes générés -->
-          <div style="
-            padding: 12px 16px;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-          ">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 20px;">📊</span>
-              <span style="font-size: 13px; font-weight: 600; color: white; opacity: 0.95;">
-                Groupes générés
-              </span>
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- Stats principales avec design system -->
+          <div class="groups-grid-2">
+            <div class="groups-stat-card">
+              <div class="groups-stat-label">
+                <i class="fas fa-layer-group"></i> Groupes
+              </div>
+              <div class="groups-stat-value">${results.stats.length}</div>
+              <div class="groups-stat-subtitle">Regroupements créés</div>
             </div>
-            <div style="
-              font-size: 24px;
-              font-weight: 800;
-              color: white;
-              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            ">
-              ${results.stats.length}
+
+            <div class="groups-stat-card">
+              <div class="groups-stat-label">
+                <i class="fas fa-users"></i> Élèves
+              </div>
+              <div class="groups-stat-value">${results.metadata.totalStudents}</div>
+              <div class="groups-stat-subtitle">Total répartis</div>
             </div>
           </div>
 
-          <!-- Badge Total élèves -->
-          <div style="
-            padding: 12px 16px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-          ">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 20px;">👥</span>
-              <span style="font-size: 13px; font-weight: 600; color: white; opacity: 0.95;">
-                Total élèves
-              </span>
+          <!-- Moyennes avec radar -->
+          <div class="groups-stat-card" style="text-align: center;">
+            <div class="groups-stat-label" style="text-align: center; margin-bottom: 12px;">
+              <i class="fas fa-chart-radar"></i> Profil moyen des groupes
             </div>
-            <div style="
-              font-size: 24px;
-              font-weight: 800;
-              color: white;
-              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            ">
-              ${results.metadata.totalStudents}
+            ${createMiniRadar(avgScores)}
+            <div class="groups-stat-badges" style="justify-content: center; margin-top: 16px;">
+              ${createCriteriaBadge('com', avgScores.com)}
+              ${createCriteriaBadge('tra', avgScores.tra)}
+              ${createCriteriaBadge('part', avgScores.part)}
+              ${createCriteriaBadge('abs', avgScores.abs)}
             </div>
           </div>
 
-          <!-- Badge Scenario -->
+          <!-- Métadonnées -->
           ${results.metadata.scenario ? `
             <div style="
-              padding: 8px 12px;
-              background: #f3f4f6;
-              border-radius: 6px;
-              border-left: 3px solid #6366f1;
-              font-size: 12px;
+              padding: 10px 14px;
+              background: var(--groups-gray-50);
+              border-radius: var(--radius-md);
+              border-left: 3px solid var(--groups-primary);
+              font-size: var(--font-sm);
+              display: flex;
+              align-items: center;
+              gap: 8px;
             ">
-              <span style="color: #6b7280; font-weight: 600;">Scénario :</span>
-              <span style="color: #1f2937; font-weight: 700; margin-left: 6px;">
+              <span class="groups-text-muted" style="font-weight: 600;">Scénario :</span>
+              <span class="groups-badge groups-badge-primary">
                 ${results.metadata.scenario === 'besoins' ? '🎯 Besoins' :
                   results.metadata.scenario === 'lv2' ? '🌐 LV2' :
                   results.metadata.scenario === 'options' ? '⚙️ Options' :
@@ -1419,17 +1418,19 @@ const GroupsInterfaceV4 = (function() {
             </div>
           ` : ''}
 
-          <!-- Badge Mode -->
           ${results.metadata.mode ? `
             <div style="
-              padding: 8px 12px;
-              background: #f3f4f6;
-              border-radius: 6px;
-              border-left: 3px solid #8b5cf6;
-              font-size: 12px;
+              padding: 10px 14px;
+              background: var(--groups-gray-50);
+              border-radius: var(--radius-md);
+              border-left: 3px solid var(--groups-secondary);
+              font-size: var(--font-sm);
+              display: flex;
+              align-items: center;
+              gap: 8px;
             ">
-              <span style="color: #6b7280; font-weight: 600;">Mode :</span>
-              <span style="color: #1f2937; font-weight: 700; margin-left: 6px;">
+              <span class="groups-text-muted" style="font-weight: 600;">Mode :</span>
+              <span class="groups-badge groups-badge-secondary">
                 ${results.metadata.mode === 'heterogeneous' ? '🔀 Hétérogène' : '⚖️ Homogène'}
               </span>
             </div>
@@ -1444,7 +1445,36 @@ const GroupsInterfaceV4 = (function() {
       swapSection.style.display = 'block';
     }
 
-    addToTimeline(`${results.stats.length} groupes générés avec succès`);
+    // Notification toast + timeline
+    GroupsNotifications.success(
+      'Génération réussie',
+      `${results.stats.length} groupes créés avec ${results.metadata.totalStudents} élèves`
+    );
+    addToTimeline(`${results.stats.length} groupes générés avec succès`, 'success');
+  }
+
+  /**
+   * Calcule les moyennes COM/TRA/PART/ABS de tous les élèves
+   */
+  function calculateAverageScores(groups) {
+    let totalCom = 0, totalTra = 0, totalPart = 0, totalAbs = 0, count = 0;
+
+    groups.forEach(group => {
+      group.students.forEach(student => {
+        totalCom += student.com || 0;
+        totalTra += student.tra || 0;
+        totalPart += student.part || 0;
+        totalAbs += student.abs || 0;
+        count++;
+      });
+    });
+
+    return {
+      com: count > 0 ? totalCom / count : 0,
+      tra: count > 0 ? totalTra / count : 0,
+      part: count > 0 ? totalPart / count : 0,
+      abs: count > 0 ? totalAbs / count : 0
+    };
   }
 
   /**
@@ -1452,7 +1482,7 @@ const GroupsInterfaceV4 = (function() {
    */
   function openSwapInterface() {
     if (!state.currentResults || !state.currentResults.groups) {
-      showToast('⚠️ Aucun groupe à afficher. Veuillez d\'abord générer les groupes.', 'warning');
+      GroupsNotifications.warning('Aucun groupe', 'Veuillez d\'abord générer les groupes');
       return;
     }
 
@@ -1460,7 +1490,7 @@ const GroupsInterfaceV4 = (function() {
     organizeGroupsByRegroupement();
 
     if (state.swapDashboard.allRegroupements.length === 0) {
-      showToast('⚠️ Aucun regroupement disponible.', 'warning');
+      GroupsNotifications.warning('Aucun regroupement', 'Aucun regroupement disponible');
       return;
     }
 
@@ -2219,7 +2249,7 @@ const GroupsInterfaceV4 = (function() {
    */
   async function saveGroups(isTemp = true) {
     if (!state.currentResults || !state.currentResults.groups) {
-      showToast('❌ Aucun groupe à sauvegarder. Veuillez d\'abord générer des groupes.', 'warning');
+      GroupsNotifications.warning('Aucun groupe', 'Veuillez d\'abord générer des groupes');
       return;
     }
 
@@ -2301,11 +2331,11 @@ const GroupsInterfaceV4 = (function() {
 
       // Afficher le résultat
       if (result.success) {
-        const message = `✅ Sauvegarde ${mode} réussie ! ${result.created} onglet(s) créé(s)` +
+        const message = `Sauvegarde ${mode} réussie ! ${result.created} onglet(s) créé(s)` +
           (result.updated ? `, ${result.updated} mis à jour` : '') +
           (result.deleted && !isTemp ? `, ${result.deleted} TEMP supprimé(s)` : '');
 
-        showToast(message, 'success');
+        GroupsNotifications.success('Sauvegarde réussie', message);
         console.log('✅ Sauvegarde réussie:', result);
       } else {
         throw new Error(result.error || 'Erreur inconnue');
@@ -2314,7 +2344,7 @@ const GroupsInterfaceV4 = (function() {
     } catch (error) {
       loadingDiv.remove();
       console.error('❌ Erreur sauvegarde:', error);
-      showToast(`❌ Erreur sauvegarde ${mode}: ${error.message || error}`, 'error');
+      GroupsNotifications.error('Erreur de sauvegarde', `Erreur sauvegarde ${mode}: ${error.message || error}`);
     }
   }
 
@@ -2379,17 +2409,17 @@ const GroupsInterfaceV4 = (function() {
         // Afficher les résultats chargés
         displayResults(loadedResults);
 
-        showToast(`✅ ${result.groups.length} groupe(s) chargé(s) depuis les onglets`, 'success');
+        GroupsNotifications.success('Chargement réussi', `${result.groups.length} groupe(s) chargé(s) depuis les onglets`);
         console.log('✅ Groupes chargés:', loadedResults);
 
       } else {
-        showToast('ℹ️ Aucun groupe trouvé dans les onglets', 'info');
+        GroupsNotifications.info('Aucun groupe', 'Aucun groupe trouvé dans les onglets');
       }
 
     } catch (error) {
       loadingDiv.remove();
       console.error('❌ Erreur chargement:', error);
-      showToast(`❌ Erreur chargement: ${error.message || error}`, 'error');
+      GroupsNotifications.error('Erreur de chargement', `Erreur chargement: ${error.message || error}`);
     }
   }
 
@@ -3175,7 +3205,7 @@ const GroupsInterfaceV4 = (function() {
     const currentRegroupement = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
 
     if (!currentRegroupement) {
-      alert('Aucun regroupement à exporter');
+      GroupsNotifications.warning('Export impossible', 'Aucun regroupement à exporter');
       return;
     }
 
@@ -3253,7 +3283,7 @@ const GroupsInterfaceV4 = (function() {
     const currentRegroupement = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
 
     if (!currentRegroupement) {
-      alert('Aucun regroupement à exporter');
+      GroupsNotifications.warning('Export impossible', 'Aucun regroupement à exporter');
       return;
     }
 
@@ -4119,8 +4149,8 @@ const GroupsInterfaceV4 = (function() {
    * Affiche une erreur
    */
   function displayError(error) {
-    alert('Erreur : ' + error.message);
-    addToTimeline(`Erreur : ${error.message}`);
+    GroupsNotifications.error('Erreur', error.message);
+    addToTimeline(`Erreur : ${error.message}`, 'error');
   }
 
   // ════════════════════════════════════════════════════════════════
