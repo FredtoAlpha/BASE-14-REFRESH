@@ -211,6 +211,7 @@ const GroupsInterfaceV4 = (function() {
       comparisonVisible: true,       // Bandeau comparaison visible
       headerVisible: true,           // Header avec boutons visible
       radarVisible: false,           // Radar charts dans l'en-tête groupe (déployable)
+      groupHeaderCompact: false,     // Mode compact pour les en-têtes de groupes
       sortState: {}                  // État des tris (parity, scoreF, scoreM, com) : { critère: 'asc'|'desc' }
     }
   };
@@ -1750,7 +1751,7 @@ const GroupsInterfaceV4 = (function() {
               transition: all 0.2s;
               white-space: nowrap;
             ">
-              <i class="fas fa-save"></i> TEMP
+              <i class="fas fa-save"></i> Sauver brouillon
             </button>
             <button id="btn-finalize" style="
               padding: 8px 16px;
@@ -1764,7 +1765,7 @@ const GroupsInterfaceV4 = (function() {
               transition: all 0.2s;
               white-space: nowrap;
             ">
-              <i class="fas fa-check"></i> Final
+              <i class="fas fa-check"></i> FINALISER GROUPES
             </button>
           </div>
         </div>
@@ -1843,12 +1844,14 @@ const GroupsInterfaceV4 = (function() {
 
           <!-- Container groupes responsive -->
           <div id="swap-groups-container" style="
-            display: flex;
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(280px, 1fr);
             gap: 16px;
             flex: 1;
             min-height: 0;
-            flex-wrap: nowrap;
             overflow-x: auto;
+            align-items: stretch;
           "></div>
         </div>
 
@@ -1934,6 +1937,14 @@ const GroupsInterfaceV4 = (function() {
         abs: total > 0 ? sumAbs / total : 0
       };
 
+      // Styles conditionnels pour le mode compact
+      const isCompact = state.swapDashboard.groupHeaderCompact;
+      const headerPadding = isCompact ? '8px' : '16px';
+      const titleFontSize = isCompact ? '14px' : '18px';
+      const titleMargin = isCompact ? '6px' : '12px';
+      const badgePadding = isCompact ? '4px 8px' : '6px 10px';
+      const badgeFontSize = isCompact ? '12px' : '14px';
+
       return `
         <div class="swap-group" data-group-index="${groupIndex}" style="
           background: white;
@@ -1950,35 +1961,35 @@ const GroupsInterfaceV4 = (function() {
           <div style="
             background: linear-gradient(135deg, #6d28d9 0%, #4f46e5 100%);
             color: white;
-            padding: 16px;
+            padding: ${headerPadding};
             border-radius: 10px 10px 0 0;
             box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3);
           ">
             <!-- LIGNE 1 : Nom du groupe -->
-            <div style="font-size: 18px; font-weight: 700; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            <div style="font-size: ${titleFontSize}; font-weight: 700; margin-bottom: ${titleMargin}; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
               ${group.name}
             </div>
 
             <!-- LIGNE 2 : Stats + Scores + Badges + Toggle Radar -->
-            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 14px;">
+            <div style="display: flex; align-items: center; gap: ${isCompact ? '8px' : '12px'}; flex-wrap: wrap; font-size: ${badgeFontSize};">
               <!-- Total élèves (GRAS) -->
-              <span style="font-weight: 700; background: rgba(255, 255, 255, 0.15); padding: 6px 10px; border-radius: 6px;">
+              <span style="font-weight: 700; background: rgba(255, 255, 255, 0.15); padding: ${badgePadding}; border-radius: 6px;">
                 <i class="fas fa-users"></i> ${total} élève${total > 1 ? 's' : ''}
               </span>
 
               <!-- Parité F/M (GRAS) -->
-              <span style="font-weight: 700; background: rgba(255, 255, 255, 0.15); padding: 6px 10px; border-radius: 6px;">
+              <span style="font-weight: 700; background: rgba(255, 255, 255, 0.15); padding: ${badgePadding}; border-radius: 6px;">
                 <i class="fas fa-venus" style="color: #fcd34d;"></i> ${girls}F /
                 <i class="fas fa-mars" style="color: #93c5fd;"></i> ${boys}M
               </span>
 
               <!-- Moyenne Français -->
-              <span style="background: rgba(255, 255, 255, 0.15); padding: 6px 10px; border-radius: 6px;">
+              <span style="background: rgba(255, 255, 255, 0.15); padding: ${badgePadding}; border-radius: 6px;">
                 <span style="font-weight: 600;">F:</span> ${avgF}
               </span>
 
               <!-- Moyenne Maths -->
-              <span style="background: rgba(255, 255, 255, 0.15); padding: 6px 10px; border-radius: 6px;">
+              <span style="background: rgba(255, 255, 255, 0.15); padding: ${badgePadding}; border-radius: 6px;">
                 <span style="font-weight: 600;">M:</span> ${avgM}
               </span>
 
@@ -2001,10 +2012,10 @@ const GroupsInterfaceV4 = (function() {
                     background: rgba(255, 255, 255, 0.2);
                     border: 1px solid rgba(255, 255, 255, 0.3);
                     color: white;
-                    padding: 6px 10px;
+                    padding: ${badgePadding};
                     border-radius: 6px;
                     cursor: pointer;
-                    font-size: 12px;
+                    font-size: ${isCompact ? '11px' : '12px'};
                     transition: all 0.2s;
                     margin-left: auto;
                   "
@@ -2019,15 +2030,15 @@ const GroupsInterfaceV4 = (function() {
             <!-- LIGNE 3 : Radar déployable (fond blanc) -->
             ${total > 0 && state.swapDashboard.radarVisible ? `
               <div style="
-                margin-top: 12px;
+                margin-top: ${isCompact ? '8px' : '12px'};
                 background: white;
-                padding: 12px;
+                padding: ${isCompact ? '8px' : '12px'};
                 border-radius: 8px;
                 display: flex;
                 justify-content: center;
                 box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
               ">
-                ${createMiniRadar(groupScores, 100)}
+                ${createMiniRadar(groupScores, isCompact ? 80 : 100)}
               </div>
             ` : ''}
           </div>
@@ -2435,6 +2446,9 @@ const GroupsInterfaceV4 = (function() {
 
     // ✅ NOUVEAU : Attacher les événements de clic pour le mode Focus élève
     attachStudentFocusEvents();
+
+    // ✅ NOUVEAU : Attacher les événements pour le toggle radar
+    attachRadarToggleEvents();
   }
 
   /**
@@ -2464,6 +2478,22 @@ const GroupsInterfaceV4 = (function() {
         if (e.key === 'Enter') {
           card.dispatchEvent(new Event('dblclick'));
         }
+      });
+    });
+  }
+
+  /**
+   * Attache les événements pour le bouton toggle radar
+   */
+  function attachRadarToggleEvents() {
+    const radarButtons = document.querySelectorAll('.btn-toggle-radar-group');
+    radarButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Toggle l'état global du radar
+        state.swapDashboard.radarVisible = !state.swapDashboard.radarVisible;
+        // Re-rendre le regroupement pour afficher/masquer les radars
+        renderCurrentRegroupement();
       });
     });
   }
@@ -3226,21 +3256,29 @@ const GroupsInterfaceV4 = (function() {
                 <tr>
                   <th>Nom</th>
                   <th>Prénom</th>
+                  <th>Classe</th>
                   <th>Sexe</th>
                   <th>Score F</th>
                   <th>Score M</th>
                   <th>COM</th>
+                  <th>TRA</th>
+                  <th>PART</th>
+                  <th>ABS</th>
                 </tr>
               </thead>
               <tbody>
                 ${group.students.map(s => `
                   <tr>
-                    <td>${s.nom || ''}</td>
-                    <td>${s.prenom || ''}</td>
+                    <td>${s.lastName || s.nom || ''}</td>
+                    <td>${s.firstName || s.prenom || ''}</td>
+                    <td>${s.class || s.classe || ''}</td>
                     <td>${s.sexe || ''}</td>
                     <td>${s.scoreF?.toFixed(1) || '-'}</td>
                     <td>${s.scoreM?.toFixed(1) || '-'}</td>
-                    <td>${s.scores?.COM?.toFixed(1) || '-'}</td>
+                    <td>${s.com?.toFixed(1) || s.scores?.COM?.toFixed(1) || '-'}</td>
+                    <td>${s.tra?.toFixed(1) || s.scores?.TRA?.toFixed(1) || '-'}</td>
+                    <td>${s.part?.toFixed(1) || s.scores?.PART?.toFixed(1) || '-'}</td>
+                    <td>${s.abs?.toFixed(1) || s.scores?.ABS?.toFixed(1) || '-'}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -3273,21 +3311,22 @@ const GroupsInterfaceV4 = (function() {
     }
 
     // Créer le CSV
-    let csv = 'Groupe,Nom,Prénom,Sexe,Score F,Score M,COM,TRA,PART,ABS,LV2,Options\n';
+    let csv = 'Groupe,Nom,Prénom,Classe,Sexe,Score F,Score M,COM,TRA,PART,ABS,LV2,Options\n';
 
     currentRegroupement.groups.forEach((group, groupIdx) => {
       group.students.forEach(student => {
         const row = [
           `Groupe ${groupIdx + 1}`,
-          student.nom || '',
-          student.prenom || '',
+          student.lastName || student.nom || '',
+          student.firstName || student.prenom || '',
+          student.class || student.classe || '',
           student.sexe || '',
           student.scoreF?.toFixed(2) || '0',
           student.scoreM?.toFixed(2) || '0',
-          student.scores?.COM?.toFixed(2) || '0',
-          student.scores?.TRA?.toFixed(2) || '0',
-          student.scores?.PART?.toFixed(2) || '0',
-          student.scores?.ABS?.toFixed(2) || '0',
+          student.com?.toFixed(2) || student.scores?.COM?.toFixed(2) || '0',
+          student.tra?.toFixed(2) || student.scores?.TRA?.toFixed(2) || '0',
+          student.part?.toFixed(2) || student.scores?.PART?.toFixed(2) || '0',
+          student.abs?.toFixed(2) || student.scores?.ABS?.toFixed(2) || '0',
           student.lv2 || '',
           Array.isArray(student.options) ? student.options.join(';') : ''
         ];
@@ -3618,6 +3657,10 @@ const GroupsInterfaceV4 = (function() {
               <input type="checkbox" id="modal-toggle-radar" ${state.swapDashboard.radarVisible ? 'checked' : ''} style="cursor: pointer; width: 18px; height: 18px;">
               <span style="font-weight: 500;">Afficher les radars dans l'en-tête groupe (déployable)</span>
             </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='transparent'">
+              <input type="checkbox" id="modal-toggle-compact-header" ${state.swapDashboard.groupHeaderCompact ? 'checked' : ''} style="cursor: pointer; width: 18px; height: 18px;">
+              <span style="font-weight: 500;">Mode compact pour les en-têtes de groupes</span>
+            </label>
           </div>
         </div>
 
@@ -3842,6 +3885,15 @@ const GroupsInterfaceV4 = (function() {
       toggleRadarCheckbox.addEventListener('change', (e) => {
         state.swapDashboard.radarVisible = e.target.checked;
         // Re-render les groupes pour afficher/masquer le radar
+        renderCurrentRegroupement();
+      });
+    }
+
+    const toggleCompactHeaderCheckbox = modal.querySelector('#modal-toggle-compact-header');
+    if (toggleCompactHeaderCheckbox) {
+      toggleCompactHeaderCheckbox.addEventListener('change', (e) => {
+        state.swapDashboard.groupHeaderCompact = e.target.checked;
+        // Re-render les groupes pour appliquer le mode compact
         renderCurrentRegroupement();
       });
     }
