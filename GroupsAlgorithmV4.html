@@ -493,9 +493,18 @@ const GroupsAlgorithmV4 = (function() {
     // ✨ NOUVEAU : Déterminer les pondérations à utiliser
     let activeWeights;
     if (customWeights) {
-      // Utiliser les pondérations personnalisées et les valider
-      console.log('🎛️ Utilisation des pondérations personnalisées:', customWeights);
-      activeWeights = validateWeights(customWeights, 'custom');
+      // ✨ STRATÉGIE DE MERGE : Partir du scénario puis appliquer les customWeights
+      // Cela permet au joystick de ne gérer que COM/TRA/PART/ABS
+      // tout en conservant scoreF/scoreM du scénario
+      const baseWeights = SCENARIO_WEIGHTS[scenario] || SCENARIO_WEIGHTS.besoins;
+      const mergedWeights = { ...baseWeights, ...customWeights };
+
+      console.log('🎛️ Merge des pondérations personnalisées avec le scénario:', scenario);
+      console.log('   Base (scénario):', baseWeights);
+      console.log('   Custom (joystick):', customWeights);
+      console.log('   Résultat (merged):', mergedWeights);
+
+      activeWeights = validateWeights(mergedWeights, 'custom');
     } else {
       // Utiliser les pondérations par défaut du scénario
       activeWeights = SCENARIO_WEIGHTS[scenario] || SCENARIO_WEIGHTS.besoins;
