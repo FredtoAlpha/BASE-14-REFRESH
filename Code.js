@@ -1808,6 +1808,7 @@ function loadFINSheetsWithScores() {
 
         const scoreF = parseFloat(row[20]) || 0;
         const scoreM = parseFloat(row[21]) || 0;
+        const sourceClass = (row[14] || '').toString().trim(); // Colonne O : classe d'origine
 
         // ⚠️ Vérification : si SCORE F et SCORE M sont tous les deux à 0, c'est peut-être un problème
         if (scoreF === 0 && scoreM === 0) {
@@ -1821,7 +1822,14 @@ function loadFINSheetsWithScores() {
           sexe: (row[4] || '').toString().trim().toUpperCase(),
           lv2: (row[5] || '').toString().trim(),
           opt: (row[6] || '').toString().trim(),
-          SOURCE: (row[14] || '').toString().trim(), // Colonne O : Classe d'origine
+          // Alias pour la classe actuelle
+          class: className,
+          classe: className,
+          className: className,
+          // Alias pour la classe source (origine)
+          SOURCE: sourceClass,
+          source: sourceClass,
+          _SOURCE_CLASS: sourceClass || className,
           scores: {
             // 🔑 SCORES ACADÉMIQUES (CRITIQUES POUR L'ALGORITHME DE GROUPES)
             F: scoreF,    // Colonne U : Score Français
