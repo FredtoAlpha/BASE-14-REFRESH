@@ -16,6 +16,25 @@
   // Cache pour les données FIN
   let finSheetsDataCache = null;
 
+  const DEFAULT_CRITERIA_WEIGHTS = { com: 1, tra: 1, part: 1, abs: 1 };
+
+  function sanitizeCriteriaWeights(weights = {}) {
+    const sanitized = { ...DEFAULT_CRITERIA_WEIGHTS };
+
+    if (!weights || typeof weights !== 'object') {
+      return sanitized;
+    }
+
+    ['com', 'tra', 'part', 'abs'].forEach(key => {
+      const value = parseFloat(weights[key]);
+      if (!Number.isNaN(value) && Number.isFinite(value)) {
+        sanitized[key] = value;
+      }
+    });
+
+    return sanitized;
+  }
+
   /**
    * Charge les données depuis les onglets FIN avec scores (colonnes U et V)
    */
@@ -1050,9 +1069,19 @@
    * Gère l'événement de génération des groupes
    */
   function handleGenerateGroups(event) {
-    const { scenario, mode, selectedLanguage, regroupements } = event.detail;
+    const { scenario, mode, selectedLanguage, regroupements, criteriaWeights, weightsSource } = event.detail;
 
-    console.log('🎯 Génération des groupes demandée:', { scenario, mode, selectedLanguage, regroupements });
+    const sanitizedCriteriaWeights = sanitizeCriteriaWeights(criteriaWeights);
+    const criteriaWeightsSource = weightsSource || 'scenario-default';
+
+    console.log('🎯 Génération des groupes demandée:', {
+      scenario,
+      mode,
+      selectedLanguage,
+      regroupements,
+      criteriaWeights: sanitizedCriteriaWeights,
+      weightsSource: criteriaWeightsSource
+    });
 
     // Afficher le LoadingOverlay
     if (window.UIComponents && window.UIComponents.LoadingOverlay) {
@@ -1109,7 +1138,9 @@
           students,
           mode,
           numGroups: regroupement.numGroups,
-          scenario
+          scenario,
+          criteriaWeights: sanitizedCriteriaWeights,
+          criteriaWeightsSource
         });
 
         return {
@@ -1146,12 +1177,16 @@
         stats: validResults.flatMap(r => r.result.stats),
         metadata: {
           scenario,
+          scenarioApplied: scenario,
           mode,
           selectedLanguage,
           totalRegroupements: validResults.length,
           totalStudents: validResults.reduce((sum, r) => sum + r.result.metadata.totalStudents, 0),
           totalGroups: globalGroupCounter - 1, // Nombre total de groupes créés
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          criteriaWeights: sanitizedCriteriaWeights,
+          criteriaWeightsSource,
+          criteriaWeightsOverridesApplied: false
         }
       };
 
@@ -1169,6 +1204,15 @@
         (sum, group) => sum + (group.students ? group.students.length : 0),
         0
       );
+
+      const firstMetadata = validResults[0]?.result?.metadata || {};
+      combinedResults.metadata = {
+        ...combinedResults.metadata,
+        scenarioApplied: firstMetadata.scenarioApplied || combinedResults.metadata.scenarioApplied,
+        criteriaWeights: firstMetadata.criteriaWeights || combinedResults.metadata.criteriaWeights,
+        criteriaWeightsSource: firstMetadata.criteriaWeightsSource || combinedResults.metadata.criteriaWeightsSource,
+        criteriaWeightsOverridesApplied: firstMetadata.criteriaWeightsOverridesApplied ?? combinedResults.metadata.criteriaWeightsOverridesApplied
+      };
 
       // Émettre l'événement de succès
       const successEvent = new CustomEvent('groups:generated', {
