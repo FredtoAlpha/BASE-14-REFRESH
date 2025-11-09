@@ -407,7 +407,11 @@ const GroupsInterfaceV4 = (function() {
       headerVisible: true,           // Header avec boutons visible
       groupHeaderCompact: false,     // Mode compact pour les en-têtes de groupes
       sortState: {},                 // État des tris (parity, scoreF, scoreM, com) : { critère: 'asc'|'desc' }
-      showSourceClass: false         // Afficher la classe SOURCE (origine année précédente)
+      showSourceClass: false,        // Afficher la classe SOURCE (origine année précédente)
+
+      // ✨ NOUVEAU : Historique pour UNDO/REDO lors des régénérations
+      history: [],                   // Historique des états de regroupements
+      historyIndex: -1               // Position actuelle dans l'historique (-1 = pas d'historique)
     }
   };
 
@@ -2853,6 +2857,203 @@ const GroupsInterfaceV4 = (function() {
   }
 
   // ════════════════════════════════════════════════════════════════
+  // SYSTÈME D'HISTORIQUE ET RÉGÉNÉRATION (UNDO/REDO)
+  // ════════════════════════════════════════════════════════════════
+
+  /**
+   * Sauvegarde l'état actuel dans l'historique
+   */
+  function saveCurrentStateToHistory() {
+    const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+    if (!currentReg) {
+      console.warn('⚠️ Aucun regroupement actuel à sauvegarder');
+      return;
+    }
+
+    // Créer un snapshot de l'état actuel
+    const snapshot = {
+      timestamp: new Date().toISOString(),
+      regroupement: JSON.parse(JSON.stringify(currentReg)), // Deep clone
+      metadata: JSON.parse(JSON.stringify(state.currentResults.metadata))
+    };
+
+    // Supprimer l'historique après l'index actuel (si on a fait des UNDO avant)
+    state.swapDashboard.history = state.swapDashboard.history.slice(0, state.swapDashboard.historyIndex + 1);
+
+    // Ajouter le nouveau snapshot
+    state.swapDashboard.history.push(snapshot);
+    state.swapDashboard.historyIndex = state.swapDashboard.history.length - 1;
+
+    // Limiter l'historique à 10 états pour éviter une consommation mémoire excessive
+    if (state.swapDashboard.history.length > 10) {
+      state.swapDashboard.history.shift();
+      state.swapDashboard.historyIndex--;
+    }
+
+    console.log(`💾 État sauvegardé dans l'historique (${state.swapDashboard.history.length} états)`);
+  }
+
+  /**
+   * Régénère le regroupement actuel avec les pondérations actuelles
+   */
+  async function regenerateCurrentRegroupement() {
+    const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+    if (!currentReg) {
+      GroupsNotifications.warning('Aucun regroupement', 'Aucun regroupement sélectionné pour la régénération');
+      return;
+    }
+
+    // Sauvegarder l'état actuel avant régénération
+    saveCurrentStateToHistory();
+
+    console.log('🔄 Régénération du regroupement:', currentReg.name);
+
+    // Récupérer les métadonnées de la génération originale
+    const originalMetadata = state.currentResults.metadata;
+    const scenario = originalMetadata.scenario;
+    const mode = originalMetadata.mode;
+    const numGroups = currentReg.groups.length;
+
+    // Récupérer les élèves du regroupement actuel
+    const students = currentReg.groups.flatMap(group => group.students);
+
+    console.log(`🎲 Régénération avec ${students.length} élèves en ${numGroups} groupes (${mode}, scénario: ${scenario})`);
+
+    // Récupérer les pondérations personnalisées actuelles
+    const customWeights = state.groupsGeneration.criteriaWeights || null;
+
+    try {
+      // Loader pendant la régénération
+      const notification = GroupsNotifications.info('Régénération en cours', 'Calcul des nouveaux groupes...');
+
+      // Appeler l'algorithme
+      const result = await GroupsAlgorithmV4.distribute({
+        students,
+        mode,
+        numGroups,
+        scenario,
+        customWeights
+      });
+
+      // Remplacer le regroupement actuel par le nouveau
+      const newGroups = result.groups.map((group, idx) => ({
+        ...group,
+        regroupementName: currentReg.name,
+        name: `Groupe ${state.swapDashboard.allRegroupements.flatMap(r => r.groups).findIndex((g, i) => {
+          // Trouver l'index global du premier groupe de ce regroupement
+          return r.groups[0] === g;
+        }) + idx + 1}`
+      }));
+
+      // Mettre à jour le regroupement
+      currentReg.groups = newGroups;
+
+      // Re-render le dashboard
+      renderCurrentRegroupement();
+      updateStatsPanel();
+      updateSidebarPanel();
+      updateStatsComparison();
+
+      // Fermer la notification de chargement
+      setTimeout(() => notification.remove(), 500);
+
+      GroupsNotifications.success('Régénération réussie', `Le regroupement "${currentReg.name}" a été régénéré avec les pondérations actuelles`);
+
+      // Mettre à jour les boutons UNDO/REDO
+      updateHistoryButtons();
+
+      console.log('✅ Régénération terminée');
+    } catch (error) {
+      console.error('❌ Erreur lors de la régénération:', error);
+      GroupsNotifications.error('Erreur de régénération', error.message);
+    }
+  }
+
+  /**
+   * Annule la dernière régénération (UNDO)
+   */
+  function undoRegeneration() {
+    if (state.swapDashboard.historyIndex < 1) {
+      GroupsNotifications.warning('Aucun historique', 'Impossible de revenir en arrière');
+      return;
+    }
+
+    // Reculer dans l'historique
+    state.swapDashboard.historyIndex--;
+    const snapshot = state.swapDashboard.history[state.swapDashboard.historyIndex];
+
+    console.log('↶ UNDO: restauration de l\'état', snapshot.timestamp);
+
+    // Restaurer le regroupement
+    const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+    currentReg.groups = JSON.parse(JSON.stringify(snapshot.regroupement.groups));
+
+    // Re-render
+    renderCurrentRegroupement();
+    updateStatsPanel();
+    updateSidebarPanel();
+    updateStatsComparison();
+
+    // Mettre à jour les boutons
+    updateHistoryButtons();
+
+    GroupsNotifications.success('Annulation', 'État précédent restauré');
+  }
+
+  /**
+   * Refait la régénération annulée (REDO)
+   */
+  function redoRegeneration() {
+    if (state.swapDashboard.historyIndex >= state.swapDashboard.history.length - 1) {
+      GroupsNotifications.warning('Aucun historique', 'Impossible d\'avancer');
+      return;
+    }
+
+    // Avancer dans l'historique
+    state.swapDashboard.historyIndex++;
+    const snapshot = state.swapDashboard.history[state.swapDashboard.historyIndex];
+
+    console.log('↷ REDO: restauration de l\'état', snapshot.timestamp);
+
+    // Restaurer le regroupement
+    const currentReg = state.swapDashboard.allRegroupements[state.swapDashboard.currentRegroupementIndex];
+    currentReg.groups = JSON.parse(JSON.stringify(snapshot.regroupement.groups));
+
+    // Re-render
+    renderCurrentRegroupement();
+    updateStatsPanel();
+    updateSidebarPanel();
+    updateStatsComparison();
+
+    // Mettre à jour les boutons
+    updateHistoryButtons();
+
+    GroupsNotifications.success('Rétablissement', 'État suivant restauré');
+  }
+
+  /**
+   * Met à jour l'état des boutons UNDO/REDO
+   */
+  function updateHistoryButtons() {
+    const undoBtn = document.getElementById('btn-undo-modal');
+    const redoBtn = document.getElementById('btn-redo-modal');
+
+    if (undoBtn) {
+      const canUndo = state.swapDashboard.historyIndex > 0;
+      undoBtn.disabled = !canUndo;
+      undoBtn.style.opacity = canUndo ? '1' : '0.5';
+      undoBtn.style.cursor = canUndo ? 'pointer' : 'not-allowed';
+    }
+
+    if (redoBtn) {
+      const canRedo = state.swapDashboard.historyIndex < state.swapDashboard.history.length - 1;
+      redoBtn.disabled = !canRedo;
+      redoBtn.style.opacity = canRedo ? '1' : '0.5';
+      redoBtn.style.cursor = canRedo ? 'pointer' : 'not-allowed';
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════
   // SYSTÈME DE SAUVEGARDE ET CHARGEMENT DES GROUPES
   // ════════════════════════════════════════════════════════════════
 
@@ -2956,13 +3157,15 @@ const GroupsInterfaceV4 = (function() {
           source: student.SOURCE || student.source || student.class || '' // O - SOURCE (classe d'origine)
         })),
         metadata: {
+          // ✨ Métadonnées complètes de la génération (incluant pondérations)
+          ...state.currentResults.metadata,
+
+          // Métadonnées spécifiques au groupe (peuvent override les métadonnées globales)
           groupId: group.id,
           groupName: group.name,
           regroupementName: group.regroupementName,
-          scenario: scenario,
-          mode: state.currentResults.metadata.mode,
           isTemp: isTemp,
-          timestamp: new Date().toISOString()
+          savedAt: new Date().toISOString()
         }
       }));
 
@@ -4441,33 +4644,81 @@ const GroupsInterfaceV4 = (function() {
           <div id="joystick-container"></div>
         </div>
 
-        <!-- SECTION : Actions -->
+        <!-- SECTION : Actions (Régénération + Historique) -->
         <div style="margin-bottom: 24px;">
           <h3 style="font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">
             <i class="fas fa-bolt"></i> Actions
           </h3>
-          <button id="btn-regenerate-modal" disabled style="
+
+          <!-- Bouton Régénérer (activé) -->
+          <button id="btn-regenerate-modal" style="
             width: 100%;
             padding: 12px 16px;
-            background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
             border: none;
             border-radius: 8px;
-            cursor: not-allowed;
+            cursor: pointer;
             font-size: 14px;
             font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            opacity: 0.6;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-          ">
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: all 0.2s;
+            margin-bottom: 12px;
+          " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(16, 185, 129, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.3)'">
             <i class="fas fa-sync-alt"></i>
-            <span>Régénérer ce regroupement</span>
+            <span>Régénérer avec pondérations actuelles</span>
           </button>
-          <p style="font-size: 11px; color: #9ca3af; margin: 8px 0 0 0; text-align: center;">
-            Fonctionnalité à venir - Pour l'instant, générez de nouveaux groupes depuis le volet A
+
+          <!-- Boutons UNDO/REDO -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <button id="btn-undo-modal" disabled style="
+              padding: 10px 12px;
+              background: #f3f4f6;
+              color: #6b7280;
+              border: 2px solid #e5e7eb;
+              border-radius: 6px;
+              cursor: not-allowed;
+              font-size: 13px;
+              font-weight: 600;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 6px;
+              opacity: 0.5;
+              transition: all 0.2s;
+            ">
+              <i class="fas fa-undo"></i>
+              <span>Annuler</span>
+            </button>
+
+            <button id="btn-redo-modal" disabled style="
+              padding: 10px 12px;
+              background: #f3f4f6;
+              color: #6b7280;
+              border: 2px solid #e5e7eb;
+              border-radius: 6px;
+              cursor: not-allowed;
+              font-size: 13px;
+              font-weight: 600;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 6px;
+              opacity: 0.5;
+              transition: all 0.2s;
+            ">
+              <i class="fas fa-redo"></i>
+              <span>Rétablir</span>
+            </button>
+          </div>
+
+          <!-- Info historique -->
+          <p style="font-size: 11px; color: #6b7280; margin: 8px 0 0 0; text-align: center;">
+            <i class="fas fa-info-circle"></i> L'historique conserve les 10 dernières générations
           </p>
         </div>
 
@@ -4643,9 +4894,37 @@ const GroupsInterfaceV4 = (function() {
       });
     });
 
-    // === ACTIONS ===
-    // Note: Régénération désactivée jusqu'à implémentation complète
-    // Pour régénérer, l'utilisateur doit retourner au volet A et générer de nouveaux groupes
+    // === ACTIONS (Régénération + Historique) ===
+
+    // Bouton Régénérer
+    const regenerateBtn = modal.querySelector('#btn-regenerate-modal');
+    if (regenerateBtn) {
+      regenerateBtn.addEventListener('click', async () => {
+        console.log('🔄 Bouton Régénérer cliqué');
+        await regenerateCurrentRegroupement();
+      });
+    }
+
+    // Bouton UNDO
+    const undoBtn = modal.querySelector('#btn-undo-modal');
+    if (undoBtn) {
+      undoBtn.addEventListener('click', () => {
+        console.log('↶ Bouton UNDO cliqué');
+        undoRegeneration();
+      });
+    }
+
+    // Bouton REDO
+    const redoBtn = modal.querySelector('#btn-redo-modal');
+    if (redoBtn) {
+      redoBtn.addEventListener('click', () => {
+        console.log('↷ Bouton REDO cliqué');
+        redoRegeneration();
+      });
+    }
+
+    // Initialiser l'état des boutons UNDO/REDO
+    updateHistoryButtons();
   }
 
   /**
