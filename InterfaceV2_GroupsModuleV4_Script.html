@@ -960,9 +960,13 @@
    * Gère l'événement de génération des groupes
    */
   function handleGenerateGroups(event) {
-    const { scenario, mode, selectedLanguage, regroupements } = event.detail;
+    const { scenario, mode, selectedLanguage, regroupements, criteriaWeights } = event.detail;
 
     console.log('🎯 Génération des groupes demandée:', { scenario, mode, selectedLanguage, regroupements });
+
+    if (criteriaWeights) {
+      console.log('🎛️ Pondérations personnalisées reçues:', criteriaWeights);
+    }
 
     // Afficher le LoadingOverlay
     if (window.UIComponents && window.UIComponents.LoadingOverlay) {
@@ -1014,11 +1018,9 @@
 
         console.log(`📚 Regroupement "${regroupement.name}" : ${students.length} élèves (après filtrage)`);
 
-        // ✨ NOUVEAU : Récupérer les pondérations personnalisées depuis le state
-        const customWeights = window.GroupsInterfaceV4?.state?.groupsGeneration?.criteriaWeights || null;
-
-        if (customWeights) {
-          console.log('🎛️ Utilisation des pondérations personnalisées:', customWeights);
+        // ✨ Utiliser les pondérations transmises par l'événement
+        if (criteriaWeights) {
+          console.log('🎛️ Utilisation des pondérations personnalisées:', criteriaWeights);
         }
 
         // Appeler l'algorithme avec les pondérations personnalisées
@@ -1027,7 +1029,7 @@
           mode,
           numGroups: regroupement.numGroups,
           scenario,
-          customWeights // ✨ Passer les pondérations dynamiques
+          customWeights: criteriaWeights // ✨ Pondérations de l'événement
         });
 
         return {

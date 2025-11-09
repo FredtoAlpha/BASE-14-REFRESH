@@ -1837,18 +1837,23 @@ const GroupsInterfaceV4 = (function() {
       return;
     }
 
-    // Émettre l'événement
+    // ✨ Émettre l'événement avec les pondérations personnalisées
     const event = new CustomEvent('groups:generate', {
       detail: {
         scenario: state.scenario,
         mode: state.mode,
-        selectedLanguage: state.selectedLanguage, // Ajout de la langue sélectionnée
-        regroupements: state.regroupements
+        selectedLanguage: state.selectedLanguage,
+        regroupements: state.regroupements,
+        criteriaWeights: state.groupsGeneration.criteriaWeights || null // ✨ Pondérations du joystick
       }
     });
 
     document.dispatchEvent(event);
     console.log('🚀 Événement groups:generate émis', event.detail);
+
+    if (event.detail.criteriaWeights) {
+      console.log('🎛️ Pondérations personnalisées incluses:', event.detail.criteriaWeights);
+    }
 
     addToTimeline('Génération des groupes lancée...', 'info');
   }
