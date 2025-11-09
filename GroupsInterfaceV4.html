@@ -1980,27 +1980,25 @@ const GroupsInterfaceV4 = (function() {
       return;
     }
 
-    // Émettre l'événement
-    const criteriaWeights = getActiveCriteriaWeights();
-    const weightsSource = getCriteriaWeightsSource();
-
+    // ✨ Émettre l'événement avec les pondérations personnalisées
     const event = new CustomEvent('groups:generate', {
       detail: {
         scenario: state.scenario,
         mode: state.mode,
-        selectedLanguage: state.selectedLanguage, // Ajout de la langue sélectionnée
+        selectedLanguage: state.selectedLanguage,
         regroupements: state.regroupements,
-        criteriaWeights,
-        weightsSource
+        criteriaWeights: state.groupsGeneration.criteriaWeights || null // ✨ Pondérations du joystick
       }
     });
 
     document.dispatchEvent(event);
     console.log('🚀 Événement groups:generate émis', event.detail);
 
-    const weightsLabel = `COM:${criteriaWeights.com.toFixed(2)} · TRA:${criteriaWeights.tra.toFixed(2)} · PART:${criteriaWeights.part.toFixed(2)} · ABS:${criteriaWeights.abs.toFixed(2)}`;
-    const badge = weightsSource === 'scenario-default' ? 'default' : weightsSource;
-    addToTimeline(`Génération lancée (${badge}) – ${weightsLabel}`, 'info');
+    if (event.detail.criteriaWeights) {
+      console.log('🎛️ Pondérations personnalisées incluses:', event.detail.criteriaWeights);
+    }
+
+    addToTimeline('Génération des groupes lancée...', 'info');
   }
 
   /**
