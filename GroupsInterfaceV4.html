@@ -482,7 +482,8 @@ const GroupsInterfaceV4 = (function() {
       headerVisible: true,           // Header avec boutons visible
       radarVisible: false,           // Radar charts dans l'en-tête groupe (déployable)
       groupHeaderCompact: false,     // Mode compact pour les en-têtes de groupes
-      sortState: {}                  // État des tris (parity, scoreF, scoreM, com) : { critère: 'asc'|'desc' }
+      sortState: {},                 // État des tris (parity, scoreF, scoreM, com) : { critère: 'asc'|'desc' }
+      showSourceClass: false         // Afficher la classe SOURCE (origine année précédente)
     }
   };
 
@@ -520,6 +521,7 @@ const GroupsInterfaceV4 = (function() {
       state.swapDashboard.radarVisible = false;
       state.swapDashboard.groupHeaderCompact = false;
       state.swapDashboard.sortState = {};
+      state.swapDashboard.showSourceClass = false;
     }
 
     console.log('✅ État réinitialisé:', state);
@@ -2040,6 +2042,16 @@ const GroupsInterfaceV4 = (function() {
             ">COM</button>
           </div>
 
+          <!-- Toggle affichage classe SOURCE -->
+          <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0; padding: 0 8px; border-left: 1px solid rgba(255, 255, 255, 0.3);">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 500; color: rgba(255, 255, 255, 0.95);">
+              <input type="checkbox" id="toggle-show-source" style="cursor: pointer; width: 16px; height: 16px;">
+              <span title="Afficher la classe d'origine (année précédente) dans les cartes élèves">
+                <i class="fas fa-history"></i> Source
+              </span>
+            </label>
+          </div>
+
           <!-- Navigation -->
           <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
             <button id="btn-prev-regroupement" style="
@@ -2473,7 +2485,7 @@ const GroupsInterfaceV4 = (function() {
                   ">
                     ${student.lastName} ${student.firstName}
                   </span>
-                  ${student.SOURCE || student.source ? `
+                  ${state.swapDashboard.showSourceClass && (student.SOURCE || student.source) ? `
                     <span style="
                       font-size: 10px;
                       padding: 2px 5px;
@@ -2481,7 +2493,7 @@ const GroupsInterfaceV4 = (function() {
                       color: #92400e;
                       border-radius: 3px;
                       font-weight: 600;
-                    " title="Classe source (origine)">${student.SOURCE || student.source}</span>
+                    " title="Classe source (origine année précédente)">${student.SOURCE || student.source}</span>
                   ` : ''}
                   ${student.class ? `
                     <span style="
@@ -3674,7 +3686,7 @@ const GroupsInterfaceV4 = (function() {
       </head>
       <body>
         <h1>${currentRegroupement.name}</h1>
-        <p><strong>Classes:</strong> ${currentRegroupement.classes.join(', ')}</p>
+        <p><strong>Classes:</strong> ${currentRegroupement.classes && Array.isArray(currentRegroupement.classes) ? currentRegroupement.classes.join(', ') : 'Non spécifié'}</p>
         <p><strong>Mode:</strong> ${state.groupsGeneration.mode === 'heterogeneous' ? 'Hétérogène' : 'Homogène'}</p>
         <p><strong>Scénario:</strong> ${state.groupsGeneration.scenario}</p>
         <hr>
@@ -3889,7 +3901,7 @@ const GroupsInterfaceV4 = (function() {
               padding: 4px 12px;
               border-radius: 4px;
               display: inline-block;
-            ">${student.groupName || 'Groupe'} • ${student.class || ''}${(student.SOURCE || student.source) ? ' • Source: ' + (student.SOURCE || student.source) : ''}</div>
+            ">${student.groupName || 'Groupe'} • ${student.class || ''}${state.swapDashboard.showSourceClass && (student.SOURCE || student.source) ? ' • Source: ' + (student.SOURCE || student.source) : ''}</div>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -4562,6 +4574,13 @@ const GroupsInterfaceV4 = (function() {
     document.getElementById('btn-sort-scoreF')?.addEventListener('click', () => sortAllGroups('scoreF'));
     document.getElementById('btn-sort-scoreM')?.addEventListener('click', () => sortAllGroups('scoreM'));
     document.getElementById('btn-sort-com')?.addEventListener('click', () => sortAllGroups('com'));
+
+    // Toggle affichage classe SOURCE
+    document.getElementById('toggle-show-source')?.addEventListener('change', (e) => {
+      state.swapDashboard.showSourceClass = e.target.checked;
+      renderCurrentRegroupement();
+      console.log(`👁️ Affichage classe SOURCE: ${state.swapDashboard.showSourceClass ? 'activé' : 'désactivé'}`);
+    });
   }
 
   /**
