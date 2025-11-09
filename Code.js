@@ -1802,6 +1802,7 @@ function loadFINSheetsWithScores() {
         // I(8): TRA
         // J(9): PART
         // K(10): ABS
+        // O(14): SOURCE (classe d'origine)
         // U(20): SCORE F ← CRITIQUE
         // V(21): SCORE M ← CRITIQUE
 
