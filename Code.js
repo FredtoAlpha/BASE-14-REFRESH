@@ -1802,6 +1802,7 @@ function loadFINSheetsWithScores() {
         // I(8): TRA
         // J(9): PART
         // K(10): ABS
+        // O(14): SOURCE (classe d'origine)
         // U(20): SCORE F ← CRITIQUE
         // V(21): SCORE M ← CRITIQUE
 
@@ -1820,6 +1821,7 @@ function loadFINSheetsWithScores() {
           sexe: (row[4] || '').toString().trim().toUpperCase(),
           lv2: (row[5] || '').toString().trim(),
           opt: (row[6] || '').toString().trim(),
+          SOURCE: (row[14] || '').toString().trim(), // Colonne O : Classe d'origine
           scores: {
             // 🔑 SCORES ACADÉMIQUES (CRITIQUES POUR L'ALGORITHME DE GROUPES)
             F: scoreF,    // Colonne U : Score Français
