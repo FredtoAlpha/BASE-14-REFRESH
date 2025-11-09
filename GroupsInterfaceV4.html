@@ -3157,13 +3157,15 @@ const GroupsInterfaceV4 = (function() {
           source: student.SOURCE || student.source || student.class || '' // O - SOURCE (classe d'origine)
         })),
         metadata: {
+          // ✨ Métadonnées complètes de la génération (incluant pondérations)
+          ...state.currentResults.metadata,
+
+          // Métadonnées spécifiques au groupe (peuvent override les métadonnées globales)
           groupId: group.id,
           groupName: group.name,
           regroupementName: group.regroupementName,
-          scenario: scenario,
-          mode: state.currentResults.metadata.mode,
           isTemp: isTemp,
-          timestamp: new Date().toISOString()
+          savedAt: new Date().toISOString()
         }
       }));
 
