@@ -3080,7 +3080,7 @@ const GroupsInterfaceV4 = (function() {
     console.log(`🎲 Régénération avec ${students.length} élèves en ${numGroups} groupes (${mode}, scénario: ${scenario})`);
 
     // Récupérer les pondérations personnalisées actuelles
-    const customWeights = state.groupsGeneration.criteriaWeights || null;
+    const criteriaWeights = state.groupsGeneration.criteriaWeights || null;
 
     try {
       // Loader pendant la régénération
@@ -3092,7 +3092,7 @@ const GroupsInterfaceV4 = (function() {
         mode,
         numGroups,
         scenario,
-        customWeights
+        criteriaWeights
       });
 
       // Remplacer le regroupement actuel par le nouveau
