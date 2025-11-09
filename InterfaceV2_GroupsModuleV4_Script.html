@@ -1032,6 +1032,12 @@
         console.log('✅ Contrôles de lisibilité initialisés');
       }
 
+      // Initialiser les contrôles des paramètres (panneaux dépliants + joystick)
+      if (window.GroupsInterfaceV4.initParametersControls) {
+        window.GroupsInterfaceV4.initParametersControls();
+        console.log('✅ Contrôles des paramètres initialisés');
+      }
+
       console.log('✅ Module Groupes V4 prêt');
 
     }).catch(error => {
@@ -1133,7 +1139,14 @@
 
         console.log(`📚 Regroupement "${regroupement.name}" : ${students.length} élèves (après filtrage)`);
 
-        // Appeler l'algorithme
+        // ✨ NOUVEAU : Récupérer les pondérations personnalisées depuis le state
+        const customWeights = window.GroupsInterfaceV4?.state?.groupsGeneration?.criteriaWeights || null;
+
+        if (customWeights) {
+          console.log('🎛️ Utilisation des pondérations personnalisées:', customWeights);
+        }
+
+        // Appeler l'algorithme avec les pondérations personnalisées
         const result = window.GroupsAlgorithmV4.distribute({
           students,
           mode,
