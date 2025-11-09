@@ -134,6 +134,66 @@ const GroupsAlgorithmV4 = (function() {
     SCENARIO_WEIGHTS[scenario] = validateWeights(SCENARIO_WEIGHTS[scenario], scenario);
   });
 
+  function resolveCriteriaWeights(scenario, overrides = null, source = 'scenario-default') {
+    const baseWeights = { ...(SCENARIO_WEIGHTS[scenario] || SCENARIO_WEIGHTS.besoins) };
+    let appliedSource = source || 'custom-overrides';
+    let overridesApplied = false;
+
+    if (!overrides || appliedSource === 'scenario-default') {
+      console.log('🎚️ Pondérations résolues', {
+        scenario,
+        source: 'scenario-default',
+        overridesApplied: false,
+        weights: baseWeights
+      });
+      return {
+        weights: baseWeights,
+        source: 'scenario-default',
+        overridesApplied: false
+      };
+    }
+
+    if (typeof overrides === 'object') {
+      const sanitizedOverrides = {};
+      ['com', 'tra', 'part', 'abs'].forEach(key => {
+        if (overrides[key] === undefined || overrides[key] === null || overrides[key] === '') {
+          return;
+        }
+        const value = parseFloat(overrides[key]);
+        if (!isNaN(value) && isFinite(value)) {
+          if (key === 'abs') {
+            sanitizedOverrides[key] = value >= 0 ? -Math.abs(value) : value;
+          } else {
+            sanitizedOverrides[key] = value;
+          }
+        }
+      });
+
+      if (Object.keys(sanitizedOverrides).length > 0) {
+        Object.assign(baseWeights, sanitizedOverrides);
+        overridesApplied = true;
+      }
+    }
+
+    const validated = validateWeights(baseWeights, `${scenario}-${appliedSource}`);
+    if (!overridesApplied) {
+      appliedSource = 'scenario-default';
+    }
+
+    console.log('🎚️ Pondérations résolues', {
+      scenario,
+      source: appliedSource,
+      overridesApplied,
+      weights: validated
+    });
+
+    return {
+      weights: validated,
+      source: appliedSource,
+      overridesApplied
+    };
+  }
+
   // ══════════════════════════════════════════════════════════
   // ÉTAPE 1 : CONSOLIDATION DES DONNÉES
   // ══════════════════════════════════════════════════════════
@@ -225,22 +285,21 @@ const GroupsAlgorithmV4 = (function() {
   // ══════════════════════════════════════════════════════════
 
   function calculateWeightedIndex(student, weights) {
-    // ✨ MODIFIÉ : Accepte directement l'objet weights au lieu du scénario
+    const resolved = weights || SCENARIO_WEIGHTS.besoins;
 
     // Indice = somme des (z-score × coefficient)
     const index =
-      (student.scoreF_z || 0) * weights.scoreF +
-      (student.scoreM_z || 0) * weights.scoreM +
-      (student.com_z || 0) * weights.com +
-      (student.tra_z || 0) * weights.tra +
-      (student.part_z || 0) * weights.part +
-      (student.abs_z || 0) * weights.abs; // Négatif pour pénaliser
+      (student.scoreF_z || 0) * resolved.scoreF +
+      (student.scoreM_z || 0) * resolved.scoreM +
+      (student.com_z || 0) * resolved.com +
+      (student.tra_z || 0) * resolved.tra +
+      (student.part_z || 0) * resolved.part +
+      (student.abs_z || 0) * resolved.abs; // Négatif pour pénaliser
 
     return index;
   }
 
   function addWeightedIndices(students, weights) {
-    // ✨ MODIFIÉ : Accepte directement l'objet weights au lieu du scénario
     return students.map(student => ({
       ...student,
       weightedIndex: calculateWeightedIndex(student, weights)
@@ -485,7 +544,8 @@ const GroupsAlgorithmV4 = (function() {
       mode = 'heterogeneous', // 'heterogeneous' | 'homogeneous'
       numGroups = 3,
       scenario = 'besoins', // 'besoins' | 'lv2' | 'options'
-      customWeights = null // ✨ NOUVEAU : Pondérations personnalisées (optionnel)
+      criteriaWeights = null,
+      criteriaWeightsSource = 'scenario-default'
     } = config;
 
     console.log(`🚀 Algorithme V4 : Distribution ${mode} pour ${students.length} élèves en ${numGroups} groupes (scénario: ${scenario})`);
@@ -539,7 +599,9 @@ const GroupsAlgorithmV4 = (function() {
     // ÉTAPE 3 : Indice pondéré
     emitProgress(2);
     console.log('⚖️ Étape 3/7 : Calcul des indices pondérés...');
-    const weighted = addWeightedIndices(normalized, activeWeights); // ✨ Utilise activeWeights
+    const resolvedWeights = resolveCriteriaWeights(scenario, criteriaWeights, criteriaWeightsSource);
+    console.log('⚖️ Pondérations appliquées à l\'indice pondéré:', resolvedWeights);
+    const weighted = addWeightedIndices(normalized, resolvedWeights.weights);
 
     // ÉTAPE 4 : Distribution initiale
     emitProgress(3);
@@ -576,7 +638,10 @@ const GroupsAlgorithmV4 = (function() {
         totalStudents: students.length,
         timestamp: new Date().toISOString(),
         algorithm: 'V4-Complete',
-        criteriaWeights: activeWeights // ✨ NOUVEAU : Stocker les pondérations utilisées
+        scenarioApplied: scenario,
+        criteriaWeights: resolvedWeights.weights,
+        criteriaWeightsSource: resolvedWeights.source,
+        criteriaWeightsOverridesApplied: resolvedWeights.overridesApplied
       }
     };
 
