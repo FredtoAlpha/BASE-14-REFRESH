@@ -349,86 +349,11 @@ const GroupsInterfaceV4 = (function() {
   }
 
   // ════════════════════════════════════════════════════════════════
-  // VISUALISATIONS - Mini Radar Chart SVG
+  // VISUALISATIONS - (Radar supprimé - inutilisable et non câblé)
   // ════════════════════════════════════════════════════════════════
 
-  function createMiniRadar(scores, customSize = null) {
-    /**
-     * Crée un mini radar chart SVG pour visualiser les scores COM/TRA/PART/ABS
-     * @param {Object} scores - { com: 2.5, tra: 3.0, part: 2.8, abs: 1.5 }
-     * @param {number} customSize - Taille optionnelle du radar (défaut: 160)
-     * @returns {string} - SVG HTML string
-     */
-    const baseSize = customSize || 160;
-    // ✅ Augmenter le viewBox pour inclure les labels (+ 30px de chaque côté)
-    const size = baseSize + 60;
-    const center = size / 2;
-    const maxRadius = customSize ? (customSize / 2) - 10 : 60;
-    const levels = 4; // Niveaux de 1 à 4
-
-    // Labels et couleurs
-    const criteria = [
-      { key: 'com', label: 'COM', color: 'var(--badge-com-bg)', angle: 0 },
-      { key: 'tra', label: 'TRA', color: 'var(--badge-tra-bg)', angle: 90 },
-      { key: 'part', label: 'PART', color: 'var(--badge-part-bg)', angle: 180 },
-      { key: 'abs', label: 'ABS', color: 'var(--badge-abs-bg)', angle: 270 }
-    ];
-
-    // Générer les points du polygone
-    const points = criteria.map(c => {
-      const value = scores[c.key] || 0;
-      const radius = (value / 4) * maxRadius; // Normaliser sur 4
-      const angleRad = (c.angle - 90) * (Math.PI / 180); // -90 pour commencer en haut
-      const x = center + radius * Math.cos(angleRad);
-      const y = center + radius * Math.sin(angleRad);
-      return `${x},${y}`;
-    }).join(' ');
-
-    // Grille de fond (cercles concentriques)
-    let gridCircles = '';
-    for (let i = 1; i <= levels; i++) {
-      const r = (i / levels) * maxRadius;
-      gridCircles += `<circle cx="${center}" cy="${center}" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="1"/>`;
-    }
-
-    // Axes
-    let axes = '';
-    criteria.forEach(c => {
-      const angleRad = (c.angle - 90) * (Math.PI / 180);
-      const x = center + maxRadius * Math.cos(angleRad);
-      const y = center + maxRadius * Math.sin(angleRad);
-      axes += `<line x1="${center}" y1="${center}" x2="${x}" y2="${y}" stroke="#d1d5db" stroke-width="1"/>`;
-    });
-
-    // Labels (avec plus d'espace)
-    let labels = '';
-    criteria.forEach(c => {
-      const angleRad = (c.angle - 90) * (Math.PI / 180);
-      const labelRadius = maxRadius + 25; // ✅ Plus d'espace pour les labels
-      const x = center + labelRadius * Math.cos(angleRad);
-      const y = center + labelRadius * Math.sin(angleRad);
-      const value = scores[c.key] || 0;
-      labels += `
-        <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle"
-              font-size="11" font-weight="700" fill="${c.color}">
-          ${c.label}
-        </text>
-        <text x="${x}" y="${y + 12}" text-anchor="middle" dominant-baseline="middle"
-              font-size="10" font-weight="600" fill="#6b7280">
-          ${value.toFixed(1)}
-        </text>
-      `;
-    });
-
-    return `
-      <svg class="groups-radar-container" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width: ${baseSize}px; height: ${baseSize}px; overflow: visible;">
-        ${gridCircles}
-        ${axes}
-        <polygon points="${points}" fill="rgba(99, 102, 241, 0.2)" stroke="rgba(99, 102, 241, 0.8)" stroke-width="2"/>
-        ${labels}
-      </svg>
-    `;
-  }
+  // Fonction createMiniRadar supprimée car le radar était trop petit, non câblé,
+  // et n'apportait aucune valeur à l'utilisateur
 
   // ════════════════════════════════════════════════════════════════
   // HELPERS - Badges critères
@@ -480,7 +405,6 @@ const GroupsInterfaceV4 = (function() {
       sidebarCollapsed: false,       // Panneau latéral rétracté
       comparisonVisible: true,       // Bandeau comparaison visible
       headerVisible: true,           // Header avec boutons visible
-      radarVisible: false,           // Radar charts dans l'en-tête groupe (déployable)
       groupHeaderCompact: false,     // Mode compact pour les en-têtes de groupes
       sortState: {},                 // État des tris (parity, scoreF, scoreM, com) : { critère: 'asc'|'desc' }
       showSourceClass: false         // Afficher la classe SOURCE (origine année précédente)
@@ -518,7 +442,6 @@ const GroupsInterfaceV4 = (function() {
       state.swapDashboard.sidebarCollapsed = false;
       state.swapDashboard.comparisonVisible = true;
       state.swapDashboard.headerVisible = true;
-      state.swapDashboard.radarVisible = false;
       state.swapDashboard.groupHeaderCompact = false;
       state.swapDashboard.sortState = {};
       state.swapDashboard.showSourceClass = false;
@@ -543,7 +466,7 @@ const GroupsInterfaceV4 = (function() {
             <!-- Header avec bouton de fermeture -->
             <div class="groups-volet-header">
               <h2 class="groups-volet-title">
-                <i class="fas fa-cog"></i> Paramètres
+                <i class="fas fa-route"></i> Parcours de configuration
               </h2>
               <button id="close-groups-interface" style="
                 padding: 8px 12px;
@@ -563,98 +486,452 @@ const GroupsInterfaceV4 = (function() {
               </button>
             </div>
 
-            <!-- Scénario -->
-            <div class="groups-section">
-              <h3 class="groups-section-title">
-                Choisir un scénario
-              </h3>
-              <div id="scenario-buttons" style="display: flex; flex-direction: column; gap: var(--space-sm);">
-                <button class="scenario-btn groups-select-btn" data-scenario="besoins">
-                  <i class="fas fa-user-graduate"></i> Besoins pédagogiques
-                </button>
-                <button class="scenario-btn groups-select-btn" data-scenario="lv2">
-                  <i class="fas fa-language"></i> Langues vivantes (LV2)
-                </button>
-                <button class="scenario-btn groups-select-btn" data-scenario="options">
-                  <i class="fas fa-star"></i> Options spécifiques
-                </button>
+            <!-- 🎨 SECTION ÉTAPES OBLIGATOIRES avec Timeline -->
+            <div style="position: relative; margin-bottom: 32px;">
+
+              <!-- Timeline verticale (barre colorée à gauche) -->
+              <div style="
+                position: absolute;
+                left: 16px;
+                top: 20px;
+                width: 3px;
+                height: calc(100% - 40px);
+                background: linear-gradient(to bottom,
+                  #6366f1 0%,     /* Violet (scénario) */
+                  #6366f1 33%,
+                  #3b82f6 33%,    /* Bleu (mode) */
+                  #3b82f6 66%,
+                  #10b981 66%,    /* Vert (langue) */
+                  #10b981 100%
+                );
+                border-radius: 2px;
+                opacity: 0.3;
+              "></div>
+
+              <!-- ÉTAPE 1 : Scénario (Violet) -->
+              <div class="step-card" data-step="1" style="
+                position: relative;
+                margin-bottom: 24px;
+                margin-left: 32px;
+                padding: 20px;
+                background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 100%);
+                border: 2px solid #c7d2fe;
+                border-left: 6px solid #6366f1;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+                transition: all 0.3s ease;
+              ">
+                <!-- Numéro d'étape (badge) -->
+                <div style="
+                  position: absolute;
+                  left: -50px;
+                  top: 16px;
+                  width: 36px;
+                  height: 36px;
+                  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                  border-radius: 50%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: white;
+                  font-weight: 800;
+                  font-size: 16px;
+                  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+                  border: 3px solid white;
+                ">1</div>
+
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                  <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: #4f46e5;">
+                    <i class="fas fa-bullseye" style="color: #6366f1;"></i> Choisir un scénario
+                  </h3>
+                  <span style="
+                    padding: 3px 8px;
+                    background: #6366f1;
+                    color: white;
+                    font-size: 10px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    border-radius: 4px;
+                    letter-spacing: 0.5px;
+                  ">Obligatoire</span>
+                </div>
+
+                <p style="font-size: 12px; color: #6b7280; margin-bottom: 16px; font-style: italic;">
+                  Le scénario détermine les critères prioritaires pour la répartition
+                </p>
+
+                <div id="scenario-buttons" style="display: flex; flex-direction: column; gap: 8px;">
+                  <button class="scenario-btn groups-select-btn" data-scenario="besoins" style="border: 2px solid transparent;">
+                    <i class="fas fa-user-graduate"></i> Besoins pédagogiques
+                  </button>
+                  <button class="scenario-btn groups-select-btn" data-scenario="lv2" style="border: 2px solid transparent;">
+                    <i class="fas fa-language"></i> Langues vivantes (LV2)
+                  </button>
+                  <button class="scenario-btn groups-select-btn" data-scenario="options" style="border: 2px solid transparent;">
+                    <i class="fas fa-star"></i> Options spécifiques
+                  </button>
+                </div>
               </div>
+
+              <!-- ÉTAPE 2 : Mode de distribution (Bleu) -->
+              <div id="mode-section" class="step-card" data-step="2" style="
+                position: relative;
+                margin-bottom: 24px;
+                margin-left: 32px;
+                padding: 20px;
+                background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+                border: 2px solid #bfdbfe;
+                border-left: 6px solid #3b82f6;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+                display: none;
+                transition: all 0.3s ease;
+              ">
+                <!-- Numéro d'étape -->
+                <div style="
+                  position: absolute;
+                  left: -50px;
+                  top: 16px;
+                  width: 36px;
+                  height: 36px;
+                  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                  border-radius: 50%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: white;
+                  font-weight: 800;
+                  font-size: 16px;
+                  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+                  border: 3px solid white;
+                ">2</div>
+
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                  <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: #1e40af;">
+                    <i class="fas fa-layer-group" style="color: #3b82f6;"></i> Mode de distribution
+                  </h3>
+                  <span style="
+                    padding: 3px 8px;
+                    background: #3b82f6;
+                    color: white;
+                    font-size: 10px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    border-radius: 4px;
+                    letter-spacing: 0.5px;
+                  ">Obligatoire</span>
+                </div>
+
+                <p style="font-size: 12px; color: #6b7280; margin-bottom: 16px; font-style: italic;">
+                  Choisissez comment les élèves seront répartis dans les groupes
+                </p>
+
+                <div id="mode-buttons" style="display: flex; flex-direction: column; gap: 8px;">
+                  <button class="mode-btn groups-select-btn" data-mode="heterogeneous" style="border: 2px solid transparent;">
+                    <i class="fas fa-random"></i> Hétérogène
+                    <div class="groups-select-btn-subtitle">
+                      Mélange les niveaux pour équilibrer
+                    </div>
+                  </button>
+                  <button class="mode-btn groups-select-btn" data-mode="homogeneous" style="border: 2px solid transparent;">
+                    <i class="fas fa-equals"></i> Homogène
+                    <div class="groups-select-btn-subtitle">
+                      Groupes de niveaux similaires
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- ÉTAPE 3 : Langue LV2 (Vert - conditionnelle) -->
+              <div id="language-section" class="step-card" data-step="3" style="
+                position: relative;
+                margin-bottom: 24px;
+                margin-left: 32px;
+                padding: 20px;
+                background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+                border: 2px solid #bbf7d0;
+                border-left: 6px solid #10b981;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
+                display: none;
+                transition: all 0.3s ease;
+              ">
+                <!-- Numéro d'étape -->
+                <div style="
+                  position: absolute;
+                  left: -50px;
+                  top: 16px;
+                  width: 36px;
+                  height: 36px;
+                  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                  border-radius: 50%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: white;
+                  font-weight: 800;
+                  font-size: 16px;
+                  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+                  border: 3px solid white;
+                ">3</div>
+
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                  <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: #065f46;">
+                    <i class="fas fa-language" style="color: #10b981;"></i> Langue à regrouper
+                  </h3>
+                  <span style="
+                    padding: 3px 8px;
+                    background: #10b981;
+                    color: white;
+                    font-size: 10px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    border-radius: 4px;
+                    letter-spacing: 0.5px;
+                  ">LV2 uniquement</span>
+                </div>
+
+                <p style="font-size: 12px; color: #6b7280; margin-bottom: 16px; font-style: italic;">
+                  Sélectionnez la langue pour filtrer les élèves
+                </p>
+
+                <div id="language-buttons" style="display: flex; flex-direction: column; gap: 8px;">
+                  <!-- Les langues seront insérées ici dynamiquement -->
+                </div>
+                <div style="margin-top: 12px; padding: 10px; background: #d1fae5; border-radius: 6px; font-size: 12px; color: #065f46;">
+                  <i class="fas fa-info-circle"></i> <span id="language-info">Sélectionnez une langue</span>
+                </div>
+              </div>
+
             </div>
 
-            <!-- Mode de distribution -->
-            <div id="mode-section" class="groups-section" style="display: none;">
-              <h3 class="groups-section-title">
-                Mode de distribution
-              </h3>
-              <div id="mode-buttons" style="display: flex; flex-direction: column; gap: var(--space-sm);">
-                <button class="mode-btn groups-select-btn" data-mode="heterogeneous">
-                  <i class="fas fa-random"></i> Hétérogène
-                  <div class="groups-select-btn-subtitle">
-                    Mélange les niveaux pour équilibrer
-                  </div>
-                </button>
-                <button class="mode-btn groups-select-btn" data-mode="homogeneous">
-                  <i class="fas fa-equals"></i> Homogène
-                  <div class="groups-select-btn-subtitle">
-                    Groupes de niveaux similaires
-                  </div>
-                </button>
-              </div>
+            <!-- 🎨 SÉPARATEUR : Informations / Réglages facultatifs -->
+            <div style="
+              margin: 32px 0;
+              padding: 12px;
+              background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 100%);
+              border-radius: 8px;
+              text-align: center;
+              font-size: 11px;
+              font-weight: 700;
+              color: #6b7280;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            ">
+              <i class="fas fa-arrow-down"></i> Informations & Réglages facultatifs <i class="fas fa-arrow-down"></i>
             </div>
 
-            <!-- Sélection de la langue LV2 -->
-            <div id="language-section" style="display: none; margin-bottom: 32px;">
-              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #374151;">
-                <i class="fas fa-language"></i> Langue à regrouper
-              </h3>
-              <div id="language-buttons" style="display: flex; flex-direction: column; gap: 8px;">
-                <!-- Les langues seront insérées ici dynamiquement -->
+            <!-- Classes détectées (Informatif) -->
+            <div id="classes-detected-section" style="
+              display: none;
+              margin-bottom: 24px;
+              padding: 16px;
+              background: #f9fafb;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+            ">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <div style="
+                  width: 32px;
+                  height: 32px;
+                  background: linear-gradient(135deg, #10b981, #059669);
+                  border-radius: 8px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: white;
+                ">
+                  <i class="fas fa-school"></i>
+                </div>
+                <h3 style="font-size: 14px; font-weight: 700; margin: 0; color: #374151;">
+                  Classes détectées
+                </h3>
+                <span style="
+                  margin-left: auto;
+                  padding: 3px 8px;
+                  background: #e5e7eb;
+                  color: #6b7280;
+                  font-size: 10px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  border-radius: 4px;
+                ">Info</span>
               </div>
-              <div style="margin-top: 8px; font-size: 12px; color: #374151;">
-                <i class="fas fa-info-circle"></i> <span id="language-info">Sélectionnez une langue</span>
-              </div>
-            </div>
 
-            <!-- Classes détectées -->
-            <div id="classes-detected-section" style="display: none; margin-bottom: 32px;">
-              <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #374151;">
-                <i class="fas fa-school"></i> Classes détectées
-              </h3>
               <div id="classes-detected-list" style="
                 padding: 12px;
-                background: #f0fdf4;
-                border: 1px solid #86efac;
-                border-radius: 8px;
+                background: white;
+                border: 1px solid #e5e7eb;
+                border-radius: 6px;
                 font-size: 13px;
               ">
                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
                   <!-- Les classes détectées s'afficheront ici -->
                 </div>
               </div>
-              <div style="margin-top: 8px; font-size: 12px; color: #374151;">
+              <div style="margin-top: 8px; font-size: 11px; color: #6b7280;">
                 <i class="fas fa-info-circle"></i> Ces classes sont disponibles pour créer des regroupements
               </div>
             </div>
 
-            <!-- Aide contextuelle -->
+            <!-- Aide contextuelle (Informatif) -->
             <div id="help-box" style="
-              padding: 12px;
-              background: #eff6ff;
+              padding: 14px;
+              background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
               border-left: 4px solid #3b82f6;
-              border-radius: 4px;
+              border-radius: 8px;
               font-size: 13px;
               color: #1e40af;
               display: none;
+              margin-bottom: 24px;
+              box-shadow: 0 2px 6px rgba(59, 130, 246, 0.1);
             ">
-              <i class="fas fa-info-circle"></i>
-              <span id="help-text"></span>
+              <div style="display: flex; align-items: start; gap: 10px;">
+                <i class="fas fa-lightbulb" style="color: #3b82f6; font-size: 18px; margin-top: 2px;"></i>
+                <span id="help-text" style="flex: 1; line-height: 1.5;"></span>
+              </div>
             </div>
 
-            <!-- Options de lisibilité -->
-            <div style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #e5e7eb;">
-              <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 16px; color: #374151;">
-                <i class="fas fa-eye"></i> Options de lisibilité
-              </h3>
+            <!-- ✨ Panneau dépliant : Pondérations des critères (Optionnel) -->
+            <div style="
+              margin-bottom: 24px;
+              padding: 16px;
+              background: #fafafa;
+              border: 2px dashed #d1d5db;
+              border-radius: 10px;
+            ">
+              <div id="panel-weighting-header" style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+                padding: 12px;
+                margin: -12px -12px 0 -12px;
+                border-radius: 8px;
+                transition: all 0.2s;
+              " onmouseover="this.style.background='rgba(99,102,241,0.05)'" onmouseout="this.style.background='transparent'">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="
+                    width: 32px;
+                    height: 32px;
+                    background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                  ">
+                    <i class="fas fa-sliders-h"></i>
+                  </div>
+                  <div>
+                    <h3 style="font-size: 14px; font-weight: 700; margin: 0; color: #374151;">
+                      Pondérations des critères
+                    </h3>
+                    <p style="font-size: 11px; color: #9ca3af; margin: 2px 0 0 0;">
+                      Ajustez l'importance relative de chaque critère
+                    </p>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="
+                    padding: 3px 8px;
+                    background: #fbbf24;
+                    color: white;
+                    font-size: 10px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    border-radius: 4px;
+                  ">Avancé</span>
+                  <i id="panel-weighting-chevron" class="fas fa-chevron-down" style="color: #6b7280; transition: transform 0.2s; font-size: 14px;"></i>
+                </div>
+              </div>
+
+              <div id="panel-weighting-content" style="
+                margin-top: 16px;
+                padding-top: 16px;
+                border-top: 1px solid #e5e7eb;
+                display: block;
+                overflow: hidden;
+                transition: max-height 0.3s ease, opacity 0.3s ease;
+              ">
+                <div style="
+                  padding: 12px;
+                  background: #fffbeb;
+                  border-left: 3px solid #fbbf24;
+                  border-radius: 6px;
+                  font-size: 12px;
+                  color: #92400e;
+                  margin-bottom: 16px;
+                ">
+                  <i class="fas fa-exclamation-triangle" style="color: #fbbf24;"></i>
+                  <strong>Note :</strong> Les pondérations modifient l'importance relative des critères lors du calcul des groupes.
+                </div>
+                <div id="joystick-container-volet-a"></div>
+              </div>
+            </div>
+
+            <!-- ✨ Panneau dépliant : Options de lisibilité (Optionnel) -->
+            <div style="
+              margin-bottom: 24px;
+              padding: 16px;
+              background: #fafafa;
+              border: 2px dashed #d1d5db;
+              border-radius: 10px;
+            ">
+              <div id="panel-readability-header" style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+                padding: 12px;
+                margin: -12px -12px 0 -12px;
+                border-radius: 8px;
+                transition: all 0.2s;
+              " onmouseover="this.style.background='rgba(16,185,129,0.05)'" onmouseout="this.style.background='transparent'">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="
+                    width: 32px;
+                    height: 32px;
+                    background: linear-gradient(135deg, #34d399, #10b981);
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                  ">
+                    <i class="fas fa-eye"></i>
+                  </div>
+                  <div>
+                    <h3 style="font-size: 14px; font-weight: 700; margin: 0; color: #374151;">
+                      Options de lisibilité
+                    </h3>
+                    <p style="font-size: 11px; color: #9ca3af; margin: 2px 0 0 0;">
+                      Personnalisez l'affichage des résultats
+                    </p>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="
+                    padding: 3px 8px;
+                    background: #e5e7eb;
+                    color: #6b7280;
+                    font-size: 10px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    border-radius: 4px;
+                  ">Optionnel</span>
+                  <i id="panel-readability-chevron" class="fas fa-chevron-down" style="color: #6b7280; transition: transform 0.2s; font-size: 14px;"></i>
+                </div>
+              </div>
+
+              <div id="panel-readability-content" style="
+                margin-top: 16px;
+                padding-top: 16px;
+                border-top: 1px solid #e5e7eb;
+                display: block;
+                overflow: hidden;
+                transition: max-height 0.3s ease, opacity 0.3s ease;
+              ">
 
               <!-- Checkboxes d'affichage -->
               <div style="margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px;">
@@ -805,7 +1082,9 @@ const GroupsInterfaceV4 = (function() {
                   <span>Mode zoom</span>
                 </button>
               </div>
-            </div>
+
+              </div> <!-- Fin du panel-readability-content -->
+            </div> <!-- Fin du panneau dépliant lisibilité -->
           </div>
         </div>
 
@@ -1691,13 +1970,12 @@ const GroupsInterfaceV4 = (function() {
             </div>
           </div>
 
-          <!-- Moyennes avec radar -->
+          <!-- Moyennes des critères -->
           <div class="groups-stat-card" style="text-align: center;">
             <div class="groups-stat-label" style="text-align: center; margin-bottom: 12px;">
-              <i class="fas fa-chart-radar"></i> Profil moyen des groupes
+              <i class="fas fa-chart-bar"></i> Profil moyen des groupes
             </div>
-            ${createMiniRadar(avgScores)}
-            <div class="groups-stat-badges" style="justify-content: center; margin-top: 16px;">
+            <div class="groups-stat-badges" style="justify-content: center; margin-top: 12px;">
               ${createCriteriaBadge('com', avgScores.com)}
               ${createCriteriaBadge('tra', avgScores.tra)}
               ${createCriteriaBadge('part', avgScores.part)}
@@ -2375,45 +2653,7 @@ const GroupsInterfaceV4 = (function() {
                   ${createCriteriaBadge('abs', groupScores.abs)}
                 </div>
               ` : ''}
-
-              <!-- Toggle Radar -->
-              ${total > 0 ? `
-                <button
-                  class="btn-toggle-radar-group"
-                  data-group-index="${groupIndex}"
-                  style="
-                    background: rgba(255, 255, 255, 0.2);
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                    color: white;
-                    padding: ${badgePadding};
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-size: ${isCompact ? '11px' : '12px'};
-                    transition: all 0.2s;
-                    margin-left: auto;
-                  "
-                  onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'"
-                  onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'"
-                >
-                  <i class="fas fa-chart-area"></i> ${state.swapDashboard.radarVisible ? 'Masquer' : 'Voir'} Radar
-                </button>
-              ` : ''}
             </div>
-
-            <!-- LIGNE 3 : Radar déployable (fond blanc) -->
-            ${total > 0 && state.swapDashboard.radarVisible ? `
-              <div style="
-                margin-top: ${isCompact ? '8px' : '12px'};
-                background: white;
-                padding: ${isCompact ? '8px' : '12px'};
-                border-radius: 8px;
-                display: flex;
-                justify-content: center;
-                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-              ">
-                ${createMiniRadar(groupScores, isCompact ? 80 : 100)}
-              </div>
-            ` : ''}
           </div>
 
           <!-- LISTE DES ÉLÈVES -->
@@ -2554,31 +2794,9 @@ const GroupsInterfaceV4 = (function() {
             min-height: 48px;
           ">
             ${total > 0 ? `
-              <button
-                class="btn-radar-footer"
-                data-group-index="${groupIndex}"
-                style="
-                  flex: 1;
-                  padding: 8px 12px;
-                  background: ${state.swapDashboard.radarVisible ? '#6d28d9' : 'white'};
-                  color: ${state.swapDashboard.radarVisible ? 'white' : '#6d28d9'};
-                  border: 2px solid #6d28d9;
-                  border-radius: 6px;
-                  cursor: pointer;
-                  font-size: 13px;
-                  font-weight: 600;
-                  transition: all 0.2s;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  gap: 6px;
-                "
-                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(109, 40, 217, 0.2)'"
-                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
-              >
-                <i class="fas fa-chart-area"></i>
-                <span>${state.swapDashboard.radarVisible ? 'Radar activé' : 'Activer radar'}</span>
-              </button>
+              <div style="font-size: 12px; color: #6b7280; text-align: center;">
+                <i class="fas fa-users"></i> ${total} élève${total > 1 ? 's' : ''} • <i class="fas fa-venus" style="color: #ec4899;"></i> ${girls}F / <i class="fas fa-mars" style="color: #3b82f6;"></i> ${boys}M
+              </div>
             ` : `
               <div style="font-size: 12px; color: #9ca3af; text-align: center;">
                 <i class="fas fa-info-circle"></i> Ajoutez des élèves pour voir les stats
@@ -2875,9 +3093,6 @@ const GroupsInterfaceV4 = (function() {
 
     // ✅ NOUVEAU : Attacher les événements de clic pour le mode Focus élève
     attachStudentFocusEvents();
-
-    // ✅ NOUVEAU : Attacher les événements pour le toggle radar
-    attachRadarToggleEvents();
   }
 
   /**
@@ -2911,34 +3126,7 @@ const GroupsInterfaceV4 = (function() {
     });
   }
 
-  /**
-   * Attache les événements pour le bouton toggle radar
-   */
-  function attachRadarToggleEvents() {
-    // Boutons dans le header des groupes
-    const radarButtons = document.querySelectorAll('.btn-toggle-radar-group');
-    radarButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Toggle l'état global du radar
-        state.swapDashboard.radarVisible = !state.swapDashboard.radarVisible;
-        // Re-rendre le regroupement pour afficher/masquer les radars
-        renderCurrentRegroupement();
-      });
-    });
-
-    // Boutons dans le footer des groupes
-    const radarFooterButtons = document.querySelectorAll('.btn-radar-footer');
-    radarFooterButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Toggle l'état global du radar
-        state.swapDashboard.radarVisible = !state.swapDashboard.radarVisible;
-        // Re-rendre le regroupement pour afficher/masquer les radars
-        renderCurrentRegroupement();
-      });
-    });
-  }
+  // Fonction attachRadarToggleEvents supprimée (radar retiré)
 
   /**
    * Active le drag & drop pour les élèves
@@ -4099,10 +4287,6 @@ const GroupsInterfaceV4 = (function() {
               <span style="font-weight: 500;">Afficher le header (navigation, stats, etc.)</span>
             </label>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='transparent'">
-              <input type="checkbox" id="modal-toggle-radar" ${state.swapDashboard.radarVisible ? 'checked' : ''} style="cursor: pointer; width: 18px; height: 18px;">
-              <span style="font-weight: 500;">Afficher les radars dans l'en-tête groupe (déployable)</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='transparent'">
               <input type="checkbox" id="modal-toggle-compact-header" ${state.swapDashboard.groupHeaderCompact ? 'checked' : ''} style="cursor: pointer; width: 18px; height: 18px;">
               <span style="font-weight: 500;">Mode compact pour les en-têtes de groupes</span>
             </label>
@@ -4333,15 +4517,6 @@ const GroupsInterfaceV4 = (function() {
             ? '<i class="fas fa-chevron-up"></i>'
             : '<i class="fas fa-chevron-down"></i>';
         }
-      });
-    }
-
-    const toggleRadarCheckbox = modal.querySelector('#modal-toggle-radar');
-    if (toggleRadarCheckbox) {
-      toggleRadarCheckbox.addEventListener('change', (e) => {
-        state.swapDashboard.radarVisible = e.target.checked;
-        // Re-render les groupes pour afficher/masquer le radar
-        renderCurrentRegroupement();
       });
     }
 
@@ -4913,12 +5088,86 @@ const GroupsInterfaceV4 = (function() {
     });
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // CONTRÔLES DES PARAMÈTRES (VOLET A)
+  // ════════════════════════════════════════════════════════════════
+
+  /**
+   * Initialise les panneaux dépliants et le joystick du volet A (Paramètres)
+   */
+  function initParametersControls() {
+    console.log('🎛️ Initialisation des contrôles des paramètres...');
+
+    // ========== PANNEAU DÉPLIANT : PONDÉRATIONS ==========
+    const weightingHeader = document.getElementById('panel-weighting-header');
+    const weightingContent = document.getElementById('panel-weighting-content');
+    const weightingChevron = document.getElementById('panel-weighting-chevron');
+    let weightingExpanded = true; // Ouvert par défaut
+
+    if (weightingHeader && weightingContent && weightingChevron) {
+      weightingHeader.addEventListener('click', () => {
+        weightingExpanded = !weightingExpanded;
+
+        if (weightingExpanded) {
+          weightingContent.style.display = 'block';
+          weightingChevron.style.transform = 'rotate(0deg)';
+        } else {
+          weightingContent.style.display = 'none';
+          weightingChevron.style.transform = 'rotate(-90deg)';
+        }
+      });
+
+      // Initialiser le joystick dans le volet A
+      const joystickContainer = document.getElementById('joystick-container-volet-a');
+      if (joystickContainer) {
+        const currentWeights = state.groupsGeneration.criteriaWeights || { com: 1, tra: 1, part: 1, abs: 1 };
+
+        const joystick = JoystickController.create(currentWeights, (newWeights) => {
+          // Sauvegarder les nouvelles pondérations dans le state
+          if (!state.groupsGeneration.criteriaWeights) {
+            state.groupsGeneration.criteriaWeights = {};
+          }
+          state.groupsGeneration.criteriaWeights = { ...newWeights };
+
+          console.log('✅ Pondérations mises à jour (volet A):', newWeights);
+          GroupsNotifications.info('Pondérations modifiées', 'Les nouvelles pondérations seront utilisées lors de la prochaine génération.');
+        });
+
+        joystickContainer.appendChild(joystick);
+        console.log('✅ Joystick initialisé dans le volet A');
+      }
+    }
+
+    // ========== PANNEAU DÉPLIANT : LISIBILITÉ ==========
+    const readabilityHeader = document.getElementById('panel-readability-header');
+    const readabilityContent = document.getElementById('panel-readability-content');
+    const readabilityChevron = document.getElementById('panel-readability-chevron');
+    let readabilityExpanded = true; // Ouvert par défaut
+
+    if (readabilityHeader && readabilityContent && readabilityChevron) {
+      readabilityHeader.addEventListener('click', () => {
+        readabilityExpanded = !readabilityExpanded;
+
+        if (readabilityExpanded) {
+          readabilityContent.style.display = 'block';
+          readabilityChevron.style.transform = 'rotate(0deg)';
+        } else {
+          readabilityContent.style.display = 'none';
+          readabilityChevron.style.transform = 'rotate(-90deg)';
+        }
+      });
+    }
+
+    console.log('✅ Contrôles des paramètres initialisés');
+  }
+
   // API publique
   return {
     renderInitialStructure,
     displayResults,
     displayError,
     initLisibilityControls,
+    initParametersControls,
     state
   };
 })();
