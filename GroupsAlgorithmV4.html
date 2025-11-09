@@ -224,8 +224,8 @@ const GroupsAlgorithmV4 = (function() {
   // ÉTAPE 3 : CALCUL DE L'INDICE PONDÉRÉ PAR SCÉNARIO
   // ══════════════════════════════════════════════════════════
 
-  function calculateWeightedIndex(student, scenario) {
-    const weights = SCENARIO_WEIGHTS[scenario] || SCENARIO_WEIGHTS.besoins;
+  function calculateWeightedIndex(student, weights) {
+    // ✨ MODIFIÉ : Accepte directement l'objet weights au lieu du scénario
 
     // Indice = somme des (z-score × coefficient)
     const index =
@@ -239,10 +239,11 @@ const GroupsAlgorithmV4 = (function() {
     return index;
   }
 
-  function addWeightedIndices(students, scenario) {
+  function addWeightedIndices(students, weights) {
+    // ✨ MODIFIÉ : Accepte directement l'objet weights au lieu du scénario
     return students.map(student => ({
       ...student,
-      weightedIndex: calculateWeightedIndex(student, scenario)
+      weightedIndex: calculateWeightedIndex(student, weights)
     }));
   }
 
@@ -483,10 +484,23 @@ const GroupsAlgorithmV4 = (function() {
       students = [],
       mode = 'heterogeneous', // 'heterogeneous' | 'homogeneous'
       numGroups = 3,
-      scenario = 'besoins' // 'besoins' | 'lv2' | 'options'
+      scenario = 'besoins', // 'besoins' | 'lv2' | 'options'
+      customWeights = null // ✨ NOUVEAU : Pondérations personnalisées (optionnel)
     } = config;
 
     console.log(`🚀 Algorithme V4 : Distribution ${mode} pour ${students.length} élèves en ${numGroups} groupes (scénario: ${scenario})`);
+
+    // ✨ NOUVEAU : Déterminer les pondérations à utiliser
+    let activeWeights;
+    if (customWeights) {
+      // Utiliser les pondérations personnalisées et les valider
+      console.log('🎛️ Utilisation des pondérations personnalisées:', customWeights);
+      activeWeights = validateWeights(customWeights, 'custom');
+    } else {
+      // Utiliser les pondérations par défaut du scénario
+      activeWeights = SCENARIO_WEIGHTS[scenario] || SCENARIO_WEIGHTS.besoins;
+      console.log('📊 Utilisation des pondérations du scénario:', scenario, activeWeights);
+    }
 
     // Validation
     if (!students || students.length === 0) {
@@ -516,7 +530,7 @@ const GroupsAlgorithmV4 = (function() {
     // ÉTAPE 3 : Indice pondéré
     emitProgress(2);
     console.log('⚖️ Étape 3/7 : Calcul des indices pondérés...');
-    const weighted = addWeightedIndices(normalized, scenario);
+    const weighted = addWeightedIndices(normalized, activeWeights); // ✨ Utilise activeWeights
 
     // ÉTAPE 4 : Distribution initiale
     emitProgress(3);
@@ -552,11 +566,13 @@ const GroupsAlgorithmV4 = (function() {
         numGroups,
         totalStudents: students.length,
         timestamp: new Date().toISOString(),
-        algorithm: 'V4-Complete'
+        algorithm: 'V4-Complete',
+        criteriaWeights: activeWeights // ✨ NOUVEAU : Stocker les pondérations utilisées
       }
     };
 
     console.log(`✨ Distribution terminée : ${balanced.length} groupes créés`);
+    console.log(`🎛️ Pondérations utilisées:`, activeWeights);
     return result;
   }
 
