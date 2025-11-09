@@ -85,6 +85,91 @@ const GroupsInterfaceV4 = (function() {
     }
   };
 
+  const normalizeStudentForUI = student => {
+    if (!student) return null;
+
+    if (window.GroupsModuleV4Utils && typeof window.GroupsModuleV4Utils.normalizeStudentForResults === 'function') {
+      return window.GroupsModuleV4Utils.normalizeStudentForResults(student);
+    }
+
+    const coerceNumber = (...values) => {
+      for (const value of values) {
+        if (value === undefined || value === null || value === '') continue;
+        const num = parseFloat(value);
+        if (!isNaN(num) && isFinite(num)) {
+          return num;
+        }
+      }
+      return 0;
+    };
+
+    const collectOptions = () => {
+      if (Array.isArray(student.options)) return student.options;
+      if (Array.isArray(student.optionsList)) return student.optionsList;
+      const raw = student.opt || student.optionsRaw || student.optionsString || student.options;
+      if (typeof raw === 'string' && raw.trim() !== '') {
+        return raw.split(/[;,/]/).map(opt => opt.trim()).filter(Boolean);
+      }
+      return [];
+    };
+
+    const lastName = (student.lastName || student.nom || '').toString().trim();
+    const firstName = (student.firstName || student.prenom || '').toString().trim();
+    const classe = (student.class || student.classe || student.className || '').toString().trim();
+    const sourceClass = (student.SOURCE || student.source || student._SOURCE_CLASS || classe || '').toString().trim() || classe;
+    const lv2 = (student.lv2 || student.LV2 || '').toString().trim().toUpperCase() || 'ESP';
+    const sexe = (student.sexe || student.gender || '').toString().trim().toUpperCase();
+
+    const optionsArray = collectOptions().map(opt => opt.toString().trim()).filter(Boolean);
+    const normalizedOptions = optionsArray.map(opt => opt.toUpperCase());
+    const optionsString = typeof student.opt === 'string' && student.opt.trim() !== ''
+      ? student.opt.trim()
+      : normalizedOptions.join(';');
+
+    const scoreF = coerceNumber(student.scoreF, student.scores?.F, student.scores?.SCOREF, student.besoinsF);
+    const scoreM = coerceNumber(student.scoreM, student.scores?.M, student.scores?.SCOREM, student.besoinsM);
+    const com = coerceNumber(student.com, student.scores?.COM);
+    const tra = coerceNumber(student.tra, student.scores?.TRA);
+    const part = coerceNumber(student.part, student.scores?.PART);
+    const abs = coerceNumber(student.abs, student.scores?.ABS);
+
+    return {
+      ...student,
+      id: (student.id || '').toString().trim(),
+      lastName,
+      nom: lastName,
+      firstName,
+      prenom: firstName,
+      sexe,
+      gender: sexe,
+      class: classe,
+      classe,
+      className: student.className || classe,
+      SOURCE: sourceClass,
+      source: sourceClass,
+      _SOURCE_CLASS: sourceClass,
+      lv2,
+      LV2: lv2,
+      opt: optionsString,
+      options: normalizedOptions,
+      optionsList: normalizedOptions,
+      scores: {
+        F: scoreF,
+        M: scoreM,
+        COM: com,
+        TRA: tra,
+        PART: part,
+        ABS: abs
+      },
+      scoreF,
+      scoreM,
+      com,
+      tra,
+      part,
+      abs
+    };
+  };
+
   // ════════════════════════════════════════════════════════════════
   // WRAPPER GOOGLE SCRIPT RUN
   // ════════════════════════════════════════════════════════════════
@@ -381,6 +466,60 @@ const GroupsInterfaceV4 = (function() {
     `;
   }
 
+  const DEFAULT_CRITERIA_WEIGHTS = { com: 1, tra: 1, part: 1, abs: 1 };
+
+  const SCENARIO_WEIGHT_PRESETS = {
+    besoins: {
+      scoreF: 3.0,
+      scoreM: 3.0,
+      com: 1.5,
+      tra: 1.5,
+      part: 1.0,
+      abs: -2.0
+    },
+    lv2: {
+      scoreF: 1.0,
+      scoreM: 1.0,
+      com: 1.5,
+      tra: 1.5,
+      part: 4.0,
+      abs: -2.5
+    },
+    options: {
+      scoreF: 2.0,
+      scoreM: 2.0,
+      com: 2.0,
+      tra: 2.0,
+      part: 2.0,
+      abs: -1.5
+    }
+  };
+
+  function sanitizeCriteriaWeights(weights = {}) {
+    const sanitized = { ...DEFAULT_CRITERIA_WEIGHTS };
+
+    if (!weights || typeof weights !== 'object') {
+      return sanitized;
+    }
+
+    ['com', 'tra', 'part', 'abs'].forEach(key => {
+      const value = parseFloat(weights[key]);
+      if (!Number.isNaN(value) && Number.isFinite(value)) {
+        sanitized[key] = value;
+      }
+    });
+
+    return sanitized;
+  }
+
+  function getActiveCriteriaWeights() {
+    return sanitizeCriteriaWeights(state.groupsGeneration?.criteriaWeights);
+  }
+
+  function getCriteriaWeightsSource() {
+    return state.groupsGeneration?.criteriaWeightsSource || 'scenario-default';
+  }
+
   // État interne de l'interface
   const state = {
     scenario: null,        // 'besoins' | 'lv2' | 'options'
@@ -394,7 +533,9 @@ const GroupsInterfaceV4 = (function() {
 
     // État de génération
     groupsGeneration: {
-      criteriaWeights: { com: 1, tra: 1, part: 1, abs: 1 } // Pondérations par défaut
+      criteriaWeights: { ...DEFAULT_CRITERIA_WEIGHTS },
+      criteriaWeightsSource: 'scenario-default',
+      criteriaWeightsUpdatedAt: null
     },
 
     // État du dashboard de swap
@@ -436,7 +577,9 @@ const GroupsInterfaceV4 = (function() {
     if (!state.groupsGeneration) {
       state.groupsGeneration = {};
     }
-    state.groupsGeneration.criteriaWeights = { com: 1, tra: 1, part: 1, abs: 1 };
+    state.groupsGeneration.criteriaWeights = { ...DEFAULT_CRITERIA_WEIGHTS };
+    state.groupsGeneration.criteriaWeightsSource = 'scenario-default';
+    state.groupsGeneration.criteriaWeightsUpdatedAt = null;
 
     // Réinitialiser le dashboard de swap si demandé
     if (!keepSwapDashboard) {
@@ -1838,19 +1981,26 @@ const GroupsInterfaceV4 = (function() {
     }
 
     // Émettre l'événement
+    const criteriaWeights = getActiveCriteriaWeights();
+    const weightsSource = getCriteriaWeightsSource();
+
     const event = new CustomEvent('groups:generate', {
       detail: {
         scenario: state.scenario,
         mode: state.mode,
         selectedLanguage: state.selectedLanguage, // Ajout de la langue sélectionnée
-        regroupements: state.regroupements
+        regroupements: state.regroupements,
+        criteriaWeights,
+        weightsSource
       }
     });
 
     document.dispatchEvent(event);
     console.log('🚀 Événement groups:generate émis', event.detail);
 
-    addToTimeline('Génération des groupes lancée...', 'info');
+    const weightsLabel = `COM:${criteriaWeights.com.toFixed(2)} · TRA:${criteriaWeights.tra.toFixed(2)} · PART:${criteriaWeights.part.toFixed(2)} · ABS:${criteriaWeights.abs.toFixed(2)}`;
+    const badge = weightsSource === 'scenario-default' ? 'default' : weightsSource;
+    addToTimeline(`Génération lancée (${badge}) – ${weightsLabel}`, 'info');
   }
 
   /**
@@ -1942,6 +2092,18 @@ const GroupsInterfaceV4 = (function() {
    * Affiche les résultats de génération
    */
   function displayResults(results) {
+    const normalizedGroups = (results.groups || []).map(group => ({
+      ...group,
+      students: (group.students || []).map(normalizeStudentForUI).filter(student => student !== null)
+    }));
+
+    results.groups = normalizedGroups;
+    results.stats = Array.isArray(results.stats) ? results.stats : [];
+    results.metadata = {
+      ...(results.metadata || {}),
+      totalStudents: normalizedGroups.reduce((sum, group) => sum + group.students.length, 0)
+    };
+
     state.currentResults = results;
 
     // Calculer les moyennes globales COM/TRA/PART/ABS
@@ -3164,6 +3326,13 @@ const GroupsInterfaceV4 = (function() {
           groupId: group.id,
           groupName: group.name,
           regroupementName: group.regroupementName,
+          scenario: scenario,
+          mode: state.currentResults.metadata.mode,
+          scenarioApplied: state.currentResults.metadata.scenarioApplied || scenario,
+          criteriaWeights: state.currentResults.metadata.criteriaWeights || null,
+          criteriaWeightsSource: state.currentResults.metadata.criteriaWeightsSource || getCriteriaWeightsSource(),
+          criteriaWeightsOverridesApplied: state.currentResults.metadata.criteriaWeightsOverridesApplied ?? null,
+          selectedLanguage: state.currentResults.metadata.selectedLanguage || state.selectedLanguage || null,
           isTemp: isTemp,
           savedAt: new Date().toISOString()
         }
@@ -3234,23 +3403,35 @@ const GroupsInterfaceV4 = (function() {
 
       if (result.success && result.groups.length > 0) {
         // Reconstruire la structure de résultats
+        const firstMetadata = result.groups[0]?.metadata || {};
+
         const loadedResults = {
           groups: result.groups.map(g => ({
             id: g.metadata.groupId,
             name: g.metadata.groupName,
-            students: g.students,
+            students: (g.students || []).map(normalizeStudentForUI).filter(student => student !== null),
             regroupementName: g.metadata.regroupementName,
             regroupementId: (g.metadata.regroupementName || '').replace(/\s+/g, '-').toLowerCase()
           })),
           metadata: {
-            scenario: result.groups[0].metadata.scenario,
-            mode: result.groups[0].metadata.mode,
+            scenario: firstMetadata.scenario,
+            scenarioApplied: firstMetadata.scenarioApplied || firstMetadata.scenario,
+            mode: firstMetadata.mode,
             totalGroups: result.groups.length,
-            totalStudents: result.groups.reduce((sum, g) => sum + g.students.length, 0),
+            totalStudents: result.groups.reduce((sum, g) => sum + ((g.students || []).length), 0),
             timestamp: new Date().toISOString(),
-            loadedFrom: result.sheetNames
+            loadedFrom: result.sheetNames,
+            criteriaWeights: firstMetadata.criteriaWeights || null,
+            criteriaWeightsSource: firstMetadata.criteriaWeightsSource || 'scenario-default',
+            criteriaWeightsOverridesApplied: firstMetadata.criteriaWeightsOverridesApplied ?? null,
+            selectedLanguage: firstMetadata.selectedLanguage || null
           }
         };
+
+        loadedResults.metadata.totalStudents = loadedResults.groups.reduce(
+          (sum, group) => sum + group.students.length,
+          0
+        );
 
         // Afficher les résultats chargés
         displayResults(loadedResults);
@@ -3453,14 +3634,9 @@ const GroupsInterfaceV4 = (function() {
         ${(() => {
           // Récupérer les pondérations depuis les métadonnées
           const metadata = state.currentResults?.metadata || {};
-          const weights = metadata.criteriaWeights || {
-            scoreF: 1,
-            scoreM: 1,
-            com: 0.5,
-            tra: 0.5,
-            part: 0.5,
-            abs: -0.5
-          };
+          const scenarioKey = metadata.scenarioApplied || metadata.scenario || 'besoins';
+          const fallbackWeights = SCENARIO_WEIGHT_PRESETS[scenarioKey] || SCENARIO_WEIGHT_PRESETS.besoins;
+          const weights = metadata.criteriaWeights || fallbackWeights;
 
           // Normaliser pour affichage (valeur absolue pour les barres)
           const criteria = [
@@ -3521,7 +3697,7 @@ const GroupsInterfaceV4 = (function() {
             <i class="fas fa-sliders-h"></i> Pondérations actives
           </div>
           <div style="font-size: 11px; color: #374151; margin-bottom: 12px; line-height: 1.4;">
-            ${metadata.scenarioApplied ? `Scénario : <strong>${metadata.scenarioApplied}</strong>` : 'Pondérations par défaut'}
+            ${metadata.scenarioApplied ? `Scénario : <strong>${metadata.scenarioApplied}</strong>` : 'Pondérations par défaut'}${metadata.criteriaWeightsSource ? ` • <em>${metadata.criteriaWeightsSource}</em>` : ''}
           </div>
           ${criteria.map(crit => {
             const absValue = Math.abs(crit.value);
@@ -4784,17 +4960,16 @@ const GroupsInterfaceV4 = (function() {
     const joystickContainer = modal.querySelector('#joystick-container');
     if (joystickContainer) {
       // Récupérer les pondérations actuelles ou utiliser les valeurs par défaut
-      const currentWeights = state.groupsGeneration.criteriaWeights || { com: 1, tra: 1, part: 1, abs: 1 };
+      const currentWeights = getActiveCriteriaWeights();
 
       // Créer le joystick
       const joystick = JoystickController.create(currentWeights, (newWeights) => {
-        // Sauvegarder les nouvelles pondérations dans le state
-        if (!state.groupsGeneration.criteriaWeights) {
-          state.groupsGeneration.criteriaWeights = {};
-        }
-        state.groupsGeneration.criteriaWeights = { ...newWeights };
+        const sanitized = sanitizeCriteriaWeights(newWeights);
+        state.groupsGeneration.criteriaWeights = sanitized;
+        state.groupsGeneration.criteriaWeightsSource = 'joystick';
+        state.groupsGeneration.criteriaWeightsUpdatedAt = new Date().toISOString();
 
-        console.log('✅ Pondérations mises à jour:', newWeights);
+        console.log('✅ Pondérations mises à jour:', sanitized);
         GroupsNotifications.info('Pondérations modifiées', 'Les nouvelles pondérations seront utilisées lors de la prochaine génération.');
       });
 

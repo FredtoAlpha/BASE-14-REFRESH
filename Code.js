@@ -1815,13 +1815,27 @@ function loadFINSheetsWithScores() {
           console.warn('⚠️ ' + className + ' - Élève ' + row[0] + ': SCORE F et SCORE M à 0');
         }
 
+        const rawOptions = (row[6] || '').toString().trim();
+        const options = rawOptions
+          ? rawOptions
+              .split(/[;,/]/)
+              .map(opt => opt.trim())
+              .filter(Boolean)
+          : [];
+
+        const lv2 = (row[5] || '').toString().trim().toUpperCase();
         const eleve = {
           id: (row[0] || '').toString().trim(),
           nom: (row[1] || '').toString().trim(),
+          lastName: (row[1] || '').toString().trim(),
           prenom: (row[2] || '').toString().trim(),
+          firstName: (row[2] || '').toString().trim(),
           sexe: (row[4] || '').toString().trim().toUpperCase(),
-          lv2: (row[5] || '').toString().trim(),
-          opt: (row[6] || '').toString().trim(),
+          lv2: lv2,
+          LV2: lv2,
+          opt: rawOptions,
+          options: options,
+          optionsList: options,
           class: className,
           classe: className,
           className: className,
@@ -3089,32 +3103,60 @@ function loadGroupsFromSheetsV4() {
           // Si ligne vide, continuer
           if (!row[0]) continue;
 
-          const source = row[14] || row[4] || '';
+          const classe = (row[4] || '').toString().trim();
+          const sourceClass = (row[14] || row[4] || '').toString().trim() || classe;
           const rawOptions = row[12];
+
           let options = [];
+          let optionsString = '';
           if (Array.isArray(rawOptions)) {
-            options = rawOptions.filter(Boolean).map(String);
+            options = rawOptions.filter(Boolean).map(opt => opt.toString().trim()).filter(Boolean);
+            optionsString = options.join(';');
           } else if (typeof rawOptions === 'string' && rawOptions.trim() !== '') {
             options = rawOptions.split(/[;,]/).map(opt => opt.trim()).filter(Boolean);
+            optionsString = rawOptions.trim();
           }
 
+          const lv2 = (row[11] || '').toString().trim().toUpperCase() || 'ESP';
+          const scoreF = parseFloat(row[5]) || 0;
+          const scoreM = parseFloat(row[6]) || 0;
+          const com = parseFloat(row[7]) || 0;
+          const tra = parseFloat(row[8]) || 0;
+          const part = parseFloat(row[9]) || 0;
+          const abs = parseFloat(row[10]) || 0;
+
           students.push({
-            id: row[0],
-            lastName: row[1],
-            firstName: row[2],
-            sexe: row[3],
-            class: row[4],
-            classe: row[4],
-            scoreF: parseFloat(row[5]) || 0,
-            scoreM: parseFloat(row[6]) || 0,
-            com: parseFloat(row[7]) || 0,
-            tra: parseFloat(row[8]) || 0,
-            part: parseFloat(row[9]) || 0,
-            abs: parseFloat(row[10]) || 0,
-            lv2: row[11] || 'ESP',
+            id: (row[0] || '').toString().trim(),
+            nom: (row[1] || '').toString().trim(),
+            lastName: (row[1] || '').toString().trim(),
+            prenom: (row[2] || '').toString().trim(),
+            firstName: (row[2] || '').toString().trim(),
+            sexe: (row[3] || '').toString().trim().toUpperCase(),
+            class: classe,
+            classe: classe,
+            className: classe,
+            scoreF: scoreF,
+            scoreM: scoreM,
+            com: com,
+            tra: tra,
+            part: part,
+            abs: abs,
+            scores: {
+              F: scoreF,
+              M: scoreM,
+              COM: com,
+              TRA: tra,
+              PART: part,
+              ABS: abs
+            },
+            lv2: lv2,
+            LV2: lv2,
+            opt: optionsString,
             options: options,
-            source: source,
-            SOURCE: source
+            optionsList: options,
+            source: sourceClass,
+            SOURCE: sourceClass,
+            _SOURCE_CLASS: sourceClass
           });
         }
 

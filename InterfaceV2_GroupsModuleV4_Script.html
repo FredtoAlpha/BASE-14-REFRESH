@@ -16,6 +16,25 @@
   // Cache pour les données FIN
   let finSheetsDataCache = null;
 
+  const DEFAULT_CRITERIA_WEIGHTS = { com: 1, tra: 1, part: 1, abs: 1 };
+
+  function sanitizeCriteriaWeights(weights = {}) {
+    const sanitized = { ...DEFAULT_CRITERIA_WEIGHTS };
+
+    if (!weights || typeof weights !== 'object') {
+      return sanitized;
+    }
+
+    ['com', 'tra', 'part', 'abs'].forEach(key => {
+      const value = parseFloat(weights[key]);
+      if (!Number.isNaN(value) && Number.isFinite(value)) {
+        sanitized[key] = value;
+      }
+    });
+
+    return sanitized;
+  }
+
   /**
    * Charge les données depuis les onglets FIN avec scores (colonnes U et V)
    */
@@ -571,6 +590,102 @@
   }
 
   /**
+   * Harmonise les propriétés critiques d'un élève pour l'affichage/export
+   * (alias nom/prénom, LV2 normalisée, options en tableau, SOURCE fiable, scores numériques)
+   * @param {Object} student
+   * @returns {Object|null}
+   */
+  function normalizeStudentForResults(student) {
+    if (!student) return null;
+
+    const coerceNumber = (...values) => {
+      for (const value of values) {
+        if (value === undefined || value === null || value === '') continue;
+        const num = parseFloat(value);
+        if (!isNaN(num) && isFinite(num)) {
+          return num;
+        }
+      }
+      return 0;
+    };
+
+    const normalizeOptionsArray = () => {
+      if (Array.isArray(student.options)) {
+        return student.options;
+      }
+      if (Array.isArray(student.optionsList)) {
+        return student.optionsList;
+      }
+      const rawOptions = student.opt || student.optionsRaw || student.optionsString || student.options;
+      if (typeof rawOptions === 'string' && rawOptions.trim() !== '') {
+        return rawOptions.split(/[;,/]/).map(opt => opt.trim()).filter(Boolean);
+      }
+      return [];
+    };
+
+    const lastName = String(student.lastName || student.nom || '').trim();
+    const firstName = String(student.firstName || student.prenom || '').trim();
+    const classe = String(student.class || student.classe || student.className || '').trim();
+    const sourceClass = String(student.SOURCE || student.source || student._SOURCE_CLASS || classe).trim() || classe;
+    const lv2 = (student.lv2 || student.LV2 || '').toString().trim().toUpperCase() || 'ESP';
+    const sexe = (student.sexe || student.gender || '').toString().trim().toUpperCase();
+
+    const optionsArray = normalizeOptionsArray().map(opt => opt.toString().trim()).filter(Boolean);
+    const normalizedOptions = optionsArray.map(opt => opt.toUpperCase());
+    const optionsString = typeof student.opt === 'string' && student.opt.trim() !== ''
+      ? student.opt.trim()
+      : normalizedOptions.join(';');
+
+    const scoreF = coerceNumber(student.scoreF, student.scores?.F, student.scores?.SCOREF, student.besoinsF);
+    const scoreM = coerceNumber(student.scoreM, student.scores?.M, student.scores?.SCOREM, student.besoinsM);
+    const com = coerceNumber(student.com, student.scores?.COM);
+    const tra = coerceNumber(student.tra, student.scores?.TRA);
+    const part = coerceNumber(student.part, student.scores?.PART);
+    const abs = coerceNumber(student.abs, student.scores?.ABS);
+
+    return {
+      ...student,
+      id: (student.id || '').toString().trim(),
+      lastName,
+      nom: lastName,
+      firstName,
+      prenom: firstName,
+      sexe,
+      gender: sexe,
+      class: classe,
+      classe,
+      className: student.className || classe,
+      SOURCE: sourceClass,
+      source: sourceClass,
+      _SOURCE_CLASS: sourceClass,
+      lv2,
+      LV2: lv2,
+      opt: optionsString,
+      options: normalizedOptions,
+      optionsList: normalizedOptions,
+      scores: {
+        F: scoreF,
+        M: scoreM,
+        COM: com,
+        TRA: tra,
+        PART: part,
+        ABS: abs
+      },
+      scoreF,
+      scoreM,
+      com,
+      tra,
+      part,
+      abs
+    };
+  }
+
+  if (typeof window !== 'undefined') {
+    window.GroupsModuleV4Utils = window.GroupsModuleV4Utils || {};
+    window.GroupsModuleV4Utils.normalizeStudentForResults = normalizeStudentForResults;
+  }
+
+  /**
    * Normalise les données d'une classe depuis le format FIN
    * UTILISE COLLECTE RÉCURSIVE pour gérer les structures complexes
    * @param {string} className - Nom de la classe
@@ -960,9 +1075,19 @@
    * Gère l'événement de génération des groupes
    */
   function handleGenerateGroups(event) {
-    const { scenario, mode, selectedLanguage, regroupements } = event.detail;
+    const { scenario, mode, selectedLanguage, regroupements, criteriaWeights, weightsSource } = event.detail;
 
-    console.log('🎯 Génération des groupes demandée:', { scenario, mode, selectedLanguage, regroupements });
+    const sanitizedCriteriaWeights = sanitizeCriteriaWeights(criteriaWeights);
+    const criteriaWeightsSource = weightsSource || 'scenario-default';
+
+    console.log('🎯 Génération des groupes demandée:', {
+      scenario,
+      mode,
+      selectedLanguage,
+      regroupements,
+      criteriaWeights: sanitizedCriteriaWeights,
+      weightsSource: criteriaWeightsSource
+    });
 
     // Afficher le LoadingOverlay
     if (window.UIComponents && window.UIComponents.LoadingOverlay) {
@@ -1027,7 +1152,8 @@
           mode,
           numGroups: regroupement.numGroups,
           scenario,
-          customWeights // ✨ Passer les pondérations dynamiques
+          criteriaWeights: sanitizedCriteriaWeights,
+          criteriaWeightsSource
         });
 
         return {
@@ -1064,13 +1190,41 @@
         stats: validResults.flatMap(r => r.result.stats),
         metadata: {
           scenario,
+          scenarioApplied: scenario,
           mode,
           selectedLanguage,
           totalRegroupements: validResults.length,
           totalStudents: validResults.reduce((sum, r) => sum + r.result.metadata.totalStudents, 0),
           totalGroups: globalGroupCounter - 1, // Nombre total de groupes créés
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          criteriaWeights: sanitizedCriteriaWeights,
+          criteriaWeightsSource,
+          criteriaWeightsOverridesApplied: false
         }
+      };
+
+      combinedResults.groups = combinedResults.groups.map(group => {
+        const normalizedStudents = (group.students || [])
+          .map(normalizeStudentForResults)
+          .filter(student => student !== null);
+        return {
+          ...group,
+          students: normalizedStudents
+        };
+      });
+
+      combinedResults.metadata.totalStudents = combinedResults.groups.reduce(
+        (sum, group) => sum + (group.students ? group.students.length : 0),
+        0
+      );
+
+      const firstMetadata = validResults[0]?.result?.metadata || {};
+      combinedResults.metadata = {
+        ...combinedResults.metadata,
+        scenarioApplied: firstMetadata.scenarioApplied || combinedResults.metadata.scenarioApplied,
+        criteriaWeights: firstMetadata.criteriaWeights || combinedResults.metadata.criteriaWeights,
+        criteriaWeightsSource: firstMetadata.criteriaWeightsSource || combinedResults.metadata.criteriaWeightsSource,
+        criteriaWeightsOverridesApplied: firstMetadata.criteriaWeightsOverridesApplied ?? combinedResults.metadata.criteriaWeightsOverridesApplied
       };
 
       // Émettre l'événement de succès
