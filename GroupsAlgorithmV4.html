@@ -1,4 +1,5 @@
 <script>
+// 🔄 Cache Buster: 2025-01-09 14:35:00 UTC - Force Google Apps Script reload
 /**
  * GROUPS ALGORITHM V4 - ALGORITHME COMPLET
  *
@@ -552,16 +553,16 @@ const GroupsAlgorithmV4 = (function() {
 
     // ✨ NOUVEAU : Déterminer les pondérations à utiliser
     let activeWeights;
-    if (customWeights) {
-      // ✨ STRATÉGIE DE MERGE : Partir du scénario puis appliquer les customWeights
+    if (criteriaWeights) {
+      // ✨ STRATÉGIE DE MERGE : Partir du scénario puis appliquer les criteriaWeights
       // Cela permet au joystick de ne gérer que COM/TRA/PART/ABS
       // tout en conservant scoreF/scoreM du scénario
       const baseWeights = SCENARIO_WEIGHTS[scenario] || SCENARIO_WEIGHTS.besoins;
-      const mergedWeights = { ...baseWeights, ...customWeights };
+      const mergedWeights = { ...baseWeights, ...criteriaWeights };
 
       console.log('🎛️ Merge des pondérations personnalisées avec le scénario:', scenario);
       console.log('   Base (scénario):', baseWeights);
-      console.log('   Custom (joystick):', customWeights);
+      console.log('   Custom (joystick):', criteriaWeights);
       console.log('   Résultat (merged):', mergedWeights);
 
       activeWeights = validateWeights(mergedWeights, 'custom');

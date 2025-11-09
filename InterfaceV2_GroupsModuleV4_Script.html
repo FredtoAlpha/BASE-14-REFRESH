@@ -1144,7 +1144,7 @@
           mode,
           numGroups: regroupement.numGroups,
           scenario,
-          customWeights: criteriaWeights // ✨ Pondérations de l'événement
+          criteriaWeights // ✨ Pondérations de l'événement (shorthand)
         });
 
         return {
@@ -1188,9 +1188,9 @@
           totalStudents: validResults.reduce((sum, r) => sum + r.result.metadata.totalStudents, 0),
           totalGroups: globalGroupCounter - 1, // Nombre total de groupes créés
           timestamp: new Date().toISOString(),
-          criteriaWeights: sanitizedCriteriaWeights,
-          criteriaWeightsSource,
-          criteriaWeightsOverridesApplied: false
+          criteriaWeights: criteriaWeights || null, // ✨ Utiliser criteriaWeights de l'événement
+          criteriaWeightsSource: null, // Sera écrasé par firstMetadata plus bas
+          criteriaWeightsOverridesApplied: false // Sera écrasé par firstMetadata plus bas
         }
       };
 
