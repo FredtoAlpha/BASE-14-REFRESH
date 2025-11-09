@@ -64,23 +64,43 @@ function saveGroupsToSheetsV4(groupsData, isTemp) {
 
       // Écrire les données des élèves (SOURCE en colonne O = position 15)
       if (groupData.students.length > 0) {
-        const rows = groupData.students.map(student => [
-          student.id,                                    // A
-          student.nom,                                   // B
-          student.prenom,                                // C
-          student.sexe,                                  // D
-          student.classe,                                // E
-          student.scoreF,                                // F
-          student.scoreM,                                // G
-          student.com,                                   // H
-          student.tra,                                   // I
-          student.part,                                  // J
-          student.abs,                                   // K
-          student.lv2,                                   // L
-          Array.isArray(student.options) ? student.options.join(';') : (student.options || ''), // M
-          '',                                            // N (colonne vide)
-          student.source || student.classe || ''         // O - SOURCE (classe d'origine)
-        ]);
+        const rows = groupData.students.map(student => {
+          const scoreF = parseFloat(student.scoreF) || 0;
+          const scoreM = parseFloat(student.scoreM) || 0;
+          const com = parseFloat(student.com) || 0;
+          const tra = parseFloat(student.tra) || 0;
+          const part = parseFloat(student.part) || 0;
+          const abs = parseFloat(student.abs) || 0;
+          const lv2 = (student.lv2 || '').toString().trim().toUpperCase();
+
+          let optionsArray = [];
+          if (Array.isArray(student.options)) {
+            optionsArray = student.options;
+          } else if (typeof student.options === 'string' && student.options.trim() !== '') {
+            optionsArray = student.options.split(/[;,]/).map(opt => opt.trim()).filter(Boolean);
+          }
+          const optionsString = optionsArray.join(';');
+
+          const sourceClass = (student.source || student.SOURCE || student._SOURCE_CLASS || student.classe || '').toString().trim();
+
+          return [
+            (student.id || '').toString().trim(),
+            (student.nom || student.lastName || '').toString().trim(),
+            (student.prenom || student.firstName || '').toString().trim(),
+            (student.sexe || student.gender || '').toString().trim().toUpperCase(),
+            (student.classe || student.class || student.className || '').toString().trim(),
+            scoreF,
+            scoreM,
+            com,
+            tra,
+            part,
+            abs,
+            lv2,
+            optionsString,
+            '',
+            sourceClass || (student.classe || student.class || '')
+          ];
+        });
 
         sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
       }
@@ -162,21 +182,60 @@ function loadGroupsFromSheetsV4() {
           // Si ligne vide, continuer
           if (!row[0]) continue;
 
+          const classe = (row[4] || '').toString().trim();
+          const sourceClass = (row[14] || row[4] || '').toString().trim() || classe;
+          const rawOptions = row[12];
+
+          let options = [];
+          let optionsString = '';
+          if (Array.isArray(rawOptions)) {
+            options = rawOptions.filter(Boolean).map(opt => opt.toString().trim()).filter(Boolean);
+            optionsString = options.join(';');
+          } else if (typeof rawOptions === 'string' && rawOptions.trim() !== '') {
+            options = rawOptions.split(/[;,]/).map(opt => opt.trim()).filter(Boolean);
+            optionsString = rawOptions.trim();
+          }
+
+          const lv2 = (row[11] || '').toString().trim().toUpperCase() || 'ESP';
+          const scoreF = parseFloat(row[5]) || 0;
+          const scoreM = parseFloat(row[6]) || 0;
+          const com = parseFloat(row[7]) || 0;
+          const tra = parseFloat(row[8]) || 0;
+          const part = parseFloat(row[9]) || 0;
+          const abs = parseFloat(row[10]) || 0;
+
           students.push({
-            id: row[0],                        // A
-            lastName: row[1],                  // B
-            firstName: row[2],                 // C
-            sexe: row[3],                      // D
-            class: row[4],                     // E
-            scoreF: parseFloat(row[5]) || 0,   // F
-            scoreM: parseFloat(row[6]) || 0,   // G
-            com: parseFloat(row[7]) || 0,      // H
-            tra: parseFloat(row[8]) || 0,      // I
-            part: parseFloat(row[9]) || 0,     // J
-            abs: parseFloat(row[10]) || 0,     // K
-            lv2: row[11] || 'ESP',             // L
-            options: row[12] ? row[12].split(';') : [], // M
-            SOURCE: row[14] || row[4] || ''    // O - SOURCE (classe d'origine)
+            id: (row[0] || '').toString().trim(),
+            nom: (row[1] || '').toString().trim(),
+            lastName: (row[1] || '').toString().trim(),
+            prenom: (row[2] || '').toString().trim(),
+            firstName: (row[2] || '').toString().trim(),
+            sexe: (row[3] || '').toString().trim().toUpperCase(),
+            class: classe,
+            classe: classe,
+            className: classe,
+            scoreF: scoreF,
+            scoreM: scoreM,
+            com: com,
+            tra: tra,
+            part: part,
+            abs: abs,
+            scores: {
+              F: scoreF,
+              M: scoreM,
+              COM: com,
+              TRA: tra,
+              PART: part,
+              ABS: abs
+            },
+            lv2: lv2,
+            LV2: lv2,
+            opt: optionsString,
+            options: options,
+            optionsList: options,
+            source: sourceClass,
+            SOURCE: sourceClass,
+            _SOURCE_CLASS: sourceClass
           });
         }
 

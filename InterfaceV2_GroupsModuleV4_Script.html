@@ -16,6 +16,25 @@
   // Cache pour les données FIN
   let finSheetsDataCache = null;
 
+  const DEFAULT_CRITERIA_WEIGHTS = { com: 1, tra: 1, part: 1, abs: 1 };
+
+  function sanitizeCriteriaWeights(weights = {}) {
+    const sanitized = { ...DEFAULT_CRITERIA_WEIGHTS };
+
+    if (!weights || typeof weights !== 'object') {
+      return sanitized;
+    }
+
+    ['com', 'tra', 'part', 'abs'].forEach(key => {
+      const value = parseFloat(weights[key]);
+      if (!Number.isNaN(value) && Number.isFinite(value)) {
+        sanitized[key] = value;
+      }
+    });
+
+    return sanitized;
+  }
+
   /**
    * Charge les données depuis les onglets FIN avec scores (colonnes U et V)
    */
@@ -307,6 +326,307 @@
     }
   };
 
+  const TERMINAL_STEPS = [
+    { label: 'Étape 1/7 : Consolidation des données', icon: '📋' },
+    { label: 'Étape 2/7 : Normalisation statistique', icon: '📊' },
+    { label: 'Étape 3/7 : Indice pondéré', icon: '⚖️' },
+    { label: 'Étape 4/7 : Distribution', icon: '🔀' },
+    { label: 'Étape 5/7 : Équilibrage parité', icon: '👥' },
+    { label: 'Étape 6/7 : Statistiques', icon: '📈' },
+    { label: 'Étape 7/7 : Validation finale', icon: '✅' }
+  ];
+
+  const TerminalPanel = {
+    parent: null,
+    container: null,
+    stepsContainer: null,
+    logsContainer: null,
+    emptyElement: null,
+    stepsElements: [],
+    toggleButton: null,
+    badgeElement: null,
+    visible: false,
+    unread: 0,
+    maxEntries: 200,
+    onToggleCallback: null,
+    onUnreadCallback: null,
+    toggleHandler: null,
+
+    ensurePanel() {
+      if (!this.container) {
+        this.container = document.createElement('div');
+        this.container.className = 'groups-terminal-panel hidden';
+        this.container.innerHTML = `
+          <div class="groups-terminal-header">
+            <div class="groups-terminal-title">
+              <i class="fas fa-terminal"></i> Terminal d'exécution
+            </div>
+            <div class="groups-terminal-actions">
+              <button class="groups-terminal-action" data-action="clear">
+                <i class="fas fa-broom"></i> Nettoyer
+              </button>
+              <button class="groups-terminal-action" data-action="hide">
+                <i class="fas fa-times"></i> Fermer
+              </button>
+            </div>
+          </div>
+          <div class="groups-terminal-body">
+            <div class="groups-terminal-steps"></div>
+            <div class="groups-terminal-logs"></div>
+          </div>
+        `;
+
+        this.stepsContainer = this.container.querySelector('.groups-terminal-steps');
+        this.logsContainer = this.container.querySelector('.groups-terminal-logs');
+
+        TERMINAL_STEPS.forEach((step, index) => {
+          const stepElement = document.createElement('div');
+          stepElement.className = 'groups-terminal-step';
+          stepElement.dataset.step = index;
+          stepElement.dataset.icon = step.icon;
+          stepElement.textContent = step.label;
+          this.stepsContainer.appendChild(stepElement);
+          this.stepsElements.push(stepElement);
+        });
+
+        this.emptyElement = document.createElement('div');
+        this.emptyElement.className = 'groups-terminal-empty';
+        this.emptyElement.textContent = 'Aucun journal pour le moment.';
+        this.logsContainer.appendChild(this.emptyElement);
+
+        const clearBtn = this.container.querySelector('[data-action="clear"]');
+        const hideBtn = this.container.querySelector('[data-action="hide"]');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => this.clearLogs());
+        }
+        if (hideBtn) {
+          hideBtn.addEventListener('click', () => this.hide());
+        }
+      }
+
+      const host = this.parent || moduleContainer || document.body;
+      if (this.container.parentElement !== host) {
+        host.appendChild(this.container);
+      }
+    },
+
+    init(parent) {
+      this.parent = parent || moduleContainer || document.body;
+      this.ensurePanel();
+      this.resetSteps();
+      this.clearLogs();
+      this.hide();
+    },
+
+    destroy() {
+      if (this.toggleButton && this.toggleHandler) {
+        this.toggleButton.removeEventListener('click', this.toggleHandler);
+      }
+      if (this.container) {
+        this.container.remove();
+      }
+      this.container = null;
+      this.stepsContainer = null;
+      this.logsContainer = null;
+      this.emptyElement = null;
+      this.stepsElements = [];
+      this.toggleButton = null;
+      this.badgeElement = null;
+      this.visible = false;
+      this.unread = 0;
+      this.toggleHandler = null;
+    },
+
+    registerToggleButton(button, { badgeElement = null, onToggle = null, onUnreadChange = null } = {}) {
+      if (!button) return;
+
+      this.ensurePanel();
+      if (this.toggleButton && this.toggleHandler) {
+        this.toggleButton.removeEventListener('click', this.toggleHandler);
+      }
+
+      this.toggleButton = button;
+      this.badgeElement = badgeElement || null;
+      this.onToggleCallback = onToggle || null;
+      this.onUnreadCallback = onUnreadChange || null;
+
+      this.toggleHandler = () => {
+        if (this.visible) {
+          this.hide();
+        } else {
+          this.show();
+        }
+      };
+
+      button.addEventListener('click', this.toggleHandler);
+
+      this.updateBadge();
+    },
+
+    updateBadge() {
+      if (!this.badgeElement) {
+        return;
+      }
+
+      if (this.unread <= 0) {
+        this.badgeElement.setAttribute('hidden', '');
+        this.badgeElement.textContent = '0';
+      } else {
+        this.badgeElement.removeAttribute('hidden');
+        this.badgeElement.textContent = String(this.unread);
+      }
+
+      if (typeof this.onUnreadCallback === 'function') {
+        this.onUnreadCallback(this.unread);
+      }
+    },
+
+    show() {
+      this.ensurePanel();
+      if (this.visible) return;
+      this.container.classList.remove('hidden');
+      this.visible = true;
+      this.unread = 0;
+      this.updateBadge();
+      if (typeof this.onToggleCallback === 'function') {
+        this.onToggleCallback(true);
+      }
+    },
+
+    hide() {
+      if (!this.container || !this.visible) return;
+      this.container.classList.add('hidden');
+      this.visible = false;
+      if (typeof this.onToggleCallback === 'function') {
+        this.onToggleCallback(false);
+      }
+    },
+
+    resetSteps() {
+      this.stepsElements.forEach(step => {
+        step.classList.remove('active');
+        step.classList.remove('completed');
+      });
+      if (this.stepsElements[0]) {
+        this.stepsElements[0].classList.add('active');
+      }
+    },
+
+    clearLogs() {
+      if (!this.logsContainer) return;
+      this.logsContainer.innerHTML = '';
+      if (this.emptyElement) {
+        this.logsContainer.appendChild(this.emptyElement);
+      }
+    },
+
+    appendEntry(element) {
+      this.ensurePanel();
+      if (!this.logsContainer) return;
+
+      if (this.emptyElement && this.emptyElement.parentElement === this.logsContainer) {
+        this.emptyElement.remove();
+      }
+
+      this.logsContainer.appendChild(element);
+
+      while (this.logsContainer.childElementCount > this.maxEntries) {
+        this.logsContainer.removeChild(this.logsContainer.firstElementChild);
+      }
+
+      this.logsContainer.scrollTop = this.logsContainer.scrollHeight;
+    },
+
+    createEntry(type, message, detail) {
+      const entry = document.createElement('div');
+      entry.className = `groups-terminal-entry ${type}`;
+
+      const timeEl = document.createElement('time');
+      timeEl.textContent = new Date().toLocaleTimeString('fr-FR', { hour12: false });
+
+      const iconEl = document.createElement('span');
+      iconEl.className = 'entry-icon';
+      iconEl.textContent = type === 'error' ? '⛔' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
+
+      const messageEl = document.createElement('div');
+      messageEl.className = 'entry-message';
+      messageEl.textContent = message;
+
+      if (detail !== undefined && detail !== null && detail !== '') {
+        const detailEl = document.createElement('div');
+        detailEl.className = 'entry-detail';
+        if (typeof detail === 'string') {
+          detailEl.textContent = detail;
+        } else {
+          try {
+            detailEl.textContent = JSON.stringify(detail, null, 2);
+          } catch (err) {
+            detailEl.textContent = String(detail);
+          }
+        }
+        messageEl.appendChild(detailEl);
+      }
+
+      entry.appendChild(timeEl);
+      entry.appendChild(iconEl);
+      entry.appendChild(messageEl);
+
+      return entry;
+    },
+
+    log(type, message, detail) {
+      this.ensurePanel();
+      const entry = this.createEntry(type, message, detail);
+      this.appendEntry(entry);
+      if (!this.visible) {
+        this.unread += 1;
+        this.updateBadge();
+      }
+    },
+
+    logInfo(message, detail) {
+      this.log('info', message, detail);
+    },
+
+    logSuccess(message, detail) {
+      this.log('success', message, detail);
+    },
+
+    logWarning(message, detail) {
+      this.log('warning', message, detail);
+    },
+
+    logError(message, detail) {
+      this.log('error', message, detail);
+      this.show();
+    },
+
+    startSession(context = {}) {
+      this.ensurePanel();
+      this.resetSteps();
+      this.logInfo('🚀 Nouvelle génération demandée', context);
+      this.show();
+    },
+
+    setStep(stepIndex) {
+      this.ensurePanel();
+      this.stepsElements.forEach((step, index) => {
+        if (index < stepIndex) {
+          step.classList.add('completed');
+          step.classList.remove('active');
+        } else if (index === stepIndex) {
+          step.classList.add('active');
+          step.classList.remove('completed');
+        } else {
+          step.classList.remove('active');
+          step.classList.remove('completed');
+        }
+      });
+    }
+  };
+
+  window.GroupsModuleTerminal = TerminalPanel;
+
   // ========== VALIDATION ET NORMALISATION DES DONNÉES ==========
 
   /**
@@ -571,6 +891,102 @@
   }
 
   /**
+   * Harmonise les propriétés critiques d'un élève pour l'affichage/export
+   * (alias nom/prénom, LV2 normalisée, options en tableau, SOURCE fiable, scores numériques)
+   * @param {Object} student
+   * @returns {Object|null}
+   */
+  function normalizeStudentForResults(student) {
+    if (!student) return null;
+
+    const coerceNumber = (...values) => {
+      for (const value of values) {
+        if (value === undefined || value === null || value === '') continue;
+        const num = parseFloat(value);
+        if (!isNaN(num) && isFinite(num)) {
+          return num;
+        }
+      }
+      return 0;
+    };
+
+    const normalizeOptionsArray = () => {
+      if (Array.isArray(student.options)) {
+        return student.options;
+      }
+      if (Array.isArray(student.optionsList)) {
+        return student.optionsList;
+      }
+      const rawOptions = student.opt || student.optionsRaw || student.optionsString || student.options;
+      if (typeof rawOptions === 'string' && rawOptions.trim() !== '') {
+        return rawOptions.split(/[;,/]/).map(opt => opt.trim()).filter(Boolean);
+      }
+      return [];
+    };
+
+    const lastName = String(student.lastName || student.nom || '').trim();
+    const firstName = String(student.firstName || student.prenom || '').trim();
+    const classe = String(student.class || student.classe || student.className || '').trim();
+    const sourceClass = String(student.SOURCE || student.source || student._SOURCE_CLASS || classe).trim() || classe;
+    const lv2 = (student.lv2 || student.LV2 || '').toString().trim().toUpperCase() || 'ESP';
+    const sexe = (student.sexe || student.gender || '').toString().trim().toUpperCase();
+
+    const optionsArray = normalizeOptionsArray().map(opt => opt.toString().trim()).filter(Boolean);
+    const normalizedOptions = optionsArray.map(opt => opt.toUpperCase());
+    const optionsString = typeof student.opt === 'string' && student.opt.trim() !== ''
+      ? student.opt.trim()
+      : normalizedOptions.join(';');
+
+    const scoreF = coerceNumber(student.scoreF, student.scores?.F, student.scores?.SCOREF, student.besoinsF);
+    const scoreM = coerceNumber(student.scoreM, student.scores?.M, student.scores?.SCOREM, student.besoinsM);
+    const com = coerceNumber(student.com, student.scores?.COM);
+    const tra = coerceNumber(student.tra, student.scores?.TRA);
+    const part = coerceNumber(student.part, student.scores?.PART);
+    const abs = coerceNumber(student.abs, student.scores?.ABS);
+
+    return {
+      ...student,
+      id: (student.id || '').toString().trim(),
+      lastName,
+      nom: lastName,
+      firstName,
+      prenom: firstName,
+      sexe,
+      gender: sexe,
+      class: classe,
+      classe,
+      className: student.className || classe,
+      SOURCE: sourceClass,
+      source: sourceClass,
+      _SOURCE_CLASS: sourceClass,
+      lv2,
+      LV2: lv2,
+      opt: optionsString,
+      options: normalizedOptions,
+      optionsList: normalizedOptions,
+      scores: {
+        F: scoreF,
+        M: scoreM,
+        COM: com,
+        TRA: tra,
+        PART: part,
+        ABS: abs
+      },
+      scoreF,
+      scoreM,
+      com,
+      tra,
+      part,
+      abs
+    };
+  }
+
+  if (typeof window !== 'undefined') {
+    window.GroupsModuleV4Utils = window.GroupsModuleV4Utils || {};
+    window.GroupsModuleV4Utils.normalizeStudentForResults = normalizeStudentForResults;
+  }
+
+  /**
    * Normalise les données d'une classe depuis le format FIN
    * UTILISE COLLECTE RÉCURSIVE pour gérer les structures complexes
    * @param {string} className - Nom de la classe
@@ -829,6 +1245,10 @@
       document.body.appendChild(moduleContainer);
     }
 
+    if (window.GroupsModuleTerminal && typeof window.GroupsModuleTerminal.init === 'function') {
+      window.GroupsModuleTerminal.init(moduleContainer);
+    }
+
     // Afficher un loader pendant le chargement des données
     const loaderId = 'groups-data-loader';
     if (!document.getElementById(loaderId)) {
@@ -948,15 +1368,43 @@
       moduleContainer = null;    // ← Réinitialiser la variable
       console.log('✅ Module Groupes V4 fermé et nettoyé');
     }
+
+    if (window.GroupsModuleTerminal && typeof window.GroupsModuleTerminal.destroy === 'function') {
+      window.GroupsModuleTerminal.destroy();
+    }
   }
 
   /**
    * Gère l'événement de génération des groupes
    */
   function handleGenerateGroups(event) {
-    const { scenario, mode, selectedLanguage, regroupements } = event.detail;
+    const { scenario, mode, selectedLanguage, regroupements, criteriaWeights, weightsSource } = event.detail;
 
-    console.log('🎯 Génération des groupes demandée:', { scenario, mode, selectedLanguage, regroupements });
+    const sanitizedCriteriaWeights = sanitizeCriteriaWeights(criteriaWeights);
+    const criteriaWeightsSource = weightsSource || 'scenario-default';
+
+    console.log('🎯 Génération des groupes demandée:', {
+      scenario,
+      mode,
+      selectedLanguage,
+      regroupements,
+      criteriaWeights: sanitizedCriteriaWeights,
+      weightsSource: criteriaWeightsSource
+    });
+
+    if (window.GroupsModuleTerminal && typeof window.GroupsModuleTerminal.startSession === 'function') {
+      window.GroupsModuleTerminal.startSession({
+        scenario,
+        mode,
+        langue: selectedLanguage || '---',
+        regroupements: regroupements.map(reg => ({
+          nom: reg.name,
+          groupes: reg.numGroups,
+          classes: reg.classes.length
+        })),
+        pondérations: sanitizedCriteriaWeights
+      });
+    }
 
     // Afficher le LoadingOverlay
     if (window.UIComponents && window.UIComponents.LoadingOverlay) {
@@ -967,6 +1415,9 @@
     const progressHandler = (e) => {
       if (window.UIComponents && window.UIComponents.LoadingOverlay) {
         window.UIComponents.LoadingOverlay.setStep(e.detail.step);
+      }
+      if (window.GroupsModuleTerminal && typeof window.GroupsModuleTerminal.setStep === 'function') {
+        window.GroupsModuleTerminal.setStep(e.detail.step);
       }
     };
     document.addEventListener('algorithm:progress', progressHandler);
@@ -1013,7 +1464,9 @@
           students,
           mode,
           numGroups: regroupement.numGroups,
-          scenario
+          scenario,
+          criteriaWeights: sanitizedCriteriaWeights,
+          criteriaWeightsSource
         });
 
         return {
@@ -1050,13 +1503,41 @@
         stats: validResults.flatMap(r => r.result.stats),
         metadata: {
           scenario,
+          scenarioApplied: scenario,
           mode,
           selectedLanguage,
           totalRegroupements: validResults.length,
           totalStudents: validResults.reduce((sum, r) => sum + r.result.metadata.totalStudents, 0),
           totalGroups: globalGroupCounter - 1, // Nombre total de groupes créés
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          criteriaWeights: sanitizedCriteriaWeights,
+          criteriaWeightsSource,
+          criteriaWeightsOverridesApplied: false
         }
+      };
+
+      combinedResults.groups = combinedResults.groups.map(group => {
+        const normalizedStudents = (group.students || [])
+          .map(normalizeStudentForResults)
+          .filter(student => student !== null);
+        return {
+          ...group,
+          students: normalizedStudents
+        };
+      });
+
+      combinedResults.metadata.totalStudents = combinedResults.groups.reduce(
+        (sum, group) => sum + (group.students ? group.students.length : 0),
+        0
+      );
+
+      const firstMetadata = validResults[0]?.result?.metadata || {};
+      combinedResults.metadata = {
+        ...combinedResults.metadata,
+        scenarioApplied: firstMetadata.scenarioApplied || combinedResults.metadata.scenarioApplied,
+        criteriaWeights: firstMetadata.criteriaWeights || combinedResults.metadata.criteriaWeights,
+        criteriaWeightsSource: firstMetadata.criteriaWeightsSource || combinedResults.metadata.criteriaWeightsSource,
+        criteriaWeightsOverridesApplied: firstMetadata.criteriaWeightsOverridesApplied ?? combinedResults.metadata.criteriaWeightsOverridesApplied
       };
 
       // Émettre l'événement de succès
@@ -1066,6 +1547,18 @@
       document.dispatchEvent(successEvent);
 
       console.log('✅ Groupes générés avec succès', combinedResults);
+
+      if (window.GroupsModuleTerminal && typeof window.GroupsModuleTerminal.logSuccess === 'function') {
+        window.GroupsModuleTerminal.logSuccess('✨ Distribution terminée', {
+          groupes: combinedResults.metadata.totalGroups,
+          eleves: combinedResults.metadata.totalStudents,
+          scenario: combinedResults.metadata.scenario,
+          mode: combinedResults.metadata.mode
+        });
+        if (typeof window.GroupsModuleTerminal.setStep === 'function') {
+          window.GroupsModuleTerminal.setStep(TERMINAL_STEPS.length);
+        }
+      }
 
       // Masquer le LoadingOverlay après un court délai
       setTimeout(() => {
@@ -1091,6 +1584,10 @@
       }
       document.removeEventListener('algorithm:progress', progressHandler);
 
+      if (window.GroupsModuleTerminal && typeof window.GroupsModuleTerminal.logError === 'function') {
+        window.GroupsModuleTerminal.logError('❌ Erreur lors de la génération', error.message || error);
+      }
+
       // Toast d'erreur
       if (window.UIComponents && window.UIComponents.Toast) {
         window.UIComponents.Toast.error(`❌ Erreur : ${error.message}`);
@@ -1110,6 +1607,13 @@
   function handleGroupsGenerated(event) {
     console.log('📊 Résultats reçus:', event.detail);
 
+    if (window.GroupsModuleTerminal && typeof window.GroupsModuleTerminal.logInfo === 'function') {
+      window.GroupsModuleTerminal.logInfo('📊 Résultats reçus', {
+        groupes: event.detail?.metadata?.totalGroups,
+        eleves: event.detail?.metadata?.totalStudents
+      });
+    }
+
     // Afficher les résultats dans l'interface
     if (window.GroupsInterfaceV4) {
       window.GroupsInterfaceV4.displayResults(event.detail);
@@ -1121,6 +1625,10 @@
    */
   function handleGroupsError(event) {
     console.error('❌ Erreur reçue:', event.detail);
+
+    if (window.GroupsModuleTerminal && typeof window.GroupsModuleTerminal.logError === 'function') {
+      window.GroupsModuleTerminal.logError('❌ Erreur du moteur', event.detail?.message || 'Erreur inconnue');
+    }
 
     // Afficher l'erreur dans l'interface
     if (window.GroupsInterfaceV4) {
