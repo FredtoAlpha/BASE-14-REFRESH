@@ -85,6 +85,91 @@ const GroupsInterfaceV4 = (function() {
     }
   };
 
+  const normalizeStudentForUI = student => {
+    if (!student) return null;
+
+    if (window.GroupsModuleV4Utils && typeof window.GroupsModuleV4Utils.normalizeStudentForResults === 'function') {
+      return window.GroupsModuleV4Utils.normalizeStudentForResults(student);
+    }
+
+    const coerceNumber = (...values) => {
+      for (const value of values) {
+        if (value === undefined || value === null || value === '') continue;
+        const num = parseFloat(value);
+        if (!isNaN(num) && isFinite(num)) {
+          return num;
+        }
+      }
+      return 0;
+    };
+
+    const collectOptions = () => {
+      if (Array.isArray(student.options)) return student.options;
+      if (Array.isArray(student.optionsList)) return student.optionsList;
+      const raw = student.opt || student.optionsRaw || student.optionsString || student.options;
+      if (typeof raw === 'string' && raw.trim() !== '') {
+        return raw.split(/[;,/]/).map(opt => opt.trim()).filter(Boolean);
+      }
+      return [];
+    };
+
+    const lastName = (student.lastName || student.nom || '').toString().trim();
+    const firstName = (student.firstName || student.prenom || '').toString().trim();
+    const classe = (student.class || student.classe || student.className || '').toString().trim();
+    const sourceClass = (student.SOURCE || student.source || student._SOURCE_CLASS || classe || '').toString().trim() || classe;
+    const lv2 = (student.lv2 || student.LV2 || '').toString().trim().toUpperCase() || 'ESP';
+    const sexe = (student.sexe || student.gender || '').toString().trim().toUpperCase();
+
+    const optionsArray = collectOptions().map(opt => opt.toString().trim()).filter(Boolean);
+    const normalizedOptions = optionsArray.map(opt => opt.toUpperCase());
+    const optionsString = typeof student.opt === 'string' && student.opt.trim() !== ''
+      ? student.opt.trim()
+      : normalizedOptions.join(';');
+
+    const scoreF = coerceNumber(student.scoreF, student.scores?.F, student.scores?.SCOREF, student.besoinsF);
+    const scoreM = coerceNumber(student.scoreM, student.scores?.M, student.scores?.SCOREM, student.besoinsM);
+    const com = coerceNumber(student.com, student.scores?.COM);
+    const tra = coerceNumber(student.tra, student.scores?.TRA);
+    const part = coerceNumber(student.part, student.scores?.PART);
+    const abs = coerceNumber(student.abs, student.scores?.ABS);
+
+    return {
+      ...student,
+      id: (student.id || '').toString().trim(),
+      lastName,
+      nom: lastName,
+      firstName,
+      prenom: firstName,
+      sexe,
+      gender: sexe,
+      class: classe,
+      classe,
+      className: student.className || classe,
+      SOURCE: sourceClass,
+      source: sourceClass,
+      _SOURCE_CLASS: sourceClass,
+      lv2,
+      LV2: lv2,
+      opt: optionsString,
+      options: normalizedOptions,
+      optionsList: normalizedOptions,
+      scores: {
+        F: scoreF,
+        M: scoreM,
+        COM: com,
+        TRA: tra,
+        PART: part,
+        ABS: abs
+      },
+      scoreF,
+      scoreM,
+      com,
+      tra,
+      part,
+      abs
+    };
+  };
+
   // ════════════════════════════════════════════════════════════════
   // WRAPPER GOOGLE SCRIPT RUN
   // ════════════════════════════════════════════════════════════════
@@ -1659,6 +1744,18 @@ const GroupsInterfaceV4 = (function() {
    * Affiche les résultats de génération
    */
   function displayResults(results) {
+    const normalizedGroups = (results.groups || []).map(group => ({
+      ...group,
+      students: (group.students || []).map(normalizeStudentForUI).filter(student => student !== null)
+    }));
+
+    results.groups = normalizedGroups;
+    results.stats = Array.isArray(results.stats) ? results.stats : [];
+    results.metadata = {
+      ...(results.metadata || {}),
+      totalStudents: normalizedGroups.reduce((sum, group) => sum + group.students.length, 0)
+    };
+
     state.currentResults = results;
 
     // Calculer les moyennes globales COM/TRA/PART/ABS
@@ -2817,7 +2914,7 @@ const GroupsInterfaceV4 = (function() {
           groups: result.groups.map(g => ({
             id: g.metadata.groupId,
             name: g.metadata.groupName,
-            students: g.students,
+            students: (g.students || []).map(normalizeStudentForUI).filter(student => student !== null),
             regroupementName: g.metadata.regroupementName,
             regroupementId: (g.metadata.regroupementName || '').replace(/\s+/g, '-').toLowerCase()
           })),
@@ -2825,11 +2922,16 @@ const GroupsInterfaceV4 = (function() {
             scenario: result.groups[0].metadata.scenario,
             mode: result.groups[0].metadata.mode,
             totalGroups: result.groups.length,
-            totalStudents: result.groups.reduce((sum, g) => sum + g.students.length, 0),
+            totalStudents: result.groups.reduce((sum, g) => sum + ((g.students || []).length), 0),
             timestamp: new Date().toISOString(),
             loadedFrom: result.sheetNames
           }
         };
+
+        loadedResults.metadata.totalStudents = loadedResults.groups.reduce(
+          (sum, group) => sum + group.students.length,
+          0
+        );
 
         // Afficher les résultats chargés
         displayResults(loadedResults);
